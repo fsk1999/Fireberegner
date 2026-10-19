@@ -46,10 +46,19 @@
     "oneOffEventAmount",
     "returnVolatility",
     "monteCarloRuns",
+    "housingValue",
+    "housingDebt",
+    "housingAnnualAmortization",
+    "housingPriceGrowth",
+    "housingOwnershipShare",
+    "housingUnlockShare",
+    "housingUnlockAge",
   ]);
   const STRING_FIELDS = Object.freeze([
     "returnStrategy",
     "withdrawalStrategy",
+    "housingType",
+    "housingUnlockAgeType",
   ]);
   const BOOLEAN_FIELDS = Object.freeze([
     "withdrawalAfterTax",
@@ -57,6 +66,8 @@
     "redirectPensionContributionsToFreeFunds",
     "isCouple",
     "includeFolkepension",
+    "includeHousing",
+    "housingUnlock",
   ]);
   const INPUT_FIELDS = Object.freeze([
     ...NUMBER_FIELDS,
@@ -80,6 +91,17 @@
     withdrawalStrategy: "proportional",
     isCouple: false,
     includeFolkepension: false,
+    includeHousing: false,
+    housingType: "owner",
+    housingValue: 8500000,
+    housingDebt: 1600000,
+    housingAnnualAmortization: 0,
+    housingPriceGrowth: 0.02,
+    housingOwnershipShare: 0.5,
+    housingUnlock: true,
+    housingUnlockShare: 0.5,
+    housingUnlockAgeType: "fire",
+    housingUnlockAge: 60,
   });
 
   function invalidFormat() {
@@ -198,8 +220,21 @@
     const invalidWithdrawalStrategy = !["proportional", "taxOptimal"].includes(
       inputs.withdrawalStrategy,
     );
+    const invalidHousingType = !["owner", "coop", "rent"].includes(
+      inputs.housingType,
+    );
+    const invalidHousingUnlockAgeType = !["fire", "custom"].includes(
+      inputs.housingUnlockAgeType,
+    );
 
-    if (invalidNumber || invalidBoolean || invalidStrategy || invalidWithdrawalStrategy) {
+    if (
+      invalidNumber ||
+      invalidBoolean ||
+      invalidStrategy ||
+      invalidWithdrawalStrategy ||
+      invalidHousingType ||
+      invalidHousingUnlockAgeType
+    ) {
       throw new Error("Koden indeholder ugyldige FIRE-input.");
     }
 

@@ -2547,6 +2547,53 @@ td.mc-comp-col-diff.is-negative {
   color: #334155;
 }
 
+#housing-section {
+  border-bottom: 1px solid var(--line);
+}
+
+.slider-input-group {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.slider-input-group input[type="range"] {
+  flex: 1 1 auto;
+  accent-color: #164b39;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.slider-input-group .input-suffix {
+  flex: 0 0 100px;
+}
+
+.badge {
+  background: #f1f3f4;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-secondary);
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-medium);
+  padding: 2px 8px;
+}
+
+.badge-active {
+  background: #e6f4ea;
+  border-color: #34a853;
+  color: #137333;
+}
+
+.housing-col {
+  background-color: rgba(22, 75, 57, 0.04);
+}
+
+th.housing-col {
+  color: #164b39;
+  font-weight: var(--weight-bold);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -370,6 +370,31 @@
       monteCarloRuns: form.elements.monteCarloRuns
         ? readNumber("monteCarloRuns")
         : 500,
+      includeHousing: form.elements.includeHousing?.checked ?? false,
+      housingType: form.elements.housingType?.value ?? "owner",
+      housingValue: form.elements.housingValue
+        ? readNumber("housingValue")
+        : 8500000,
+      housingDebt: form.elements.housingDebt
+        ? readNumber("housingDebt")
+        : 1600000,
+      housingAnnualAmortization: form.elements.housingAnnualAmortization
+        ? readNumber("housingAnnualAmortization")
+        : 0,
+      housingPriceGrowth: form.elements.housingPriceGrowth
+        ? readNumber("housingPriceGrowth", 100)
+        : 0.02,
+      housingOwnershipShare: form.elements.housingOwnershipShare
+        ? readNumber("housingOwnershipShare", 100)
+        : 0.5,
+      housingUnlock: form.elements.housingUnlock?.value === "true",
+      housingUnlockShare: form.elements.housingUnlockShare
+        ? readNumber("housingUnlockShare", 100)
+        : 0.5,
+      housingUnlockAgeType: form.elements.housingUnlockAgeType?.value ?? "fire",
+      housingUnlockAge: form.elements.housingUnlockAge
+        ? readNumber("housingUnlockAge")
+        : 60,
       optimizationLocks: Object.fromEntries(
         contributionLockButtons.map((button) => [
           button.dataset.lockContribution,
@@ -391,6 +416,9 @@
     "defensiveReturnRate",
     "spendingStepPercent",
     "returnVolatility",
+    "housingPriceGrowth",
+    "housingOwnershipShare",
+    "housingUnlockShare",
   ]);
 
   function setPlanCodeStatus(message) {
@@ -601,6 +629,47 @@
       folkepensionState.textContent = form.elements.includeFolkepension.checked
         ? "Medregnes"
         : "Udelades";
+    }
+  }
+
+  const housingFieldsContainer = document.querySelector("#housing-fields-container");
+  const housingSummaryBadge = document.querySelector("#housing-summary-badge");
+  const housingUnlockOptions = document.querySelector("#housing-unlock-options");
+  const housingUnlockAgeField = document.querySelector("#housing-unlock-age-field");
+
+  function renderHousingState() {
+    const included = Boolean(form.elements.includeHousing?.checked);
+    if (housingFieldsContainer) {
+      housingFieldsContainer.style.display = included ? "grid" : "none";
+    }
+    if (housingSummaryBadge) {
+      housingSummaryBadge.textContent = included ? "Medregnet" : "Fravalgt";
+      housingSummaryBadge.className = included ? "badge badge-active" : "badge";
+    }
+    if (housingUnlockOptions && form.elements.housingUnlock) {
+      housingUnlockOptions.style.display =
+        form.elements.housingUnlock.value === "true" ? "grid" : "none";
+    }
+    if (housingUnlockAgeField && form.elements.housingUnlockAgeType) {
+      housingUnlockAgeField.style.display =
+        form.elements.housingUnlockAgeType.value === "custom" ? "flex" : "none";
+    }
+  }
+
+  function syncHousingSliders(target) {
+    if (!target) return;
+    if (target.name === "housingPriceGrowthSlider" && form.elements.housingPriceGrowth) {
+      form.elements.housingPriceGrowth.value = target.value;
+    } else if (target.name === "housingPriceGrowth" && form.elements.housingPriceGrowthSlider) {
+      form.elements.housingPriceGrowthSlider.value = target.value;
+    } else if (target.name === "housingOwnershipShareSlider" && form.elements.housingOwnershipShare) {
+      form.elements.housingOwnershipShare.value = target.value;
+    } else if (target.name === "housingOwnershipShare" && form.elements.housingOwnershipShareSlider) {
+      form.elements.housingOwnershipShareSlider.value = target.value;
+    } else if (target.name === "housingUnlockShareSlider" && form.elements.housingUnlockShare) {
+      form.elements.housingUnlockShare.value = target.value;
+    } else if (target.name === "housingUnlockShare" && form.elements.housingUnlockShareSlider) {
+      form.elements.housingUnlockShareSlider.value = target.value;
     }
   }
 
@@ -1300,7 +1369,7 @@
     return `${prefix}${currency.format(diff)}`;
   }
 
-  function rowMarkup(row, freeFundsInventoryShare, band, showComparison) {
+  function rowMarkup(row, freeFundsInventoryShare, band, showComparison, includeHousing = false) {
     const inventoryTax =
       freeFundsInventoryShare > 0 && row.phase !== "Slut"
         ? currency.format(row.annualFreeFundsTax)
@@ -1318,6 +1387,7 @@
     if (row.atpGross > 0) extras.push("ATP");
     if (row.efterloenGross > 0) extras.push("efterløn");
     if (row.oneOffCashflow && Math.abs(row.oneOffCashflow) > 0) extras.push("engangsbeløb");
+    if (row.housingUnlocked && row.housingUnlocked > 0) extras.push("frigjort friværdi");
     if (extras.length > 0) {
       source = source === "—" ? extras.join(" & ") : `${source} (+ ${extras.join(", ")})`;
     }
@@ -1348,6 +1418,8 @@
         <td>${currency.format(row.freeFunds)}</td>
         <td>${currency.format(row.ask)}</td>
         <td>${currency.format(row.totalDepotValue)}</td>
+        <td class="housing-col"${includeHousing ? "" : " hidden"}>${row.housingEquity ? currency.format(row.housingEquity) : "—"}</td>
+        <td class="housing-col"${includeHousing ? "" : " hidden"}>${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</td>
         <td>${row.contribution ? currency.format(row.contribution) : "—"}</td>
         <td>${row.withdrawal ? currency.format(row.withdrawal) : "—"}</td>
         <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
@@ -2004,6 +2076,37 @@
       ),
     );
 
+    if (calculation.includeHousing) {
+      setText(
+        "initial-housing-equity",
+        currency.format(calculation.initialHousingEquity),
+      );
+      setText(
+        "fire-housing-equity",
+        calculation.fireHousingEquity !== null
+          ? currency.format(calculation.fireHousingEquity)
+          : "—",
+      );
+      setText(
+        "total-housing-unlocked",
+        currency.format(calculation.totalHousingUnlocked),
+      );
+      setText(
+        "final-housing-equity",
+        currency.format(calculation.finalHousingEquity),
+      );
+      setText(
+        "final-wealth-with-housing",
+        currency.format(calculation.finalReserveAfterTaxWithHousing),
+      );
+    }
+    document.querySelectorAll(".housing-key-figure").forEach((el) => {
+      el.hidden = !calculation.includeHousing;
+    });
+    document.querySelectorAll(".housing-col").forEach((el) => {
+      el.hidden = !calculation.includeHousing;
+    });
+
     const activeTableCalc =
       mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]
         ? mc.scenarios[mcTableScenario].calculation
@@ -2056,6 +2159,7 @@
           inputs.freeFundsInventoryShare,
           bandsByAge.get(row.age),
           showCompCols,
+          calculation.includeHousing,
         ),
       )
       .join("");
@@ -2144,6 +2248,15 @@
     if (event.target === form.elements.includeFolkepension) {
       renderFolkepensionState();
     }
+    syncHousingSliders(event.target);
+    if (
+      event.target === form.elements.includeHousing ||
+      event.target === form.elements.housingUnlock ||
+      event.target === form.elements.housingUnlockAgeType ||
+      event.target.name === "housingType"
+    ) {
+      renderHousingState();
+    }
     update(event);
   });
   optimizeButton.addEventListener("click", runContributionOptimization);
@@ -2215,6 +2328,7 @@
   renderReturnStrategyState();
   renderCoupleState();
   renderFolkepensionState();
+  renderHousingState();
 
   update();
 })();

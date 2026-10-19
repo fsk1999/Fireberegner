@@ -950,6 +950,98 @@
               </details>
 
               <details
+                id="housing-section"
+                class="assumptions"
+                data-step-section="housing-section"
+              >
+                <summary>
+                  <span>Bolig og friværdi</span>
+                  <span id="housing-summary-badge" class="badge">Fravalgt</span>
+                </summary>
+                <div class="form-grid assumptions-grid">
+                  <label class="field full-width">
+                    <span class="checkbox-label">
+                      <input id="include-housing" name="includeHousing" type="checkbox" />
+                      <b>Medregn bolig og friværdi i beregningen</b>
+                    </span>
+                  </label>
+
+                  <div id="housing-fields-container" class="form-grid assumptions-grid full-width" style="display: none;">
+                    <label class="field">
+                      <span>Boligtype <i title="Vælg om du ejer en ejerbolig, en andelsbolig eller bor til leje.">i</i></span>
+                      <select name="housingType">
+                        <option value="owner" selected>Ejerbolig</option>
+                        <option value="coop">Andelsbolig</option>
+                        <option value="rent">Lejebolig / Ingen</option>
+                      </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Boligens salgsværdi i dag (kr.) <i title="Nuværende markedsværdi for hele boligen før fradrag for gæld.">i</i></span>
+                      <input name="housingValue" type="text" inputmode="numeric" data-number-format="integer" value="8.500.000" />
+                    </label>
+
+                    <label class="field">
+                      <span>Restgæld i boligen i dag (kr.) <i title="Samlet realkredit- og bankgæld i boligen i dag.">i</i></span>
+                      <input name="housingDebt" type="text" inputmode="numeric" data-number-format="integer" value="1.600.000" />
+                    </label>
+
+                    <label class="field">
+                      <span>Årligt afdrag på gæld (kr./år) <i title="Hvor meget der afdrages på restgælden pr. år (0 kr. ved afdragsfrit lån).">i</i></span>
+                      <input name="housingAnnualAmortization" type="text" inputmode="numeric" data-number-format="integer" value="0" />
+                    </label>
+
+                    <label class="field">
+                      <span>Forventet prisstigning pr. år (%) <i title="Nominel årlig værdistigning på boligen (standard 2 %/år svarende til inflation).">i</i></span>
+                      <span class="slider-input-group">
+                        <input name="housingPriceGrowthSlider" type="range" min="-2" max="10" step="0.5" value="2" />
+                        <span class="input-suffix"><input name="housingPriceGrowth" type="number" min="-2" max="10" step="0.5" value="2" /><b>%</b></span>
+                      </span>
+                    </label>
+
+                    <label class="field">
+                      <span>Din ejerandel (%) <i title="Din andel af boligen og friværdien (f.eks. 50 % ved to ejere eller 100 % som eneejer).">i</i></span>
+                      <span class="slider-input-group">
+                        <input name="housingOwnershipShareSlider" type="range" min="0" max="100" step="5" value="50" />
+                        <span class="input-suffix"><input name="housingOwnershipShare" type="number" min="0" max="100" step="1" value="50" /><b>%</b></span>
+                      </span>
+                    </label>
+
+                    <label class="field">
+                      <span>Frigør friværdi ved stop? <i title="Om der skal frigøres friværdi (f.eks. via nedsparingslån eller salg/nedskalering) til at finansiere FIRE. Skattefrit efter Parcelhusreglen.">i</i></span>
+                      <select name="housingUnlock">
+                        <option value="false">Nej (bevar friværdi som reserve)</option>
+                        <option value="true" selected>Ja (frigør friværdi til forbrug)</option>
+                      </select>
+                    </label>
+
+                    <div id="housing-unlock-options" class="form-grid assumptions-grid full-width">
+                      <label class="field">
+                        <span>Andel der frigøres (%) <i title="Hvor stor en procentdel af din friværdi der frigøres som likvide midler (f.eks. 50 % ved friværdilån eller 100 % ved salg til lejebolig).">i</i></span>
+                        <span class="slider-input-group">
+                          <input name="housingUnlockShareSlider" type="range" min="10" max="100" step="5" value="50" />
+                          <span class="input-suffix"><input name="housingUnlockShare" type="number" min="10" max="100" step="1" value="50" /><b>%</b></span>
+                        </span>
+                      </label>
+
+                      <label class="field">
+                        <span>Hvornår frigøres friværdi? <i title="Vælg om friværdien frigøres automatisk det år du stopper med at arbejde, eller ved en fast alder.">i</i></span>
+                        <select name="housingUnlockAgeType">
+                          <option value="fire" selected>Ved stop med arbejde (FIRE)</option>
+                          <option value="custom">Ved specifik alder</option>
+                        </select>
+                      </label>
+
+                      <label id="housing-unlock-age-field" class="field" style="display: none;">
+                        <span>Alder for frigørelse <i title="Den specifikke alder hvor friværdien frigøres som skattefri likviditet.">i</i></span>
+                        <span class="input-suffix"><input name="housingUnlockAge" type="number" min="18" max="100" value="60" /><b>år</b></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <details
                 id="monte-carlo-section"
                 class="assumptions"
                 data-step-section="monte-carlo-section"
@@ -1421,6 +1513,8 @@
                       <th>Frie midler</th>
                       <th>Aktiesparekonto</th>
                       <th>Samlet depotværdi</th>
+                      <th class="housing-col" hidden>Friværdi</th>
+                      <th class="housing-col" hidden>Samlet formue (inkl. bolig)</th>
                       <th>Indbetaling</th>
                       <th>Brutto-udb.</th>
                       <th>Netto-udb.</th>
@@ -1594,6 +1688,26 @@
               <div>
                 <dt>Resterende frie midler og ASK</dt>
                 <dd id="final-free-funds"></dd>
+              </div>
+              <div class="housing-key-figure" hidden>
+                <dt>Friværdi i bolig i dag</dt>
+                <dd id="initial-housing-equity"></dd>
+              </div>
+              <div class="housing-key-figure" hidden>
+                <dt>Friværdi ved FIRE</dt>
+                <dd id="fire-housing-equity"></dd>
+              </div>
+              <div class="housing-key-figure" hidden>
+                <dt>Frigjort friværdi i alt til forbrug</dt>
+                <dd id="total-housing-unlocked"></dd>
+              </div>
+              <div class="housing-key-figure" hidden>
+                <dt>Resterende friværdi på slutdatoen</dt>
+                <dd id="final-housing-equity"></dd>
+              </div>
+              <div class="housing-key-figure" hidden>
+                <dt>Samlet formue på slutdatoen (inkl. friværdi)</dt>
+                <dd id="final-wealth-with-housing"></dd>
               </div>
             </dl>
           </details>

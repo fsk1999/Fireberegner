@@ -196,8 +196,33 @@ console.assert(decodedLegacy.isCouple === false, "Legacy default isCouple should
 console.assert(decodedLegacy.withdrawalStrategy === "proportional", "Legacy default withdrawalStrategy should be proportional");
 console.assert(decodedLegacy.includeFolkepension === false, "Legacy default includeFolkepension should be false");
 console.assert(decodedLegacy.annualAskContribution === 0, "Legacy default annualAskContribution should be 0");
+console.assert(decodedLegacy.includeHousing === false, "Legacy default includeHousing should be false");
 console.log("✓ Plan code forward and backward compatibility verified.");
 
+console.log("\n=== 9. Housing & Home Equity (Bolig & Friværdi) ===");
+const housingInputs = {
+  ...baseInputs,
+  includeHousing: true,
+  housingType: "owner",
+  housingValue: 8500000,
+  housingDebt: 1600000,
+  housingAnnualAmortization: 0,
+  housingPriceGrowth: 0.02,
+  housingOwnershipShare: 0.5,
+  housingUnlock: true,
+  housingUnlockShare: 0.5,
+  housingUnlockAgeType: "fire",
+};
+const housingCalc = FireCalculations.calculateFire(housingInputs);
+console.log("Without housing fireAge:", baseCalc.fireRow?.age, "With housing fireAge:", housingCalc.fireRow?.age);
+console.assert(housingCalc.fireRow !== null, "FIRE should be reachable with housing equity");
+console.assert(housingCalc.fireRow.age <= baseCalc.fireRow.age, "Unlocking housing equity should enable earlier or equal FIRE age");
+console.assert(housingCalc.initialHousingEquity === (8500000 - 1600000) * 0.5, "Initial equity calculation correct");
+console.assert(housingCalc.totalHousingUnlocked > 0, "Housing equity should be unlocked at FIRE");
+console.assert(housingCalc.planRows[0].housingEquity > 0, "Plan rows should contain housingEquity");
+console.assert(housingCalc.finalReserveAfterTaxWithHousing > housingCalc.finalReserveAfterTax, "Reserve with housing should be greater than portfolio reserve alone");
+console.log("✓ Housing equity calculation, unlock at FIRE, and wealth aggregation verified.");
+
 console.log("\n=================================");
-console.log("ALL 8 VERIFICATION SUITES PASSED!");
+console.log("ALL 9 VERIFICATION SUITES PASSED!");
 console.log("=================================");

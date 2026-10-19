@@ -326,6 +326,63 @@
     return 0;
   }
 
+  function calculateHousingForAge(inputs, age, effectiveFireAge = null) {
+    if (!inputs.includeHousing || inputs.housingType === "rent") {
+      return {
+        housingValue: 0,
+        housingDebt: 0,
+        housingEquity: 0,
+        unlockedAmount: 0,
+        isUnlockYear: false,
+      };
+    }
+
+    const currentAge = inputs.currentAge;
+    const year = Math.max(0, age - currentAge);
+    const inflation = inputs.inflationRate ?? 0.02;
+    const priceGrowth = inputs.housingPriceGrowth ?? 0.02;
+    const ownershipShare = Math.max(0, Math.min(1, inputs.housingOwnershipShare ?? 1.0));
+    const initialValue = inputs.housingValue ?? 0;
+    const initialDebt = inputs.housingDebt ?? 0;
+    const annualAmortization = inputs.housingAnnualAmortization ?? 0;
+
+    const realGrowthFactor = Math.pow((1 + priceGrowth) / (1 + inflation), year);
+    const inflationFactor = Math.pow(1 + inflation, year);
+
+    const nominalDebt = Math.max(0, initialDebt - annualAmortization * year);
+    const realDebt = nominalDebt / inflationFactor;
+
+    const totalPropertyValue = initialValue * realGrowthFactor;
+    const totalPropertyEquity = Math.max(0, totalPropertyValue - realDebt);
+    const myEquity = totalPropertyEquity * ownershipShare;
+
+    const unlockEnabled = Boolean(inputs.housingUnlock);
+    const unlockShare = Math.max(0, Math.min(1, inputs.housingUnlockShare ?? 0.5));
+    const unlockAgeType = inputs.housingUnlockAgeType ?? "fire";
+    const unlockCustomAge = inputs.housingUnlockAge ?? inputs.retirementAge;
+
+    const targetUnlockAge =
+      unlockAgeType === "fire"
+        ? (effectiveFireAge ?? inputs.retirementAge)
+        : unlockCustomAge;
+
+    const isUnlockYear = unlockEnabled && age === targetUnlockAge;
+    const unlockedAmount = isUnlockYear ? myEquity * unlockShare : 0;
+
+    const postUnlockEquity =
+      unlockEnabled && age >= targetUnlockAge
+        ? Math.max(0, myEquity * (1 - unlockShare))
+        : myEquity;
+
+    return {
+      housingValue: totalPropertyValue * ownershipShare,
+      housingDebt: realDebt * ownershipShare,
+      housingEquity: postUnlockEquity,
+      unlockedAmount,
+      isUnlockYear,
+    };
+  }
+
   function normalizeDate(date) {
     if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
       throw calculationError();
@@ -927,6 +984,11 @@
       atpGross: 0,
       efterloenGross: 0,
       oneOffCashflow: 0,
+      housingValue: 0,
+      housingDebt: 0,
+      housingEquity: 0,
+      housingUnlocked: 0,
+      totalWealthWithHousing: totalBalance,
       effectiveFreeFundsWithdrawalTaxRate: 0,
       effectiveWithdrawalTaxRate: 0,
       freeFundsCostBasis,
@@ -940,6 +1002,7 @@
 
     row.totalDepotValue = row.totalBalance +
       row.lifeAnnuityDepotValue - row.lifeAnnuity;
+    row.totalWealthWithHousing = row.totalBalance + (row.housingEquity ?? 0);
     const pensionBalance =
       row.ratePension + row.lifeAnnuityDepotValue + row.ageSavings;
     const freeBalance = row.freeFunds + row.ask;
@@ -1134,6 +1197,27 @@
     const payoutRate = inputs.lifeAnnuityPayoutRate ?? 0.0322;
     if (!Number.isFinite(payoutRate) || payoutRate <= -1) {
       throw new Error("Livrentens udbetalingsrente skal være større end -100 %.");
+    }
+
+    if (inputs.includeHousing) {
+      const housingValue = inputs.housingValue ?? 0;
+      const housingDebt = inputs.housingDebt ?? 0;
+      const amortization = inputs.housingAnnualAmortization ?? 0;
+      if (!Number.isFinite(housingValue) || housingValue < 0) {
+        throw new Error("Boligens værdi skal være 0 eller højere.");
+      }
+      if (!Number.isFinite(housingDebt) || housingDebt < 0) {
+        throw new Error("Restgæld i boligen skal være 0 eller højere.");
+      }
+      if (!Number.isFinite(amortization) || amortization < 0) {
+        throw new Error("Årligt afdrag på gæld skal være 0 eller højere.");
+      }
+      if (inputs.housingPriceGrowth !== undefined && (!Number.isFinite(inputs.housingPriceGrowth) || inputs.housingPriceGrowth <= -1)) {
+        throw new Error("Forventet prisstigning skal være større end -100 %.");
+      }
+      if (inputs.housingOwnershipShare !== undefined && (!Number.isFinite(inputs.housingOwnershipShare) || inputs.housingOwnershipShare < 0 || inputs.housingOwnershipShare > 1)) {
+        throw new Error("Ejerandel skal være mellem 0 og 100 %.");
+      }
     }
   }
 
@@ -1799,6 +1883,18 @@
           balances[LIFE_ANNUITY] = 0;
         }
 
+        const currentAgeYear = inputs.currentAge + year;
+        const effectiveFireAge = inputs.currentAge + startYear;
+        const housingInfo = calculateHousingForAge(
+          inputs,
+          currentAgeYear,
+          effectiveFireAge,
+        );
+        if (housingInfo.unlockedAmount > 0) {
+          balances[FREE_FUNDS_REALIZATION] += housingInfo.unlockedAmount;
+          freeFundsCostBasis += housingInfo.unlockedAmount;
+        }
+
         const periods = beforeRetirement
           ? yearsToRetirement - year
           : endYear - year;
@@ -1817,7 +1913,6 @@
         const lifeAnnuityWithdrawalTax =
           lifeAnnuityWithdrawal * pensionWithdrawalTax;
 
-        const currentAgeYear = inputs.currentAge + year;
         const baseDesired = desiredWithdrawalForAge(inputs, currentAgeYear);
         const oneOff = applyOneOffCashflowForAge(inputs, currentAgeYear);
         const atpIncome = (!beforeRetirement && inputs.atpAnnualIncome) ? inputs.atpAnnualIncome : 0;
@@ -1997,6 +2092,10 @@
                 atpGross: atpIncome,
                 efterloenGross: efterloenIncome,
                 oneOffCashflow: oneOff,
+                housingValue: housingInfo.housingValue,
+                housingDebt: housingInfo.housingDebt,
+                housingEquity: housingInfo.housingEquity,
+                housingUnlocked: housingInfo.unlockedAmount,
                 effectiveFreeFundsWithdrawalTaxRate,
                 effectiveWithdrawalTaxRate,
                 withdrawalSource,
@@ -2033,6 +2132,11 @@
       }
 
       if (shouldRecord) {
+        const endHousingInfo = calculateHousingForAge(
+          inputs,
+          inputs.currentAge + endYear,
+          inputs.currentAge + startYear,
+        );
         rows.push(
           createRow(
             inputs.currentAge + endYear,
@@ -2045,6 +2149,10 @@
               lifeAnnuityDepotValue: lifeAnnuityConverted
                 ? lifeAnnuityDepotValue(lifeAnnuityAnnualIncome, endYear)
                 : balances[LIFE_ANNUITY],
+              housingValue: endHousingInfo.housingValue,
+              housingDebt: endHousingInfo.housingDebt,
+              housingEquity: endHousingInfo.housingEquity,
+              housingUnlocked: 0,
             },
           ),
         );
@@ -2227,6 +2335,13 @@
     let drawdownStartContribution = 0;
 
     for (let year = 0; year <= yearsToRetirement; year += 1) {
+      const currentAgeYear = inputs.currentAge + year;
+      const accHousingInfo = calculateHousingForAge(inputs, currentAgeYear, null);
+      if (accHousingInfo.unlockedAmount > 0) {
+        balances[FREE_FUNDS_REALIZATION] += accHousingInfo.unlockedAmount;
+        freeFundsCostBasis += accHousingInfo.unlockedAmount;
+      }
+
       if (candidateOnly) {
         const { coastFinanced } = pensionMilestoneStatus(
           year,
@@ -2350,6 +2465,10 @@
               pensionReturnRate: pensionNominalReturn(year, true),
               freeFundsReturnRate: freeNominalReturn(year, true),
               contribution: contributionAtCheckpoint,
+              housingValue: accHousingInfo.housingValue,
+              housingDebt: accHousingInfo.housingDebt,
+              housingEquity: accHousingInfo.housingEquity,
+              housingUnlocked: accHousingInfo.unlockedAmount,
             },
           ),
         );
@@ -2669,6 +2788,22 @@
       planRows,
       finalRow,
       finalReserveAfterTax,
+      includeHousing: Boolean(inputs.includeHousing),
+      initialHousingEquity: calculateHousingForAge(
+        inputs,
+        inputs.currentAge,
+        fireRow?.age ?? inputs.retirementAge,
+      ).housingEquity,
+      fireHousingEquity: fireRow
+        ? calculateHousingForAge(inputs, fireRow.age, fireRow.age).housingEquity
+        : null,
+      finalHousingEquity: finalRow.housingEquity ?? 0,
+      totalHousingUnlocked: planRows.reduce(
+        (sum, row) => sum + (row.housingUnlocked ?? 0),
+        0,
+      ),
+      finalReserveAfterTaxWithHousing:
+        finalReserveAfterTax + (finalRow.housingEquity ?? 0),
     };
   }
 
