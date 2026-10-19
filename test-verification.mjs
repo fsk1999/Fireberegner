@@ -130,14 +130,20 @@ console.assert(Number.isFinite(phaseFireAge), "Phase calculation fireAge should 
 console.log("✓ Spending step and one-off events verified.");
 
 console.log("\n=== 7. Monte Carlo Simulation ===");
-const mcResults = FireMonteCarlo.runMonteCarlo(baseInputs, { runs: 300, volatility: 0.16 });
+const mcResults = FireMonteCarlo.runMonteCarlo(baseInputs, { runs: 300, volatility: 0.16, seed: 12345 });
 console.log("Monte Carlo Success Rate:", mcResults.successRate.toFixed(1) + "%");
 console.log("Median final reserve:", Math.round(mcResults.medianFinalReserve));
 console.log("P10 final reserve:", Math.round(mcResults.percentiles.p10));
 console.log("P90 final reserve:", Math.round(mcResults.percentiles.p90));
+console.log("FIRE Age Spread (Opt/Med/Pess):", mcResults.fireAgeStats.optimisticAge, mcResults.fireAgeStats.medianAge, mcResults.fireAgeStats.pessimisticAge);
 console.assert(mcResults.runs === 300, "Should have 300 runs");
 console.assert(mcResults.successRate >= 0 && mcResults.successRate <= 100, "Success rate between 0 and 100%");
-console.log("✓ Monte Carlo simulation completed and returned sound statistical distributions.");
+console.assert(mcResults.percentileBands.length === baseCalc.planRows.length, "Percentile bands must match planRows length");
+console.assert(Number.isFinite(mcResults.percentileBands[0].baselineTotal), "Percentile bands must include baselineTotal");
+console.assert(mcResults.scenarios?.p10?.calculation?.planRows?.length === baseCalc.planRows.length, "P10 scenario must include full planRows");
+console.assert(mcResults.scenarios?.p50?.calculation?.planRows?.length === baseCalc.planRows.length, "P50 scenario must include full planRows");
+console.assert(mcResults.scenarios?.p90?.calculation?.planRows?.length === baseCalc.planRows.length, "P90 scenario must include full planRows");
+console.log("✓ Monte Carlo simulation, percentile bands, and scenario trajectories verified.");
 
 console.log("\n=== 8. Plan Code Backward & Forward Compatibility ===");
 // Encode extended inputs

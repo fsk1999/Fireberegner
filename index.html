@@ -1061,6 +1061,148 @@
               <div class="timeline-plot">
                 <div class="timeline-visual-frame">
                   <div
+                    id="mc-timeline-panel"
+                    class="mc-timeline-panel"
+                    aria-label="Monte Carlo visning og sammenligning"
+                  >
+                    <div class="mc-toolbar-row">
+                      <div class="mc-toolbar-title">
+                        <span class="mc-toolbar-kicker">Grafisk visning &amp; forløb</span>
+                        <strong>Vælg visning: Uden vs. Med Monte Carlo</strong>
+                      </div>
+                      <div
+                        class="mc-segmented-control"
+                        role="group"
+                        aria-label="Vælg grafvisning for Monte Carlo"
+                      >
+                        <button
+                          type="button"
+                          class="mc-segment-btn is-active"
+                          data-mc-chart-mode="without"
+                          aria-pressed="true"
+                        >
+                          <span class="mc-badge mc-badge-without">Uden MC</span>
+                          <span>Fast afkast</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="mc-segment-btn"
+                          data-mc-chart-mode="compare"
+                          aria-pressed="false"
+                        >
+                          <span class="mc-badge mc-badge-compare">Sammenlign</span>
+                          <span>Uden vs. Med Monte Carlo</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="mc-segment-btn"
+                          data-mc-chart-mode="with"
+                          aria-pressed="false"
+                        >
+                          <span class="mc-badge mc-badge-with">Med MC</span>
+                          <span>Kun Monte Carlo-bånd</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      id="mc-phase-comparison"
+                      class="mc-phase-comparison"
+                      hidden
+                    >
+                      <article class="mc-comparison-card mc-comparison-without">
+                        <header class="mc-comparison-header">
+                          <span class="mc-mode-pill mc-mode-pill-without">
+                            UDEN MONTE CARLO · FAST AFKAST
+                          </span>
+                          <small id="mc-comp-base-meta">Deterministisk forventet afkast hvert år</small>
+                        </header>
+                        <div class="mc-comparison-phases">
+                          <div class="mc-phase-box">
+                            <span class="mc-phase-tag mc-phase-tag-saving">Opsparing (Indbetaling &amp; vækst)</span>
+                            <div class="mc-phase-metrics">
+                              <div>
+                                <small>Stop pensionsindb.</small>
+                                <strong id="mc-comp-base-stop">—</strong>
+                              </div>
+                              <div>
+                                <small>Start FIRE</small>
+                                <strong id="mc-comp-base-fire">—</strong>
+                              </div>
+                              <div>
+                                <small>Formue ved FIRE</small>
+                                <strong id="mc-comp-base-fire-wealth">—</strong>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mc-phase-box">
+                            <span class="mc-phase-tag mc-phase-tag-drawdown">Nedsparing (FIRE &amp; pension)</span>
+                            <div class="mc-phase-metrics">
+                              <div>
+                                <small>Planens dækning</small>
+                                <strong id="mc-comp-base-status">—</strong>
+                              </div>
+                              <div>
+                                <small>Slutreserve (frie + pens.)</small>
+                                <strong id="mc-comp-base-reserve">—</strong>
+                              </div>
+                              <div>
+                                <small>Samlet depotværdi</small>
+                                <strong id="mc-comp-base-depot">—</strong>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+
+                      <article class="mc-comparison-card mc-comparison-with">
+                        <header class="mc-comparison-header">
+                          <span class="mc-mode-pill mc-mode-pill-with">
+                            MED MONTE CARLO · MARKEDSUDSVING
+                          </span>
+                          <small id="mc-comp-sim-meta">Stokastisk simulering med årlige afkastudsving</small>
+                        </header>
+                        <div class="mc-comparison-phases">
+                          <div class="mc-phase-box">
+                            <span class="mc-phase-tag mc-phase-tag-saving">Opsparing (Konsekvens af udsving)</span>
+                            <div class="mc-phase-metrics">
+                              <div>
+                                <small>Stop pension (P90 / P50 / P10)</small>
+                                <strong id="mc-comp-mc-stop">—</strong>
+                              </div>
+                              <div>
+                                <small>Start FIRE (P90 / P50 / P10)</small>
+                                <strong id="mc-comp-mc-fire">—</strong>
+                              </div>
+                              <div>
+                                <small>Opnår FIRE før pension</small>
+                                <strong id="mc-comp-mc-fire-rate">—</strong>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mc-phase-box">
+                            <span class="mc-phase-tag mc-phase-tag-drawdown">Nedsparing (Sequence-of-Returns)</span>
+                            <div class="mc-phase-metrics">
+                              <div>
+                                <small>Solvenssandsynlighed</small>
+                                <strong id="mc-comp-mc-solvency">—</strong>
+                              </div>
+                              <div>
+                                <small>Slutreserve P50 (Median)</small>
+                                <strong id="mc-comp-mc-reserve-p50">—</strong>
+                              </div>
+                              <div>
+                                <small>Spænd (P10 svagt – P90 stærkt)</small>
+                                <strong id="mc-comp-mc-reserve-range">—</strong>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+
+                  <div
                     class="phase-groups"
                     aria-label="Overordnede perioder i beregningen"
                   >
@@ -1162,14 +1304,35 @@
                   </div>
                   <div id="wealth-chart" class="wealth-chart"></div>
                   <div class="chart-legend" aria-label="Grafens linjer">
-                    <span
-                      ><i class="legend-pension" aria-hidden="true"></i
-                      >Pension</span
-                    >
-                    <span
-                      ><i class="legend-free-funds" aria-hidden="true"></i>Frie
-                      midler</span
-                    >
+                    <div id="legend-group-without" class="chart-legend-group">
+                      <b class="legend-group-badge legend-group-badge-without">Uden Monte Carlo (Fast):</b>
+                      <span
+                        ><i class="legend-pension" aria-hidden="true"></i
+                        >Pension</span
+                      >
+                      <span
+                        ><i class="legend-free-funds" aria-hidden="true"></i>Frie
+                        midler</span
+                      >
+                      <span id="legend-baseline-total" hidden
+                        ><i class="legend-total-baseline" aria-hidden="true"></i>Samlet formue (Fast)</span
+                      >
+                    </div>
+                    <div id="legend-group-with" class="chart-legend-group" hidden>
+                      <b class="legend-group-badge legend-group-badge-with">Med Monte Carlo (Markedsudsving):</b>
+                      <span
+                        ><i class="legend-mc-p50" aria-hidden="true"></i>P50 Median (Samlet formue)</span
+                      >
+                      <span
+                        ><i class="legend-mc-p25-p75" aria-hidden="true"></i>P25–P75 bånd (50 % sandsynlighed)</span
+                      >
+                      <span
+                        ><i class="legend-mc-p10-p90" aria-hidden="true"></i>P10–P90 bånd (80 % sandsynlighed)</span
+                      >
+                      <span
+                        ><i class="legend-mc-p10" aria-hidden="true"></i>P10 Pessimistisk</span
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1177,6 +1340,72 @@
 
             <details class="projection-card">
               <summary>Se op- og nedsparing år for år</summary>
+              <div id="mc-table-toolbar" class="mc-table-toolbar">
+                <div class="mc-table-toolbar-top">
+                  <div class="mc-table-toolbar-label">
+                    <span class="mc-toolbar-kicker">Tabelvisning for op- og nedsparing</span>
+                    <strong>Vælg hvilket beregningsforløb tabellens kolonner viser:</strong>
+                  </div>
+                  <div
+                    class="mc-segmented-control"
+                    role="group"
+                    aria-label="Vælg forløb i år-for-år tabellen"
+                  >
+                    <button
+                      type="button"
+                      class="mc-segment-btn is-active"
+                      data-mc-table-scenario="baseline"
+                      aria-pressed="true"
+                    >
+                      <span class="mc-badge mc-badge-without">Uden MC</span>
+                      <span>Fast afkast</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="mc-segment-btn"
+                      data-mc-table-scenario="p50"
+                      aria-pressed="false"
+                    >
+                      <span class="mc-badge mc-badge-with">Med MC</span>
+                      <span>P50 Median</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="mc-segment-btn"
+                      data-mc-table-scenario="p10"
+                      aria-pressed="false"
+                    >
+                      <span class="mc-badge mc-badge-p10">Med MC</span>
+                      <span>P10 Pessimistisk</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="mc-segment-btn"
+                      data-mc-table-scenario="p90"
+                      aria-pressed="false"
+                    >
+                      <span class="mc-badge mc-badge-p90">Med MC</span>
+                      <span>P90 Optimistisk</span>
+                    </button>
+                  </div>
+                  <label class="mc-table-compare-toggle">
+                    <input
+                      id="mc-table-show-comparison"
+                      type="checkbox"
+                      checked
+                    />
+                    <span>Vis sammenligningskolonner (Uden vs. Med Monte Carlo)</span>
+                  </label>
+                </div>
+                <div id="mc-table-active-banner" class="mc-table-active-banner is-without">
+                  <span id="mc-table-active-pill" class="mc-mode-pill mc-mode-pill-without">
+                    AKTIV TABEL: UDEN MONTE CARLO (FAST AFKAST)
+                  </span>
+                  <p id="mc-table-active-desc">
+                    Alle op- og nedsparingskolonner nedenfor viser det deterministiske forløb med fast forventet afkast hvert år.
+                  </p>
+                </div>
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -1198,6 +1427,26 @@
                       <th>Lagerskat</th>
                       <th>Effektiv skat</th>
                       <th>Udb. fra</th>
+                      <th class="mc-comp-col mc-comp-col-base" hidden>
+                        <span class="mc-th-badge mc-th-without">Uden MC</span>
+                        Formue (Fast)
+                      </th>
+                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                        <span class="mc-th-badge mc-th-with">Med MC</span>
+                        P10 (Svagt)
+                      </th>
+                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                        <span class="mc-th-badge mc-th-with">Med MC</span>
+                        P50 (Median)
+                      </th>
+                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                        <span class="mc-th-badge mc-th-with">Med MC</span>
+                        P90 (Stærkt)
+                      </th>
+                      <th class="mc-comp-col mc-comp-col-diff" hidden>
+                        <span class="mc-th-badge mc-th-diff">Forskel</span>
+                        MC P50 vs. Uden MC
+                      </th>
                     </tr>
                   </thead>
                   <tbody id="projection-body"></tbody>

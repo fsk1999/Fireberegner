@@ -14,6 +14,23 @@
   const folkepensionState = document.querySelector("#folkepension-state");
   const runMonteCarloButton = document.querySelector("#run-monte-carlo");
   const monteCarloResult = document.querySelector("#monte-carlo-result");
+  const mcPhaseComparison = document.querySelector("#mc-phase-comparison");
+  const mcChartModeButtons = [
+    ...document.querySelectorAll("[data-mc-chart-mode]"),
+  ];
+  const mcTableScenarioButtons = [
+    ...document.querySelectorAll("[data-mc-table-scenario]"),
+  ];
+  const mcTableShowComparisonInput = document.querySelector(
+    "#mc-table-show-comparison",
+  );
+  const mcTableActiveBanner = document.querySelector("#mc-table-active-banner");
+  const mcTableActivePill = document.querySelector("#mc-table-active-pill");
+  const mcTableActiveDesc = document.querySelector("#mc-table-active-desc");
+  const mcComparisonThs = [...document.querySelectorAll("th.mc-comp-col")];
+  const legendGroupWithout = document.querySelector("#legend-group-without");
+  const legendGroupWith = document.querySelector("#legend-group-with");
+  const legendBaselineTotal = document.querySelector("#legend-baseline-total");
   const freeFundsCostBasisField = document.querySelector(
     "#free-funds-cost-basis-field",
   );
@@ -80,6 +97,10 @@
   let activeOptimizationJob = null;
   let nextOptimizationJobId = 1;
   let planCodeReturnFocus = null;
+  let latestMonteCarlo = null;
+  let mcChartMode = "without";
+  let mcTableScenario = "baseline";
+  let mcSeedCounter = 20260419;
   const inputLocale =
     document.documentElement.lang || navigator.language || "da-DK";
   const inputNumber = new Intl.NumberFormat(inputLocale, {
@@ -583,6 +604,117 @@
     }
   }
 
+  function syncMonteCarloButtons() {
+    mcChartModeButtons.forEach((button) => {
+      const active = button.dataset.mcChartMode === mcChartMode;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    mcTableScenarioButtons.forEach((button) => {
+      const active = button.dataset.mcTableScenario === mcTableScenario;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function formatAgeSpread(stats) {
+    if (!stats || stats.medianAge === null) {
+      return "Ikke nået";
+    }
+    const opt = stats.optimisticAge !== null ? ages.format(stats.optimisticAge) : "—";
+    const med = stats.medianAge !== null ? ages.format(stats.medianAge) : "—";
+    const pess = stats.pessimisticAge !== null ? ages.format(stats.pessimisticAge) : "—";
+    return `${opt} / ${med} / ${pess} år`;
+  }
+
+  function computeMonteCarlo(inputs, advanceSeed = false) {
+    if (!window.FireMonteCarlo) {
+      return null;
+    }
+    if (advanceSeed) {
+      mcSeedCounter += 7919;
+    }
+    const mc = window.FireMonteCarlo.runMonteCarlo(inputs, {
+      runs: inputs.monteCarloRuns,
+      volatility: inputs.returnVolatility,
+      seed: mcSeedCounter,
+    });
+    latestMonteCarlo = mc;
+    setText("mc-success-rate", `${years.format(mc.successRate)} %`);
+    setText("mc-median-reserve", currency.format(mc.medianFinalReserve));
+    setText("mc-p10-reserve", currency.format(mc.percentiles.p10));
+    setText("mc-p90-reserve", currency.format(mc.percentiles.p90));
+    if (monteCarloResult) {
+      monteCarloResult.hidden = false;
+    }
+    return mc;
+  }
+
+  function renderMonteCarloComparison(calculation, inputs, mc) {
+    const showPanel =
+      Boolean(mc) &&
+      (mcChartMode !== "without" ||
+        mcTableScenario !== "baseline" ||
+        !monteCarloResult?.hidden);
+    if (mcPhaseComparison) {
+      mcPhaseComparison.hidden = !showPanel;
+    }
+    if (!mc) {
+      return;
+    }
+
+    const stop = calculation.pensionStopRow;
+    const fire = calculation.fireRow;
+    setText(
+      "mc-comp-base-meta",
+      `Fast forventet afkast (${percent.format(inputs.returnRate)} før skat hvert år)`,
+    );
+    setText(
+      "mc-comp-base-stop",
+      stop ? `${ages.format(stop.age)} år` : "Ikke nået",
+    );
+    setText(
+      "mc-comp-base-fire",
+      fire ? `${ages.format(fire.age)} år` : "Ikke nået",
+    );
+    setText(
+      "mc-comp-base-fire-wealth",
+      fire ? currency.format(fire.totalBalance) : "—",
+    );
+    setText(
+      "mc-comp-base-status",
+      calculation.isFullyFunded ? "100 % dækket (Fast)" : "Underfinansieret",
+    );
+    setText(
+      "mc-comp-base-reserve",
+      currency.format(calculation.finalRow.totalBalance),
+    );
+    setText(
+      "mc-comp-base-depot",
+      currency.format(calculation.finalRow.totalDepotValue),
+    );
+
+    setText(
+      "mc-comp-sim-meta",
+      `${inputNumber.format(mc.runs)} simuleringer · ${percent.format(mc.volatility)} årlig volatilitet`,
+    );
+    setText("mc-comp-mc-stop", formatAgeSpread(mc.pensionStopAgeStats));
+    setText("mc-comp-mc-fire", formatAgeSpread(mc.fireAgeStats));
+    setText(
+      "mc-comp-mc-fire-rate",
+      `${years.format(mc.fireAgeStats.reachedRate)} % af forløb`,
+    );
+    setText("mc-comp-mc-solvency", `${years.format(mc.successRate)} % solvens`);
+    setText(
+      "mc-comp-mc-reserve-p50",
+      currency.format(mc.totalBalancePercentiles.p50),
+    );
+    setText(
+      "mc-comp-mc-reserve-range",
+      `${compactNumber.format(mc.totalBalancePercentiles.p10)} – ${compactNumber.format(mc.totalBalancePercentiles.p90)} kr.`,
+    );
+  }
+
   function runMonteCarloSimulation() {
     if (!window.FireMonteCarlo || !runMonteCarloButton) {
       return;
@@ -597,17 +729,13 @@
     window.setTimeout(() => {
       try {
         const inputs = readInputs();
-        const mc = window.FireMonteCarlo.runMonteCarlo(inputs, {
-          runs: inputs.monteCarloRuns,
-          volatility: inputs.returnVolatility,
-        });
-        setText("mc-success-rate", `${mc.successRate} %`);
-        setText("mc-median-reserve", currency.format(mc.medianFinalReserve));
-        setText("mc-p10-reserve", currency.format(mc.percentiles.p10));
-        setText("mc-p90-reserve", currency.format(mc.percentiles.p90));
-        if (monteCarloResult) {
-          monteCarloResult.hidden = false;
+        const calculation = calculateFire(inputs);
+        computeMonteCarlo(inputs, true);
+        if (mcChartMode === "without") {
+          mcChartMode = "compare";
         }
+        syncMonteCarloButtons();
+        render(calculation, inputs);
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.hidden = false;
@@ -1164,7 +1292,15 @@
     applyOptimizationButton.disabled = true;
   }
 
-  function rowMarkup(row, freeFundsInventoryShare) {
+  function formatDiffCurrency(diff) {
+    if (!Number.isFinite(diff)) {
+      return "—";
+    }
+    const prefix = diff > 0 ? "+" : "";
+    return `${prefix}${currency.format(diff)}`;
+  }
+
+  function rowMarkup(row, freeFundsInventoryShare, band, showComparison) {
     const inventoryTax =
       freeFundsInventoryShare > 0 && row.phase !== "Slut"
         ? currency.format(row.annualFreeFundsTax)
@@ -1186,6 +1322,19 @@
       source = source === "—" ? extras.join(" & ") : `${source} (+ ${extras.join(", ")})`;
     }
 
+    let comparisonCells = "";
+    if (showComparison && band) {
+      const diff = band.p50 - band.baselineTotal;
+      const diffClass =
+        diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : "";
+      comparisonCells = `
+        <td class="mc-comp-col mc-comp-col-base">${currency.format(band.baselineTotal)}</td>
+        <td class="mc-comp-col mc-comp-col-mc">${currency.format(band.p10)}</td>
+        <td class="mc-comp-col mc-comp-col-mc mc-comp-col-p50">${currency.format(band.p50)}</td>
+        <td class="mc-comp-col mc-comp-col-mc">${currency.format(band.p90)}</td>
+        <td class="mc-comp-col mc-comp-col-diff ${diffClass}">${formatDiffCurrency(diff)}</td>`;
+    }
+
     return `
       <tr data-phase="${row.phase}">
         <td>${dateFormat.format(row.date)}</td>
@@ -1204,7 +1353,7 @@
         <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
         <td>${inventoryTax}</td>
         <td>${effectiveTax}</td>
-        <td>${source}</td>
+        <td>${source}</td>${comparisonCells}
       </tr>`;
   }
 
@@ -1220,6 +1369,18 @@
     }
 
     return `${pointPath(points)} L${points[points.length - 1].x},${baseline} L${points[0].x},${baseline} Z`;
+  }
+
+  function areaBetweenPaths(upperPoints, lowerPoints) {
+    if (!upperPoints.length || !lowerPoints.length) {
+      return "";
+    }
+    const forward = pointPath(upperPoints);
+    const backward = [...lowerPoints]
+      .reverse()
+      .map((point) => `L${point.x},${point.y}`)
+      .join(" ");
+    return `${forward} ${backward} Z`;
   }
 
   function setPhaseWidth(element, years, totalYears) {
@@ -1306,7 +1467,7 @@
     );
   }
 
-  function renderChart(calculation, inputs) {
+  function renderChart(calculation, inputs, mc) {
     const width = 1120;
     const height = 236;
     const margin = { top: 4, right: 76, bottom: 44, left: 76 };
@@ -1325,10 +1486,35 @@
     const pensionValue = (row) =>
       row.ratePension + row.lifeAnnuity + row.ageSavings;
     const freeFundsValue = (row) => row.freeFunds + row.ask;
-    const rawMax = Math.max(
-      ...rows.map((row) => Math.max(pensionValue(row), freeFundsValue(row))),
+
+    const showMcOnChart = Boolean(mc) && mcChartMode !== "without";
+    const showWithoutOnChart = mcChartMode !== "with";
+    const bandsByAge = new Map(
+      (mc?.percentileBands ?? []).map((band) => [band.age, band]),
+    );
+
+    if (legendGroupWithout) {
+      legendGroupWithout.hidden = !showWithoutOnChart;
+    }
+    if (legendBaselineTotal) {
+      legendBaselineTotal.hidden = !(showMcOnChart && showWithoutOnChart);
+    }
+    if (legendGroupWith) {
+      legendGroupWith.hidden = !showMcOnChart;
+    }
+
+    const baseMax = Math.max(
+      ...rows.map((row) =>
+        showMcOnChart
+          ? Math.max(pensionValue(row), freeFundsValue(row), row.totalBalance)
+          : Math.max(pensionValue(row), freeFundsValue(row)),
+      ),
       1,
     );
+    const mcMax = showMcOnChart
+      ? Math.max(...mc.percentileBands.map((band) => band.p90), 1)
+      : 1;
+    const rawMax = Math.max(showWithoutOnChart ? baseMax : 1, mcMax);
     const magnitude = 10 ** Math.floor(Math.log10(rawMax));
     const yMax = Math.ceil(rawMax / magnitude) * magnitude;
     const xForAge = (age) =>
@@ -1344,6 +1530,27 @@
       x: xForAge(row.age).toFixed(2),
       y: yForValue(freeFundsValue(row)).toFixed(2),
     }));
+    const totalBaselinePoints = rows.map((row) => ({
+      age: row.age,
+      x: xForAge(row.age).toFixed(2),
+      y: yForValue(row.totalBalance).toFixed(2),
+    }));
+    const mcPointsForKey = (key) =>
+      rows.map((row) => {
+        const band = bandsByAge.get(row.age);
+        const val = band ? band[key] : row.totalBalance;
+        return {
+          age: row.age,
+          x: xForAge(row.age).toFixed(2),
+          y: yForValue(val).toFixed(2),
+        };
+      });
+    const mcP10Points = showMcOnChart ? mcPointsForKey("p10") : [];
+    const mcP25Points = showMcOnChart ? mcPointsForKey("p25") : [];
+    const mcP50Points = showMcOnChart ? mcPointsForKey("p50") : [];
+    const mcP75Points = showMcOnChart ? mcPointsForKey("p75") : [];
+    const mcP90Points = showMcOnChart ? mcPointsForKey("p90") : [];
+
     const yTicks = Array.from({ length: 5 }, (_, index) => (yMax / 4) * index);
     const axisRows = rows.filter(
       (row, index) => index === 0 || row.age !== rows[index - 1].age,
@@ -1390,8 +1597,8 @@
       .join("");
     const boundaries = [pensionStopAge, fireAge, inputs.retirementAge]
       .filter(
-        (age, index, ages) =>
-          age > minAge && age < maxAge && ages.indexOf(age) === index,
+        (age, index, agesList) =>
+          age > minAge && age < maxAge && agesList.indexOf(age) === index,
       )
       .map(
         (age) =>
@@ -1411,9 +1618,33 @@
           ${nowLabel}`;
       })
       .join("");
+
+    const mcSvgLayers = showMcOnChart
+      ? `
+          <path class="chart-band-p10-p90" d="${areaBetweenPaths(mcP90Points, mcP10Points)}" />
+          <path class="chart-band-p25-p75" d="${areaBetweenPaths(mcP75Points, mcP25Points)}" />
+          <path class="chart-line-mc-p10" d="${pointPath(mcP10Points)}" />
+          <path class="chart-line-mc-p50" d="${pointPath(mcP50Points)}" />`
+      : "";
+    const withoutAreaLayers = showWithoutOnChart
+      ? `
+          <path class="chart-area-pension" d="${areaPath(pensionPoints, plotBottom)}" />
+          <path class="chart-area-free-funds" d="${areaPath(freeFundsPoints, plotBottom)}" />`
+      : "";
+    const withoutLineLayers = showWithoutOnChart
+      ? `
+          <path class="chart-line-pension" d="${pointPath(pensionPoints)}" />
+          <path class="chart-line-free-funds" d="${pointPath(freeFundsPoints)}" />
+          ${showMcOnChart ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
+      : "";
+
+    const tooltipWidth = showMcOnChart ? 236 : 184;
+    const tooltipHeight = showMcOnChart ? 156 : 84;
+    const valX = tooltipWidth - 10;
+
     chart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pension og frie midler fra ${ages.format(minAge)} til ${ages.format(maxAge)} år" aria-describedby="wealth-chart-description">
-        <desc id="wealth-chart-description">Grafen viser pension og frie midler for hvert år. Hold markøren over grafen for at se beløbene og den samlede formue.</desc>
+        <desc id="wealth-chart-description">Grafen viser formueudviklingen med og uden Monte Carlo-simulering for hvert år.</desc>
         <defs>
           <clipPath id="chart-plot-clip">
             <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
@@ -1422,30 +1653,41 @@
         <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
         <g clip-path="url(#chart-plot-clip)">
           ${phaseRects}
-          <path class="chart-area-pension" d="${areaPath(pensionPoints, plotBottom)}" />
-          <path class="chart-area-free-funds" d="${areaPath(freeFundsPoints, plotBottom)}" />
+          ${withoutAreaLayers}
+          ${mcSvgLayers}
           ${gridLines}
           ${boundaries}
-          <path class="chart-line-pension" d="${pointPath(pensionPoints)}" />
-          <path class="chart-line-free-funds" d="${pointPath(freeFundsPoints)}" />
+          ${withoutLineLayers}
         </g>
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis beløb for et bestemt år" />
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
-          <circle class="chart-hover-point-pension" cx="0" cy="0" r="4" />
-          <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4" />
+          <circle class="chart-hover-point-pension" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-mc-p50" cx="0" cy="0" r="4" ${showMcOnChart ? "" : 'style="display:none"'} />
           <g class="chart-tooltip">
-            <rect class="chart-tooltip-box" width="184" height="84" rx="6" />
+            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
             <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-label" x="10" y="36">Pension</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="174" y="36"></text>
-            <text class="chart-tooltip-label" x="10" y="52">Frie midler</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="174" y="52"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="174" y1="61" y2="61" />
-            <text class="chart-tooltip-label" x="10" y="76">Samlet formue</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="174" y="76"></text>
+            <text class="chart-tooltip-section-tag" x="10" y="32">${showMcOnChart ? "UDEN MONTE CARLO (FAST)" : "Pension"}</text>
+            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 47 : 36}"></text>
+            ${showMcOnChart ? `<text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>` : ""}
+            <text class="chart-tooltip-label" x="10" y="${showMcOnChart ? 63 : 52}">${showMcOnChart ? "Samlet formue (Fast)" : "Frie midler"}</text>
+            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 63 : 52}"></text>
+            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="${showMcOnChart ? 72 : 61}" y2="${showMcOnChart ? 72 : 61}" />
+            <text class="${showMcOnChart ? "chart-tooltip-section-tag chart-tooltip-section-mc" : "chart-tooltip-label"}" x="10" y="${showMcOnChart ? 86 : 76}">${showMcOnChart ? "MED MONTE CARLO (UDSVING)" : "Samlet formue"}</text>
+            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 102 : 76}"></text>
+            ${
+              showMcOnChart
+                ? `
+            <text class="chart-tooltip-label" x="10" y="102">MC P50 (Median)</text>
+            <text class="chart-tooltip-label" x="10" y="120">MC P10 (Pessimistisk)</text>
+            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="120"></text>
+            <text class="chart-tooltip-label" x="10" y="138">MC P90 (Optimistisk)</text>
+            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="138"></text>`
+                : ""
+            }
           </g>
         </g>
       </svg>`;
@@ -1458,6 +1700,7 @@
     const hoverFreeFundsPoint = svg.querySelector(
       ".chart-hover-point-free-funds",
     );
+    const hoverMcP50Point = svg.querySelector(".chart-hover-point-mc-p50");
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
@@ -1469,7 +1712,6 @@
       const x = Number(pensionPoint.x);
       const pensionY = Number(pensionPoint.y);
       const freeFundsY = Number(freeFundsPoint.y);
-      const tooltipWidth = 184;
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
           ? x - tooltipWidth - 12
@@ -1482,21 +1724,48 @@
       hoverPensionPoint.setAttribute("cy", pensionY);
       hoverFreeFundsPoint.setAttribute("cx", x);
       hoverFreeFundsPoint.setAttribute("cy", freeFundsY);
+      if (showMcOnChart && hoverMcP50Point && mcP50Points[activeIndex]) {
+        hoverMcP50Point.setAttribute("cx", x);
+        hoverMcP50Point.setAttribute("cy", Number(mcP50Points[activeIndex].y));
+      }
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
       svg.querySelector("#chart-tooltip-title").textContent =
         `${row.date.getFullYear()} · ${ages.format(row.age)} år`;
-      svg.querySelector("#chart-tooltip-pension").textContent = currency.format(
-        pensionValue(row),
-      );
-      svg.querySelector("#chart-tooltip-free-funds").textContent =
-        currency.format(freeFundsValue(row));
-      svg.querySelector("#chart-tooltip-total").textContent = currency.format(
-        row.totalBalance,
-      );
-      hoverTarget.setAttribute(
-        "aria-label",
-        `${row.date.getFullYear()}, ${ages.format(row.age)} år. Pension ${currency.format(pensionValue(row))} Frie midler ${currency.format(freeFundsValue(row))} Samlet formue ${currency.format(row.totalBalance)}`,
-      );
+
+      if (showMcOnChart) {
+        const band = bandsByAge.get(row.age);
+        svg.querySelector("#chart-tooltip-pension").textContent =
+          `${compactNumber.format(pensionValue(row))} / ${compactNumber.format(freeFundsValue(row))} kr.`;
+        svg.querySelector("#chart-tooltip-free-funds").textContent =
+          currency.format(row.totalBalance);
+        svg.querySelector("#chart-tooltip-total").textContent = band
+          ? currency.format(band.p50)
+          : "—";
+        const p10Node = svg.querySelector("#chart-tooltip-mc-p10");
+        const p90Node = svg.querySelector("#chart-tooltip-mc-p90");
+        if (p10Node) {
+          p10Node.textContent = band ? currency.format(band.p10) : "—";
+        }
+        if (p90Node) {
+          p90Node.textContent = band ? currency.format(band.p90) : "—";
+        }
+        hoverTarget.setAttribute(
+          "aria-label",
+          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Uden Monte Carlo samlet formue ${currency.format(row.totalBalance)}. Med Monte Carlo P50 ${band ? currency.format(band.p50) : "—"}, P10 ${band ? currency.format(band.p10) : "—"}, P90 ${band ? currency.format(band.p90) : "—"}.`,
+        );
+      } else {
+        svg.querySelector("#chart-tooltip-pension").textContent =
+          currency.format(pensionValue(row));
+        svg.querySelector("#chart-tooltip-free-funds").textContent =
+          currency.format(freeFundsValue(row));
+        svg.querySelector("#chart-tooltip-total").textContent = currency.format(
+          row.totalBalance,
+        );
+        hoverTarget.setAttribute(
+          "aria-label",
+          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Pension ${currency.format(pensionValue(row))} Frie midler ${currency.format(freeFundsValue(row))} Samlet formue ${currency.format(row.totalBalance)}`,
+        );
+      }
       hoverLayer.style.display = "block";
     }
 
@@ -1601,8 +1870,15 @@
           : "Formuen dækker ikke den ønskede hævning gennem hele perioden.",
     );
 
+    const needsMonteCarlo =
+      mcChartMode !== "without" ||
+      mcTableScenario !== "baseline" ||
+      latestMonteCarlo !== null;
+    const mc = needsMonteCarlo ? computeMonteCarlo(inputs, false) : null;
+
     renderPhases(calculation, inputs);
-    renderChart(calculation, inputs);
+    renderMonteCarloComparison(calculation, inputs, mc);
+    renderChart(calculation, inputs, mc);
 
     setText("current-age", `${calculation.currentAge} år`);
     const realReturn = (growthReturn, defensiveReturn) =>
@@ -1728,8 +2004,60 @@
       ),
     );
 
-    tableBody.innerHTML = calculation.planRows
-      .map((row) => rowMarkup(row, inputs.freeFundsInventoryShare))
+    const activeTableCalc =
+      mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]
+        ? mc.scenarios[mcTableScenario].calculation
+        : calculation;
+    const showCompCols =
+      Boolean(mc) && Boolean(mcTableShowComparisonInput?.checked);
+    const bandsByAge = new Map(
+      (mc?.percentileBands ?? []).map((band) => [band.age, band]),
+    );
+    mcComparisonThs.forEach((th) => {
+      th.hidden = !showCompCols;
+    });
+
+    if (mcTableActiveBanner && mcTableActivePill && mcTableActiveDesc) {
+      const scenarioStop = activeTableCalc.pensionStopRow
+        ? `${ages.format(activeTableCalc.pensionStopRow.age)} år`
+        : "Ikke nået";
+      const scenarioFire = activeTableCalc.fireRow
+        ? `${ages.format(activeTableCalc.fireRow.age)} år`
+        : "Ikke nået";
+      const scenarioReserve = currency.format(
+        activeTableCalc.finalRow.totalBalance,
+      );
+      if (mcTableScenario === "baseline" || !mc) {
+        mcTableActiveBanner.className = "mc-table-active-banner is-without";
+        mcTableActivePill.className = "mc-mode-pill mc-mode-pill-without";
+        mcTableActivePill.textContent =
+          "AKTIV TABEL: UDEN MONTE CARLO (FAST AFKAST)";
+        mcTableActiveDesc.textContent = `Alle op- og nedsparingskolonner viser det deterministiske forløb med fast årligt afkast (${percent.format(inputs.returnRate)}). Stop pension: ${scenarioStop} · Start FIRE: ${scenarioFire} · Slutreserve: ${scenarioReserve}.`;
+      } else {
+        const scenarioNames = {
+          p50: "P50 MEDIAN-FORLØB (TYPISK MARKED)",
+          p10: "P10 PESSIMISTISK FORLØB (SVAGT MARKED / 10. PERCENTIL)",
+          p90: "P90 OPTIMISTISK FORLØB (STÆRKT MARKED / 90. PERCENTIL)",
+        };
+        const adaptiveFireText = activeTableCalc.adaptiveFireAge
+          ? `${ages.format(activeTableCalc.adaptiveFireAge)} år`
+          : "Ikke nået før pension";
+        mcTableActiveBanner.className = "mc-table-active-banner is-with";
+        mcTableActivePill.className = "mc-mode-pill mc-mode-pill-with";
+        mcTableActivePill.textContent = `AKTIV TABEL: MED MONTE CARLO · ${scenarioNames[mcTableScenario]}`;
+        mcTableActiveDesc.textContent = `Alle op- og nedsparingskolonner viser et simuleret markedsforløb med årlige afkastudsving (se kolonnen "Afkast"). Opnår FIRE-mål ved: ${adaptiveFireText} · Planlagt FIRE-start: ${scenarioFire} · Slutreserve: ${scenarioReserve}.`;
+      }
+    }
+
+    tableBody.innerHTML = activeTableCalc.planRows
+      .map((row) =>
+        rowMarkup(
+          row,
+          inputs.freeFundsInventoryShare,
+          bandsByAge.get(row.age),
+          showCompCols,
+        ),
+      )
       .join("");
     markContributionLimit(
       "annualAgeSavingsContribution",
@@ -1822,6 +2150,28 @@
   applyOptimizationButton.addEventListener("click", applyOptimization);
   if (runMonteCarloButton) {
     runMonteCarloButton.addEventListener("click", runMonteCarloSimulation);
+  }
+  mcChartModeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      mcChartMode = button.dataset.mcChartMode || "without";
+      syncMonteCarloButtons();
+      update();
+    });
+  });
+  mcTableScenarioButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      mcTableScenario = button.dataset.mcTableScenario || "baseline";
+      if (mcTableScenario !== "baseline" && mcChartMode === "without") {
+        mcChartMode = "compare";
+      }
+      syncMonteCarloButtons();
+      update();
+    });
+  });
+  if (mcTableShowComparisonInput) {
+    mcTableShowComparisonInput.addEventListener("change", () => {
+      update();
+    });
   }
   contributionLockButtons.forEach((button) => {
     button.addEventListener("click", () => toggleContributionLock(button));

@@ -1216,8 +1216,22 @@
     const presentValueFactorCache = anchorCache.presentValueFactors;
     const compoundGrowthCache = anchorCache.compoundGrowth;
 
-    function pensionNominalReturn(year) {
-      return strategyReturnRate(
+    function applyRealizedReturnMultiplier(baseReturn, year, useRealized) {
+      if (
+        !useRealized ||
+        !Array.isArray(inputs.annualReturnMultipliers) ||
+        !Number.isFinite(inputs.annualReturnMultipliers[year])
+      ) {
+        return baseReturn;
+      }
+      return Math.max(
+        -0.85,
+        (1 + baseReturn) * inputs.annualReturnMultipliers[year] - 1,
+      );
+    }
+
+    function pensionNominalReturn(year, useRealized = false) {
+      const base = strategyReturnRate(
         inputs.returnRate,
         selectedDefensiveReturnRate,
         selectedReturnStrategy,
@@ -1226,10 +1240,11 @@
         selectedReturnDeclineYears,
         selectedReturnRecoveryYears,
       );
+      return applyRealizedReturnMultiplier(base, year, useRealized);
     }
 
-    function freeNominalReturn(year) {
-      return strategyReturnRate(
+    function freeNominalReturn(year, useRealized = false) {
+      const base = strategyReturnRate(
         inputs.returnRate,
         selectedDefensiveReturnRate,
         selectedReturnStrategy,
@@ -1238,6 +1253,7 @@
         selectedReturnDeclineYears,
         selectedReturnRecoveryYears,
       );
+      return applyRealizedReturnMultiplier(base, year, useRealized);
     }
 
     function realPensionReturnFor(nominalReturn) {
@@ -1421,9 +1437,9 @@
       );
     }
 
-    function ratesForBalances(balances, year) {
-      const pensionReturn = pensionNominalReturn(year);
-      const freeReturn = freeNominalReturn(year);
+    function ratesForBalances(balances, year, useRealized = false) {
+      const pensionReturn = pensionNominalReturn(year, useRealized);
+      const freeReturn = freeNominalReturn(year, useRealized);
       return [
         realPensionReturnFor(pensionReturn),
         realPensionReturnFor(pensionReturn),
@@ -1502,15 +1518,20 @@
       });
     }
 
-    function growBalancesWithTax(balances, year, priorTaxableGain = 0) {
+    function growBalancesWithTax(
+      balances,
+      year,
+      priorTaxableGain = 0,
+      useRealized = false,
+    ) {
       const inventoryBalance = balances[FREE_FUNDS_INVENTORY];
-      const nominalReturn = freeNominalReturn(year);
+      const nominalReturn = freeNominalReturn(year, useRealized);
       const inventoryTax = inventoryTaxForBalance(
         inventoryBalance,
         nominalReturn,
         priorTaxableGain,
       );
-      const currentRates = ratesForBalances(balances, year);
+      const currentRates = ratesForBalances(balances, year, useRealized);
       const grownBalances = growBalances(balances, currentRates);
 
       grownBalances[FREE_FUNDS_INVENTORY] = Math.max(
@@ -1576,8 +1597,8 @@
       contributions,
       year,
     ) {
-      const growth = growBalancesWithTax(startingBalances, year);
-      const currentRates = ratesForBalances(startingBalances, year);
+      const growth = growBalancesWithTax(startingBalances, year, 0, true);
+      const currentRates = ratesForBalances(startingBalances, year, true);
       const endingBalances = growth.balances.map(
         (balance, index) =>
           balance +
@@ -1587,7 +1608,7 @@
       if (contributions[FREE_FUNDS_INVENTORY] > 0) {
         const startingBalance = startingBalances[FREE_FUNDS_INVENTORY];
         const contribution = contributions[FREE_FUNDS_INVENTORY];
-        const nominalReturn = freeNominalReturn(year);
+        const nominalReturn = freeNominalReturn(year, true);
         const nominalHalfYearGrowth = Math.sqrt(1 + nominalReturn);
         const inflationHalfYearGrowth = Math.sqrt(1 + inputs.inflationRate);
         const openingBalanceAtYearEnd =
@@ -1603,7 +1624,8 @@
                 (nominalHalfYearGrowth - 1)
             : 0;
         const tax =
-          calculateShareIncomeTax(taxableGain) / (1 + inputs.inflationRate);
+          calculateShareIncomeTax(taxableGain, selectedShareIncomeThreshold) /
+          (1 + inputs.inflationRate);
 
         endingBalances[FREE_FUNDS_INVENTORY] = Math.max(
           0,
@@ -1953,8 +1975,8 @@
               ratePensionNonDeductibleBasis,
               {
                 phase: beforeRetirement ? "FIRE" : "Pension",
-                pensionReturnRate: pensionNominalReturn(year),
-                freeFundsReturnRate: freeNominalReturn(year),
+                pensionReturnRate: pensionNominalReturn(year, shouldRecord),
+                freeFundsReturnRate: freeNominalReturn(year, shouldRecord),
                 contribution: year === startYear ? startingContribution : 0,
                 withdrawal: totalWithdrawal,
                 desiredWithdrawal: baseDesired,
@@ -1992,6 +2014,7 @@
           balances,
           year,
           Math.max(0, freeFundsSale.realizedGain),
+          shouldRecord,
         );
         if (shouldRecord) {
           rows[rows.length - 1].annualFreeFundsTax = growth.freeFundsTax;
@@ -2232,8 +2255,9 @@
         }
       }
 
+      const hasLockedSchedule = Number.isInteger(inputs.lockedFireYear);
       const checkFireReadiness =
-        assumedFireYear === null || year === assumedFireYear;
+        assumedFireYear === null || year === assumedFireYear || hasLockedSchedule;
       const milestone = candidateOnly
         ? null
         : evaluateMilestone(
@@ -2247,30 +2271,61 @@
         milestoneRows.push(milestone);
       }
 
-      if (milestone && !pensionCoastRow && milestone.coastFinanced) {
-        pensionCoastRow = milestone;
-        pensionStopRow = pensionStopRow || milestone;
-        pensionContributionsActive = false;
-      }
-
-      if (milestone?.fireReady) {
-        if (includeBridgeCapacity) {
-          milestone.possibleBridgeWithdrawal = sustainableBridgeWithdrawal(
-            year,
-            balances,
-            freeFundsCostBasis,
-            ratePensionNonDeductibleBasis,
-          );
+      if (hasLockedSchedule) {
+        const stopYear = Number.isInteger(inputs.lockedPensionStopYear)
+          ? inputs.lockedPensionStopYear
+          : inputs.lockedFireYear;
+        if (year >= stopYear && !pensionStopRow) {
+          pensionCoastRow = milestone;
+          pensionStopRow = milestone;
+          pensionContributionsActive = false;
         }
-        fireRow = milestone;
-        pensionStopRow = pensionStopRow || milestone;
-        drawdownStartYear = year;
-        drawdownStartBalances = [...balances];
-        drawdownStartFreeFundsCostBasis = freeFundsCostBasis;
-        drawdownStartRatePensionNonDeductibleBasis =
-          ratePensionNonDeductibleBasis;
-        drawdownStartContribution = contributionAtCheckpoint;
-        break;
+        if (year === inputs.lockedFireYear) {
+          if (milestone && includeBridgeCapacity) {
+            milestone.possibleBridgeWithdrawal = sustainableBridgeWithdrawal(
+              year,
+              balances,
+              freeFundsCostBasis,
+              ratePensionNonDeductibleBasis,
+            );
+          }
+          fireRow =
+            inputs.lockedFireYear < yearsToRetirement ? milestone : null;
+          pensionStopRow = pensionStopRow || milestone;
+          drawdownStartYear = year;
+          drawdownStartBalances = [...balances];
+          drawdownStartFreeFundsCostBasis = freeFundsCostBasis;
+          drawdownStartRatePensionNonDeductibleBasis =
+            ratePensionNonDeductibleBasis;
+          drawdownStartContribution = contributionAtCheckpoint;
+          break;
+        }
+      } else {
+        if (milestone && !pensionCoastRow && milestone.coastFinanced) {
+          pensionCoastRow = milestone;
+          pensionStopRow = pensionStopRow || milestone;
+          pensionContributionsActive = false;
+        }
+
+        if (milestone?.fireReady) {
+          if (includeBridgeCapacity) {
+            milestone.possibleBridgeWithdrawal = sustainableBridgeWithdrawal(
+              year,
+              balances,
+              freeFundsCostBasis,
+              ratePensionNonDeductibleBasis,
+            );
+          }
+          fireRow = milestone;
+          pensionStopRow = pensionStopRow || milestone;
+          drawdownStartYear = year;
+          drawdownStartBalances = [...balances];
+          drawdownStartFreeFundsCostBasis = freeFundsCostBasis;
+          drawdownStartRatePensionNonDeductibleBasis =
+            ratePensionNonDeductibleBasis;
+          drawdownStartContribution = contributionAtCheckpoint;
+          break;
+        }
       }
 
       if (year === yearsToRetirement) {
@@ -2292,8 +2347,8 @@
             ratePensionNonDeductibleBasis,
             {
               phase: "Opsparing",
-              pensionReturnRate: pensionNominalReturn(year),
-              freeFundsReturnRate: freeNominalReturn(year),
+              pensionReturnRate: pensionNominalReturn(year, true),
+              freeFundsReturnRate: freeNominalReturn(year, true),
               contribution: contributionAtCheckpoint,
             },
           ),
