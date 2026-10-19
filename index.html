@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Beregn din FIRE-alder og følg din opsparing og nedsparing år for år."
+    />
+    <title>FIRE-beregner</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <div class="page-header-planner">
+          <div class="page-header-copy">
+            <h1>FIRE-beregner</h1>
+            <p>Beregn opsparing, pension og nedsparing</p>
+          </div>
+          <div class="plan-code-toolbar">
+            <p
+              id="plan-code-status"
+              class="plan-code-toolbar-status"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></p>
+            <div class="plan-code-toolbar-actions">
+              <button
+                id="save-plan-code"
+                class="plan-code-trigger"
+                type="button"
+                aria-haspopup="dialog"
+              >
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                  <path d="M3.5 2.5h8l3 3v10H3.5z" />
+                  <path d="M6 2.5v4h5v-4M6 12.5h6" />
+                </svg>
+                Gem input
+              </button>
+              <button
+                id="load-plan-code"
+                class="plan-code-trigger"
+                type="button"
+                aria-haspopup="dialog"
+              >
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                  <path d="M9 2.5v9M5.5 8l3.5 3.5L12.5 8" />
+                  <path d="M3.5 13.5v2h11v-2" />
+                </svg>
+                Indlæs input
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <p id="error" class="error-message" role="alert" hidden></p>
+
+      <div class="dashboard">
+        <section class="planner-card" aria-labelledby="planner-heading">
+          <form id="fire-form">
+            <div class="form-surface">
+              <fieldset id="plan-section" data-step-section="plan-section">
+                <legend id="planner-heading">Din plan</legend>
+                <div class="form-grid plan-grid">
+                  <label class="field">
+                    <span
+                      >Nuværende alder
+                      <i title="Beregningen bruger hele år fra dagens dato"
+                        >i</i
+                      ></span
+                    >
+                    <span class="input-suffix"
+                      ><input
+                        name="currentAge"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="30"
+                        required
+                      /><b>år</b></span
+                    >
+                  </label>
+                  <label class="field">
+                    <span
+                      >Pensionsalder
+                      <i title="Alderen hvor pensionen kan udbetales"
+                        >i</i
+                      ></span
+                    >
+                    <span class="input-suffix"
+                      ><input
+                        name="retirementAge"
+                        type="number"
+                        min="1"
+                        value="70"
+                        required
+                      /><b>år</b></span
+                    >
+                  </label>
+                  <label class="field">
+                    <span
+                      >Udbetaling over
+                      <i title="Antal år med pensionsudbetaling">i</i></span
+                    >
+                    <span class="input-suffix"
+                      ><input
+                        name="payoutYears"
+                        type="number"
+                        min="1"
+                        value="20"
+                        required
+                      /><b>år</b></span
+                    >
+                  </label>
+                  <label class="field">
+                    <span
+                      >Ønsket årlig hævning
+                      <i
+                        title="Beløbet vises i dagens kroner. Efter skat omfatter beregnet skat på frie midler og den indtastede effektive skat på udbetalinger fra ratepension og livrente."
+                        >i</i
+                      ></span
+                    >
+                    <input
+                      name="desiredAnnualWithdrawal"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="300.000"
+                      required
+                    />
+                  </label>
+                  <label class="inflation-field">
+                    <span>Hævningsbeløbet er</span>
+                    <span class="inflation-input">
+                      <b id="withdrawal-tax-state">Efter skat</b>
+                      <input
+                        name="withdrawalAfterTax"
+                        type="checkbox"
+                        checked
+                      />
+                      <span class="inflation-switch" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="inflation-field">
+                    <span
+                      >Husstand
+                      <i
+                        title="Vælg Par for at fordoble grænsen for 27 % aktieindkomst (til 158.800 kr. i 2026), fordoble indskudslofter for ASK og aldersopsparing, og anvende satsen for gifte/samlevende for folkepension."
+                        >i</i
+                      ></span
+                    >
+                    <span class="inflation-input">
+                      <b id="couple-state">Enlig</b>
+                      <input name="isCouple" type="checkbox" />
+                      <span class="inflation-switch" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="field">
+                    <span
+                      >Udbetalingsstrategi
+                      <i
+                        title="Forholdsmæssig hæver proportionalt fra alle frie midler. Skatteoptimeret udnytter den lave 27 % aktieindkomstgrænse først og bruger derefter 0 %-udbetalingsskat konti (lager/ASK/aldersopsparing) før 42 % aktieindkomst."
+                        >i</i
+                      ></span
+                    >
+                    <select name="withdrawalStrategy">
+                      <option value="proportional">Forholdsmæssig</option>
+                      <option value="taxOptimal">Skatteoptimeret (27 % først)</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset id="wealth-section" data-step-section="wealth-section">
+                <legend>Nuværende formue</legend>
+                <div class="form-grid wealth-grid">
+                  <label class="field"
+                    ><span>Ratepension</span
+                    ><input
+                      name="ratePensionBalance"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="500.000"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span>Aldersopsparing</span
+                    ><input
+                      name="ageSavingsBalance"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="50.000"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span
+                      >Livrentedepot
+                      <i
+                        title="Ved pensionsstart beregnes første års livrente ud fra depotet, udbetalingsrenten og Finanstilsynets levetidsdata. Pengene forbliver investeret, og udbetalingen reguleres årligt efter afkast efter PAL-skat."
+                        >i</i
+                      ></span
+                    ><input
+                      name="lifeAnnuityBalance"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="0"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span>Frie midler</span
+                    ><input
+                      name="freeFundsBalance"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="250.000"
+                      required
+                  /></label>
+                  <label id="free-funds-cost-basis-field" class="field"
+                    ><span
+                      >Samlet købspris
+                      <i
+                        title="Det samlede beløb, du betalte for de investeringer i frie midler, som du stadig ejer."
+                        >i</i
+                      ></span
+                    ><input
+                      name="freeFundsCostBasis"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="250.000"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span>Aktiesparekonto</span
+                    ><input
+                      name="askBalance"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="150.000"
+                      required
+                  /></label>
+                </div>
+              </fieldset>
+
+              <fieldset
+                id="savings-section"
+                data-step-section="savings-section"
+              >
+                <legend>Årlig indbetaling i dagens kroner</legend>
+                <div class="form-grid savings-grid">
+                  <label class="field"
+                    ><span
+                      >Ratepension
+                      <i
+                        title="Din samlede årlige indbetaling til ratepension, inklusive indbetalinger via arbejdsgiver og andre ordninger. Beregneren anvender skattebesparelsen op til rateloftet på 68.700 kr. i 2026. Beløb over loftet regnes som indbetaling uden fradrag."
+                        >i</i
+                      ></span
+                    ><input
+                      name="annualRatePensionContribution"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="60.000"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span
+                      >Aldersopsparing
+                      <i
+                        title="Optimeringen bruger det 2026-loft, du vælger under Forudsætninger."
+                        >i</i
+                      ></span
+                    ><input
+                      name="annualAgeSavingsContribution"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="9.900"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span
+                      >Livrente
+                      <i
+                        title="Din årlige indbetaling til privat livrente. Optimeringen kan ændre beløbet og værdisætter det gennem den forventede livsvarige udbetaling. Opfyldningsfradraget er 63.200 kr. i 2026."
+                        >i</i
+                      ></span
+                    ><input
+                      name="annualLifeAnnuityContribution"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="0"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span>Frie midler</span
+                    ><input
+                      name="annualFreeFundsContribution"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="50.000"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span
+                      >Aktiesparekonto
+                      <i
+                        title="Årlig indbetaling til ASK op til indskudsloftet (174.200 kr. for enlige / 348.400 kr. for par i 2026). Hvis saldoen når loftet, overføres overskydende indbetaling automatisk til frie midler."
+                        >i</i
+                      ></span
+                    ><input
+                      name="annualAskContribution"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="0"
+                      required
+                  /></label>
+                  <label class="inflation-field">
+                    <span
+                      >Inflationsregulering
+                      <i
+                        title="Når funktionen er slået til, reguleres indbetalingerne med inflationen, så de bevarer samme købekraft. Når den er slået fra, er indbetalingerne faste nominelle beløb."
+                        >i</i
+                      ></span
+                    >
+                    <span class="inflation-input">
+                      <b id="inflation-state">Følger inflationen</b>
+                      <input
+                        name="contributionsFollowInflation"
+                        type="checkbox"
+                        checked
+                      />
+                      <span class="inflation-switch" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="inflation-field">
+                    <span
+                      >Omdiriger pension
+                      <i
+                        title="Når pensionen har nået sit mål, flyttes nettoudgiften til de fremtidige indbetalinger på ratepension og livrente samt indbetalingen på aldersopsparing over til frie midler."
+                        >i</i
+                      ></span
+                    >
+                    <span class="inflation-input">
+                      <b id="pension-redirect-state">Omdirigeres ikke</b>
+                      <input
+                        name="redirectPensionContributionsToFreeFunds"
+                        type="checkbox"
+                      />
+                      <span class="inflation-switch" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                </div>
+                <p
+                  id="rate-pension-split-message"
+                  class="contribution-adjustment-message"
+                  role="status"
+                  hidden
+                ></p>
+                <p
+                  id="life-annuity-limit-message"
+                  class="contribution-adjustment-message"
+                  role="status"
+                  hidden
+                ></p>
+                <p
+                  id="age-savings-redirect-message"
+                  class="contribution-adjustment-message"
+                  role="status"
+                  hidden
+                ></p>
+              </fieldset>
+
+              <details
+                id="optimization-section"
+                class="assumptions optimization-disclosure"
+                data-step-section="optimization-section"
+              >
+                <summary>Optimering</summary>
+                <div class="optimization-actions">
+                  <button
+                    id="optimize-contributions"
+                    class="optimization-button"
+                    type="button"
+                    aria-controls="optimization-result"
+                  >
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path
+                        d="M3 5.5h11M11.5 2.5l3 3-3 3M17 14.5H6M8.5 11.5l-3 3 3 3"
+                      />
+                    </svg>
+                    <span>Beregn anbefaling</span>
+                  </button>
+                  <button
+                    id="apply-optimization"
+                    class="apply-optimization-button"
+                    type="button"
+                    disabled
+                    data-optimization-result-only
+                    hidden
+                  >
+                    Brug fordelingen
+                  </button>
+                </div>
+                <section
+                  id="optimization-result"
+                  class="optimization-result"
+                  aria-labelledby="optimization-heading"
+                  aria-live="polite"
+                >
+                  <header class="optimization-header">
+                    <div>
+                      <p>Optimeret fordeling</p>
+                      <h3 id="optimization-heading">Vælg faste beløb</h3>
+                    </div>
+                    <div
+                      id="optimization-fire-shift"
+                      class="optimization-fire-shift"
+                      data-optimization-result-only
+                      hidden
+                    >
+                      <span id="optimization-current-fire"></span>
+                      <svg viewBox="0 0 24 12" aria-hidden="true">
+                        <path d="M1 6h20M17 2l4 4-4 4" />
+                      </svg>
+                      <strong id="optimization-recommended-fire"></strong>
+                    </div>
+                  </header>
+                  <div
+                    id="optimization-comparison"
+                    class="optimization-comparison"
+                  >
+                    <div
+                      class="optimization-column-headings"
+                      aria-hidden="true"
+                    >
+                      <span></span><span>Før</span
+                      ><span data-optimization-result-only hidden></span
+                      ><span data-optimization-result-only hidden>Anbefalet</span>
+                    </div>
+                    <dl>
+                      <div class="optimization-row optimization-row-pension">
+                        <dt><i aria-hidden="true"></i>Ratepension</dt>
+                        <dd class="optimization-current-value">
+                          <span id="optimization-current-rate"></span>
+                          <button
+                            class="contribution-lock"
+                            type="button"
+                            data-lock-contribution="annualRatePensionContribution"
+                            data-lock-label="ratepension"
+                            aria-pressed="false"
+                            aria-label="Lås ratepension i optimeringen"
+                            title="Lås ratepension i optimeringen"
+                          >
+                            <svg class="lock-icon-open" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M11.5 7V5.5a3 3 0 0 0-5.7-1.3" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                            <svg class="lock-icon-closed" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M6 7V5.5a3 3 0 0 1 6 0V7" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                          </button>
+                        </dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-rate" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-pension">
+                        <dt><i aria-hidden="true"></i>Aldersopsparing</dt>
+                        <dd class="optimization-current-value">
+                          <span id="optimization-current-age-savings"></span>
+                          <button
+                            class="contribution-lock"
+                            type="button"
+                            data-lock-contribution="annualAgeSavingsContribution"
+                            data-lock-label="aldersopsparing"
+                            aria-pressed="false"
+                            aria-label="Lås aldersopsparing i optimeringen"
+                            title="Lås aldersopsparing i optimeringen"
+                          >
+                            <svg class="lock-icon-open" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M11.5 7V5.5a3 3 0 0 0-5.7-1.3" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                            <svg class="lock-icon-closed" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M6 7V5.5a3 3 0 0 1 6 0V7" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                          </button>
+                        </dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-age-savings" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-pension">
+                        <dt><i aria-hidden="true"></i>Livrente</dt>
+                        <dd class="optimization-current-value">
+                          <span id="optimization-current-life-annuity"></span>
+                          <button
+                            class="contribution-lock"
+                            type="button"
+                            data-lock-contribution="annualLifeAnnuityContribution"
+                            data-lock-label="livrente"
+                            aria-pressed="false"
+                            aria-label="Lås livrente i optimeringen"
+                            title="Lås livrente i optimeringen"
+                          >
+                            <svg class="lock-icon-open" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M11.5 7V5.5a3 3 0 0 0-5.7-1.3" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                            <svg class="lock-icon-closed" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M6 7V5.5a3 3 0 0 1 6 0V7" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                          </button>
+                        </dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-life-annuity" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-free">
+                        <dt><i aria-hidden="true"></i>Frie midler</dt>
+                        <dd class="optimization-current-value">
+                          <span id="optimization-current-free"></span>
+                          <button
+                            class="contribution-lock"
+                            type="button"
+                            data-lock-contribution="annualFreeFundsContribution"
+                            data-lock-label="frie midler"
+                            aria-pressed="false"
+                            aria-label="Lås frie midler i optimeringen"
+                            title="Lås frie midler i optimeringen"
+                          >
+                            <svg class="lock-icon-open" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M11.5 7V5.5a3 3 0 0 0-5.7-1.3" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                            <svg class="lock-icon-closed" viewBox="0 0 18 18" aria-hidden="true">
+                              <path d="M6 7V5.5a3 3 0 0 1 6 0V7" />
+                              <rect x="3.5" y="7" width="11" height="8" rx="2" />
+                              <path d="M9 10v2" />
+                            </svg>
+                          </button>
+                        </dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-free" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-tax">
+                        <dt>Årlig pris efter skattebesparelse</dt>
+                        <dd id="optimization-current-net-cost"></dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-net-cost" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-tax">
+                        <dt>
+                          Skattebesparelse
+                          <i
+                            class="optimization-info-icon"
+                            title="Den anslåede årlige reduktion i indkomstskat fra fradragsberettigede indbetalinger til ratepension og livrente. Beløbet beregnes med den valgte skattebesparelse og kun op til 2026-lofterne. Aldersopsparing og frie midler giver ikke denne skattebesparelse."
+                            >i</i
+                          >
+                        </dt>
+                        <dd id="optimization-current-tax-saving"></dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-tax-saving" data-optimization-result-only hidden></dd>
+                      </div>
+                      <div class="optimization-row optimization-row-reserve">
+                        <dt>Reserve efter skat ved planens slutning</dt>
+                        <dd id="optimization-current-reserve"></dd>
+                        <span data-optimization-result-only hidden aria-hidden="true">→</span>
+                        <dd id="optimization-recommended-reserve" data-optimization-result-only hidden></dd>
+                      </div>
+                    </dl>
+                    <div
+                      id="optimization-allocation-bar"
+                      class="optimization-allocation-bar"
+                      data-optimization-result-only
+                      aria-hidden="true"
+                      hidden
+                    >
+                      <i></i><i></i><i></i><i></i>
+                    </div>
+                  </div>
+                  <footer class="optimization-footer">
+                    <p id="optimization-note"></p>
+                  </footer>
+                </section>
+              </details>
+
+              <details
+                id="returns-section"
+                class="assumptions"
+                data-step-section="returns-section"
+              >
+                <summary>Afkast</summary>
+                <div class="form-grid assumptions-grid">
+                  <p
+                    id="return-strategy-note"
+                    class="return-strategy-note"
+                    role="note"
+                  >
+                    <span
+                      ><strong>Ingen:</strong> Det forventede afkast bruges i
+                      alle år.</span
+                    >
+                    <span
+                      ><strong>Nedtrapning:</strong> Afkastet sænkes frem mod
+                      første hævning og bliver på det defensive niveau.</span
+                    >
+                    <span
+                      ><strong
+                        ><a
+                          href="https://www.financialplanningassociation.org/article/journal/JAN14-reducing-retirement-risk-rising-equity-glide-path"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          >Obligationstelt</a
+                        >:</strong
+                      >
+                      Afkastet sænkes frem mod første hævning og hæves derefter
+                      igen.</span
+                    >
+                  </p>
+                  <label class="field"
+                    ><span
+                      >Afkaststrategi
+                      <i
+                        title="Vælg, om afkastet skal være fast eller ændre sig omkring første udbetaling."
+                        >i</i
+                      ></span
+                    ><select
+                      name="returnStrategy"
+                      aria-describedby="return-strategy-note"
+                      required
+                    >
+                      <option value="none">Ingen (fast afkast)</option>
+                      <option value="declining">Nedtrapning</option>
+                      <option value="riskTent">Obligationstelt</option>
+                    </select></label
+                  >
+                  <label class="field"
+                    ><span>Forventet afkast</span
+                    ><span class="input-suffix"
+                      ><input
+                        name="returnRate"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value="7"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label
+                    id="defensive-return-field"
+                    class="field field-disabled"
+                    aria-disabled="true"
+                    ><span
+                      >Defensivt afkast
+                      <i
+                        title="Det forventede årlige afkast ved første udbetaling, før inflation. Værdien skal være mellem 0 % og det forventede afkast."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="defensiveReturnRate"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value="4"
+                        aria-describedby="return-strategy-note"
+                        disabled
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label
+                    id="return-decline-years-field"
+                    class="field field-disabled"
+                    aria-disabled="true"
+                    ><span
+                      >Nedtrapning før første hævning
+                      <i
+                        title="Antal hele år fra det forventede afkast begynder at falde, til det defensive afkast nås ved første hævning."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="returnDeclineYears"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="10"
+                        aria-describedby="return-strategy-note"
+                        disabled
+                        required
+                      /><b>år</b></span
+                    ></label
+                  >
+                  <label
+                    id="return-recovery-years-field"
+                    class="field field-disabled"
+                    aria-disabled="true"
+                    ><span
+                      >Genoptrapning efter første hævning
+                      <i
+                        title="Antal hele år fra det defensive afkast ved første hævning, til det forventede afkast bruges igen."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="returnRecoveryYears"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="15"
+                        aria-describedby="return-strategy-note"
+                        disabled
+                        required
+                      /><b>år</b></span
+                    ></label
+                  >
+                </div>
+              </details>
+
+              <details
+                id="assumptions-section"
+                class="assumptions"
+                data-step-section="assumptions-section"
+              >
+                <summary>Forudsætninger</summary>
+                <div class="form-grid assumptions-grid">
+                  <label class="field"
+                    ><span
+                      >Ratepension: hovedstol uden fradrag
+                      <i
+                        title="Dokumenterede indbetalinger i den nuværende ratepension, som du ikke har fået fradrags- eller bortseelsesret for. Beløbet kan udbetales skattefrit, mens afkastet beskattes. Beregneren fordeler hovedstolen i lige store nominelle dele over den faste udbetalingsperiode."
+                        >i</i
+                      ></span
+                    ><input
+                      name="ratePensionNonDeductibleBasis"
+                      type="text"
+                      inputmode="numeric"
+                      data-number-format="integer"
+                      value="0"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span
+                      >Loft for aldersopsparing
+                      <i
+                        title="Vælg kun det forhøjede loft, hvis du har højst 7 år til folkepensionsalderen og ikke er begrænset af 10-års-reglen."
+                        >i</i
+                      ></span
+                    ><select name="ageSavingsContributionLimit" required>
+                      <option value="9900">Grundloft · 9.900 kr.</option>
+                      <option value="64200">Forhøjet · 64.200 kr.</option>
+                    </select></label
+                  >
+                  <label class="field"
+                    ><span
+                      >PAL-skat
+                      <i title="Pensionsafkastskat">i</i></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="pensionTax"
+                        type="number"
+                        step="0.1"
+                        value="15.3"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span
+                      >Skattebesparelse på pension
+                      <i
+                        title="Hvor meget en fradragsberettiget indbetaling til ratepension eller livrente sænker din skat. 40 % betyder, at en indbetaling på 10.000 kr. koster cirka 6.000 kr. efter skat."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="ratePensionContributionTaxRelief"
+                        type="number"
+                        step="0.1"
+                        value="40"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span
+                      >Skat på pensionsudbetaling
+                      <i
+                        title="Din forventede effektive indkomstskat på udbetalinger fra ratepension og livrente. Aldersopsparing er fortsat skattefri ved udbetaling."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="pensionWithdrawalTax"
+                        type="number"
+                        step="0.1"
+                        value="37"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span
+                      >Skat på ASK
+                      <i
+                        title="ASK beskattes årligt efter lagerprincippet. Den aktuelle værdi bruges som startværdi for fremtidige afkast."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="askTax"
+                        type="number"
+                        step="0.1"
+                        value="17"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span>Livrentens udbetalingsrente
+                      <i title="Bestemmer livrentens første udbetaling. Standard: Nordnets udbetalingsrente på 3,22 % i 2026. Satsen holdes konstant i prognosen. Udbetalingen reguleres årligt efter investeringsafkast efter PAL-skat og vises i dagens kroner.">i</i></span
+                    ><span class="input-suffix"
+                      ><input name="lifeAnnuityPayoutRate" type="number" min="-99" step="0.01" value="3.22" required /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span>Forventet inflation</span
+                    ><span class="input-suffix"
+                      ><input
+                        name="inflationRate"
+                        type="number"
+                        step="0.1"
+                        value="2"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                  <label class="field"
+                    ><span
+                      >Andel lagerbeskattede frie midler
+                      <i
+                        title="Procentdelen anvendes på den nuværende formue, den samlede købspris og fremtidige indbetalinger. Resten behandles som realisationsbeskattede aktier."
+                        >i</i
+                      ></span
+                    ><span class="input-suffix"
+                      ><input
+                        name="freeFundsInventoryShare"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="0"
+                        required
+                      /><b>%</b></span
+                    ></label
+                  >
+                </div>
+              </details>
+
+              <details
+                id="public-pension-section"
+                class="assumptions"
+                data-step-section="public-pension-section"
+              >
+                <summary>Offentlig pension, ATP & efterløn</summary>
+                <div class="form-grid assumptions-grid">
+                  <label class="inflation-field">
+                    <span>Folkepension <i title="Medregn statens folkepension: grundbeløb samt pensionstillæg med modregning ud fra dine skattepligtige pensionsudbetalinger.">i</i></span>
+                    <span class="inflation-input">
+                      <b id="folkepension-state">Udelades</b>
+                      <input name="includeFolkepension" type="checkbox" />
+                      <span class="inflation-switch" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="field">
+                    <span>Folkepensionsalder <i title="Den officielle folkepensionsalder for din årgang (f.eks. 69 eller 70 år).">i</i></span>
+                    <span class="input-suffix"><input name="folkepensionAge" type="number" min="65" max="80" value="69" required /><b>år</b></span>
+                  </label>
+                  <label class="field">
+                    <span>Årlig ATP-udbetaling <i title="Forventet årlig udbetaling fra ATP Livslang Pension før skat (kan findes på borger.dk).">i</i></span>
+                    <input name="atpAnnualIncome" type="text" inputmode="numeric" data-number-format="integer" value="0" />
+                  </label>
+                  <label class="field">
+                    <span>Årlig efterløn før skat <i title="Hvis du er berettiget til efterløn i årene op til folkepensionsalderen.">i</i></span>
+                    <input name="efterloenAnnualIncome" type="text" inputmode="numeric" data-number-format="integer" value="0" />
+                  </label>
+                  <label class="field">
+                    <span>Antal år på efterløn <i title="Hvor mange år forud for pensionsalderen du modtager efterløn (maks. 3-4 år).">i</i></span>
+                    <span class="input-suffix"><input name="efterloenYears" type="number" min="0" max="10" value="0" /><b>år</b></span>
+                  </label>
+                </div>
+              </details>
+
+              <details
+                id="cashflow-phases-section"
+                class="assumptions"
+                data-step-section="cashflow-phases-section"
+              >
+                <summary>Forbrugsfaser & engangshændelser</summary>
+                <div class="form-grid assumptions-grid">
+                  <label class="field">
+                    <span>Alder for forbrugsændring <i title="Alder hvor dit årlige forbrug ændrer sig permanent (f.eks. 75 år når boliglån er betalt eller rejseaktivitet aftager). 0 = ingen ændring.">i</i></span>
+                    <span class="input-suffix"><input name="spendingStepAge" type="number" min="0" max="110" value="0" /><b>år</b></span>
+                  </label>
+                  <label class="field">
+                    <span>Ændring i forbrug (%) <i title="Procentvis stigning (+) eller fald (-) i ønsket årlig hævning fra ovenstående alder (f.eks. -15 %).">i</i></span>
+                    <span class="input-suffix"><input name="spendingStepPercent" type="number" min="-90" max="200" step="1" value="0" /><b>%</b></span>
+                  </label>
+                  <label class="field">
+                    <span>Alder for engangshændelse <i title="Alder for en stor engangsindtægt eller udgift (f.eks. arv, salg af fast ejendom eller større renovering). 0 = deaktiveret.">i</i></span>
+                    <span class="input-suffix"><input name="oneOffEventAge" type="number" min="0" max="110" value="0" /><b>år</b></span>
+                  </label>
+                  <label class="field">
+                    <span>Engangsbeløb (dagens kr.) <i title="Positivt beløb = ekstra likviditet (arv, friværdi). Negativt beløb = ekstra engangsudgift.">i</i></span>
+                    <input name="oneOffEventAmount" type="text" inputmode="numeric" data-number-format="integer" value="0" />
+                  </label>
+                </div>
+              </details>
+
+              <details
+                id="monte-carlo-section"
+                class="assumptions"
+                data-step-section="monte-carlo-section"
+              >
+                <summary>Monte Carlo-simulering (markedsudsving)</summary>
+                <div class="form-grid assumptions-grid">
+                  <label class="field">
+                    <span>Årlig volatilitet (risiko) <i title="Standardafvigelse for det årlige aktieafkast. Typisk 15-18 % for en global aktieportefølje.">i</i></span>
+                    <span class="input-suffix"><input name="returnVolatility" type="number" min="1" max="50" step="0.5" value="15" required /><b>%</b></span>
+                  </label>
+                  <label class="field">
+                    <span>Antal simuleringer <i title="Antal tilfældige markedsforløb (stokastiske iterationer). Typisk 200 - 1.000 forløb.">i</i></span>
+                    <input name="monteCarloRuns" type="number" min="50" max="5000" step="50" value="500" required />
+                  </label>
+                  <div class="optimization-actions" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+                    <button id="run-monte-carlo" class="optimization-button" type="button">
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M3 17V3h14v14H3Zm4-4h2v2H7v-2Zm0-6h2v2H7V7Zm4 6h2v2h-2v-2Zm0-6h2v2h-2V7Z" />
+                      </svg>
+                      <span>Kør Monte Carlo-simulering</span>
+                    </button>
+                  </div>
+                  <div id="monte-carlo-result" class="monte-carlo-result" style="grid-column: 1 / -1;" hidden>
+                    <div class="result-breakdown" style="margin-top: 0.5rem;">
+                      <div class="result-breakdown-item">
+                        <span>Solvenssandsynlighed</span>
+                        <strong id="mc-success-rate">—</strong>
+                      </div>
+                      <div class="result-breakdown-item">
+                        <span>P50 (Median slutformue)</span>
+                        <strong id="mc-median-reserve">—</strong>
+                      </div>
+                      <div class="result-breakdown-item">
+                        <span>P10 (Svagt marked / 10. percentil)</span>
+                        <strong id="mc-p10-reserve">—</strong>
+                      </div>
+                      <div class="result-breakdown-item">
+                        <span>P90 (Stærkt marked / 90. percentil)</span>
+                        <strong id="mc-p90-reserve">—</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </form>
+        </section>
+
+        <div id="results" hidden>
+          <aside class="result-card" aria-labelledby="result-heading">
+            <header>
+              <p>Din plan</p>
+              <h2 id="result-heading">
+                FIRE fra <span id="result-fire-age"></span>
+              </h2>
+              <strong id="result-withdrawal"></strong>
+            </header>
+
+            <div class="result-milestones" aria-label="Planens milepæle">
+              <div class="result-milestone">
+                <strong id="result-pension-stop-age"></strong>
+                <span class="result-milestone-rail" aria-hidden="true"
+                  ><i></i
+                ></span>
+                <span class="result-milestone-copy">
+                  <b id="result-pension-stop-label">Stop pensionsindbetaling</b>
+                  <small id="result-pension-stop-note"></small>
+                </span>
+              </div>
+              <div class="result-milestone result-milestone-fire">
+                <strong id="result-fire-milestone-age"></strong>
+                <span class="result-milestone-rail" aria-hidden="true"
+                  ><i></i
+                ></span>
+                <span class="result-milestone-copy">
+                  <b id="result-fire-milestone-label">Start FIRE</b>
+                  <small id="result-fire-milestone-note"></small>
+                </span>
+              </div>
+              <div class="result-milestone">
+                <strong id="result-retirement-age"></strong>
+                <span class="result-milestone-rail" aria-hidden="true"
+                  ><i></i
+                ></span>
+                <span class="result-milestone-copy">
+                  <b>Start pension</b>
+                  <small id="result-retirement-note"></small>
+                </span>
+              </div>
+            </div>
+
+            <footer>
+              <p>
+                Forventet reserve ved <span id="result-final-age"></span> år
+                <i
+                  title="Formue ved slutningen af den valgte udbetalingsperiode"
+                  >i</i
+                >
+              </p>
+              <strong id="result-final-balance"></strong>
+            </footer>
+          </aside>
+
+          <section class="timeline-card" aria-labelledby="timeline-heading">
+            <h2 id="timeline-heading" class="visually-hidden">
+              Dit økonomiske livsforløb
+            </h2>
+            <div class="timeline-viewport">
+              <div class="timeline-plot">
+                <div class="timeline-visual-frame">
+                  <div
+                    class="phase-groups"
+                    aria-label="Overordnede perioder i beregningen"
+                  >
+                    <div
+                      id="phase-group-saving"
+                      class="phase-group phase-group-saving"
+                    >
+                      <span>Opsparing</span>
+                    </div>
+                    <div
+                      id="phase-group-drawdown"
+                      class="phase-group phase-group-drawdown"
+                    >
+                      <span>Nedsparing</span>
+                    </div>
+                  </div>
+                  <div class="phase-strip" aria-label="Faser i beregningen">
+                    <div
+                      id="phase-saving-pension"
+                      class="phase phase-saving phase-saving-pension"
+                    >
+                      <svg
+                        class="phase-icon phase-icon-seedlings"
+                        aria-hidden="true"
+                        viewBox="0 0 32 32"
+                      >
+                        <path d="M9.5 21V11M22.5 21V8" />
+                        <path
+                          d="M9.5 15c-3.2 0-5-1.7-5.2-4.8 3.2-.2 5 1.6 5.2 4.8Z"
+                        />
+                        <path
+                          d="M9.5 12c.2-3.2 2-5 5.2-5.2-.2 3.2-2 5-5.2 5.2Z"
+                        />
+                        <path
+                          d="M22.5 13c-3.2-.2-4.9-2-4.9-5.2 3.2.2 4.9 2 4.9 5.2Z"
+                        />
+                        <path
+                          d="M22.5 9c.2-3.2 2-5 5.2-5.2-.2 3.2-2 5-5.2 5.2Z"
+                        />
+                        <path
+                          d="M4.5 21h10l-1.4 7H5.9l-1.4-7ZM17.5 21h10l-1.4 7h-7.2l-1.4-7Z"
+                        />
+                      </svg>
+                      <b>Pension + frie midler</b
+                      ><small id="phase-saving-pension-ages"></small>
+                      <span class="phase-connector" aria-hidden="true"></span>
+                    </div>
+                    <div id="phase-saving-free" class="phase phase-saving-free">
+                      <svg
+                        class="phase-icon phase-icon-sprout"
+                        aria-hidden="true"
+                        viewBox="0 0 32 32"
+                      >
+                        <path d="M16 22V7" />
+                        <path
+                          d="M16 15c-4.2 0-6.5-2.2-6.8-6.2 4 .3 6.3 2.5 6.8 6.2Z"
+                        />
+                        <path
+                          d="M16 11c.3-4 2.6-6.2 6.6-6.5-.3 4-2.6 6.2-6.6 6.5Z"
+                        />
+                        <path d="M9.5 22h13L21 28H11l-1.5-6Z" />
+                      </svg>
+                      <b>Frie midler</b
+                      ><small id="phase-saving-free-ages"></small>
+                      <span class="phase-connector" aria-hidden="true"></span>
+                    </div>
+                    <div id="phase-fire" class="phase phase-fire">
+                      <svg
+                        class="phase-icon phase-icon-potted-tree"
+                        aria-hidden="true"
+                        viewBox="0 0 32 32"
+                      >
+                        <path
+                          d="M10.3 18.5c-3 0-5.4-2.3-5.4-5.2 0-2.5 1.9-4.7 4.4-5.1.8-2.6 3.3-4.4 6.2-4.4 2.6 0 4.9 1.5 5.9 3.8 3 .2 5.3 2.5 5.3 5.3 0 3.1-2.5 5.6-5.7 5.6H10.3Z"
+                        />
+                        <path d="M16 23V12.5M16 16.5l-4-3M16 15l4-3" />
+                        <path d="M10 23h12l-1.4 5h-9.2L10 23Z" />
+                      </svg>
+                      <b>FIRE</b><small id="phase-fire-ages"></small>
+                      <span class="phase-connector" aria-hidden="true"></span>
+                    </div>
+                    <div id="phase-pension" class="phase phase-pension">
+                      <svg
+                        class="phase-icon phase-icon-tree"
+                        aria-hidden="true"
+                        viewBox="0 0 32 32"
+                      >
+                        <path
+                          d="M8.7 20c-3.3 0-5.9-2.6-5.9-5.8 0-2.8 2-5.2 4.8-5.7 1-3.1 4-5.3 7.4-5.3 3.3 0 6.1 1.9 7.3 4.8 3.9.1 6.9 3 6.9 6.7 0 2.9-2.4 5.3-5.5 5.3h-15Z"
+                        />
+                        <path
+                          d="M14.5 20c0 3-.6 5.7-1.8 8M17.5 20c0 3 .6 5.7 1.8 8"
+                        />
+                        <path d="M7 28h18" />
+                      </svg>
+                      <b>Pension</b><small id="phase-pension-ages"></small>
+                      <span class="phase-connector" aria-hidden="true"></span>
+                    </div>
+                  </div>
+                  <div id="wealth-chart" class="wealth-chart"></div>
+                  <div class="chart-legend" aria-label="Grafens linjer">
+                    <span
+                      ><i class="legend-pension" aria-hidden="true"></i
+                      >Pension</span
+                    >
+                    <span
+                      ><i class="legend-free-funds" aria-hidden="true"></i>Frie
+                      midler</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <details class="projection-card">
+              <summary>Se op- og nedsparing år for år</summary>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Dato</th>
+                      <th>Alder</th>
+                      <th>Fase</th>
+                      <th>Afkast</th>
+                      <th>Ratepension</th>
+                      <th>Livrentedepot</th>
+                      <th>Livrenteudb.</th>
+                      <th>Aldersopsparing</th>
+                      <th>Frie midler</th>
+                      <th>Aktiesparekonto</th>
+                      <th>Samlet depotværdi</th>
+                      <th>Indbetaling</th>
+                      <th>Brutto-udb.</th>
+                      <th>Netto-udb.</th>
+                      <th>Lagerskat</th>
+                      <th>Effektiv skat</th>
+                      <th>Udb. fra</th>
+                    </tr>
+                  </thead>
+                  <tbody id="projection-body"></tbody>
+                </table>
+              </div>
+              <p id="projection-note" class="projection-note">
+                Datoerne er årlige beregningstidspunkter fra dagens dato.
+                Afkast viser det formuevægtede gennemsnit af det forventede
+                afkast på tværs af alle viste midler før skat og inflation frem
+                mod næste dato.
+                Livrentedepot viser også efter pensionsstart den beregnede
+                værdi bag de fremtidige udbetalinger. Samlet depotværdi
+                inkluderer livrenten; den frie slutreserve gør ikke.
+                Livrenteudb. viser den beregnede livsvarige indkomst efter
+                pensionsstart. Brutto-udb. viser den samlede hævning og
+                livrenteindkomst. Netto-udb. viser beløbet efter beregnet skat.
+                Lagerskat viser skatten af
+                årets positive afkast på den lagerbeskattede andel af frie
+                midler og er trukket fra formuen frem mod næste dato. Effektiv
+                skat viser skatten på årets samlede udbetaling som procent af
+                brutto-udb. Lagerskat indgår ikke i denne procentsats.
+              </p>
+            </details>
+          </section>
+
+          <details class="key-figures">
+            <summary>Se alle nøgletal og forudsætninger</summary>
+            <dl>
+              <div>
+                <dt>Nuværende alder</dt>
+                <dd id="current-age"></dd>
+              </div>
+              <div>
+                <dt>Reelt afkast på pension</dt>
+                <dd id="real-pension-return"></dd>
+              </div>
+              <div>
+                <dt>Reelt afkast på aktiesparekonto</dt>
+                <dd id="real-ask-return"></dd>
+              </div>
+              <div>
+                <dt>Reelt afkast på frie midler</dt>
+                <dd id="real-free-return"></dd>
+              </div>
+              <div>
+                <dt id="total-free-funds-tax-label">
+                  Samlet skat på hævninger fra frie midler
+                </dt>
+                <dd id="total-free-funds-tax"></dd>
+              </div>
+              <div>
+                <dt>Samlet skat på pensionsudbetalinger</dt>
+                <dd id="total-pension-withdrawal-tax"></dd>
+              </div>
+              <div>
+                <dt id="effective-free-funds-tax-label">
+                  Effektiv skat på hævninger fra frie midler
+                </dt>
+                <dd id="effective-free-funds-tax-rate"></dd>
+              </div>
+              <div>
+                <dt>Årligt nettobudget til opsparing</dt>
+                <dd id="annual-net-contribution-budget"></dd>
+              </div>
+              <div>
+                <dt>Valgt loft for aldersopsparing</dt>
+                <dd id="age-savings-contribution-limit"></dd>
+              </div>
+              <div>
+                <dt>Livrentedepot ved pensionsstart</dt>
+                <dd id="life-annuity-balance-at-retirement"></dd>
+              </div>
+              <div>
+                <dt>Livrente første år før skat</dt>
+                <dd id="life-annuity-annual-income"></dd>
+              </div>
+              <div>
+                <dt>Livrentens forventede omregningssats</dt>
+                <dd id="life-annuity-conversion-rate"></dd>
+              </div>
+              <div>
+                <dt>Forventet levealder ved pensionsstart</dt>
+                <dd id="life-annuity-expected-age"></dd>
+              </div>
+              <div>
+                <dt>Nødvendig pensionsformue med planens fordeling</dt>
+                <dd id="required-at-retirement"></dd>
+              </div>
+              <div>
+                <dt>Samme pensionsmål tilbagediskonteret til i dag</dt>
+                <dd id="pension-target-today"></dd>
+              </div>
+              <div>
+                <dt>Alder hvor pensionsindbetaling kan stoppe</dt>
+                <dd id="pension-stop-age"></dd>
+              </div>
+              <div>
+                <dt>Årligt tidspunkt hvor pensionsindbetaling kan stoppe</dt>
+                <dd id="pension-stop-date"></dd>
+              </div>
+              <div>
+                <dt>Pensionsformue ved stop</dt>
+                <dd id="pension-at-stop"></dd>
+              </div>
+              <div>
+                <dt>Pensionsmål ved stop</dt>
+                <dd id="pension-target-at-stop"></dd>
+              </div>
+              <div>
+                <dt>FIRE-alder</dt>
+                <dd id="fire-age"></dd>
+              </div>
+              <div>
+                <dt>Årligt FIRE-tidspunkt</dt>
+                <dd id="fire-date"></dd>
+              </div>
+              <div>
+                <dt>FIRE-periode frem til pension</dt>
+                <dd id="bridge-years"></dd>
+              </div>
+              <div>
+                <dt>Frie midler ved FIRE</dt>
+                <dd id="free-at-fire"></dd>
+              </div>
+              <div>
+                <dt>Aktiesparekonto ved FIRE</dt>
+                <dd id="ask-at-fire"></dd>
+              </div>
+              <div>
+                <dt>Mulig årlig udbetaling i FIRE-perioden</dt>
+                <dd id="bridge-withdrawal"></dd>
+              </div>
+              <div>
+                <dt>Slutdato for pensionsudbetaling</dt>
+                <dd id="final-date"></dd>
+              </div>
+              <div>
+                <dt>Samlet formue på slutdatoen</dt>
+                <dd id="final-balance"></dd>
+              </div>
+              <div>
+                <dt>Resterende pension på slutdatoen</dt>
+                <dd id="final-pension"></dd>
+              </div>
+              <div>
+                <dt>Resterende frie midler og ASK</dt>
+                <dd id="final-free-funds"></dd>
+              </div>
+            </dl>
+          </details>
+
+          <footer class="calculator-notes">
+            <p>
+              <strong>Afkast og udbetalinger:</strong> Beregningen bruger den
+              valgte, deterministiske afkaststrategi og viser alle beløb i
+              dagens kroner. Strategierne simulerer ikke markedsudsving eller
+              rækkefølgerisiko. Indbetalinger antages at ske midt i hvert
+              beregningsår som en tilnærmelse til løbende indbetalinger. Det
+              giver årets indbetalinger et halvt års beregnet afkast. Hævninger
+              sker ved starten af hver udbetalingsperiode.
+            </p>
+            <p>
+              <strong>Frie midler:</strong> Den valgte procentdel lagerbeskattes.
+              Resten realisationsbeskattes. Fordelingen anvendes på
+              startformuen, den samlede købspris og fremtidige indbetalinger.
+              Ved realisationsbeskatning beregnes skat af gevinsten ved salg.
+              Ved lagerbeskatning beregnes skat årligt af positive afkast og
+              trækkes fra formuen. Beregningen bruger 2026-satserne for en enlig
+              uden anden aktieindkomst og medregner ikke udbytter eller
+              fremførte tab.
+            </p>
+            <p>
+              <strong>Ratepension:</strong> Udbetalinger beskattes med den
+              indtastede effektive sats. Den indtastede skattebesparelse
+              anvendes på indbetalinger op til 2026-rateloftet. Indbetalinger
+              over loftet medregnes uden fradrag.
+            </p>
+            <p>
+              <strong>Livrente:</strong> Udbetalinger beskattes med den
+              indtastede effektive sats. Skattebesparelsen anvendes på hele den
+              indtastede indbetaling op til opfyldningsfradraget på 63.200 kr.
+              Private indbetalinger over opfyldningsfradraget kan have andre
+              fradragsforløb. Livrentedepotet omregnes ved pensionsstart til en
+              forventet livsvarig udbetaling. Beregningen bruger en
+              50/50-unisexbestand,
+              <a
+                href="https://www.finanstilsynet.dk/finansielle-temaer/forsikring-og-pension/levetidsmodel"
+                >Finanstilsynets levetidsbenchmark for 2024</a
+              >, de forventede levetidsforbedringer og den valgte
+              udbetalingsrente. Standardrenten er 3,22 % fra
+              <a href="https://www.nordnet.dk/academy/hvordan-fastsaettes-udbetalingerne-pa-din-livsvarige-pension">Nordnets beregningsgrundlag for 2026</a>.
+              Udbetalingen reguleres årligt efter afkast efter PAL-skat i forhold
+              til udbetalingsrenten og omregnes til dagens kroner. Modellen
+              forudsætter uændret levetidsgrundlag og risikodeling blandt de
+              forsikrede. Det er en tilnærmelse, ikke et tilbud fra Nordnet.
+              Den medregner ikke udbetalingsgaranti,
+              ægtefællepension eller særskilte omkostninger.
+            </p>
+            <p>
+              <strong>Aldersopsparing:</strong> Indbetalinger giver ikke en
+              beregnet skattebesparelse. Afkast beskattes med den indtastede
+              PAL-sats. Udbetalinger er skattefri.
+            </p>
+            <p>
+              <strong>Aktiesparekonto:</strong> Afkast beskattes med den
+              indtastede ASK-sats. Beregningen beskatter kun fremtidige afkast
+              fra den indtastede startværdi og medregner ikke allerede optjent
+              ASK-skat.
+            </p>
+            <p>
+              <strong>Optimering:</strong> Optimeringen bruger højst
+              opfyldningsfradraget til livrente. Den prioriterer altid det
+              tidligste FIRE-år inden for den nuværende årlige nettopris og
+              derefter den laveste nettopris, som kan nå det år. Indbetalinger
+              på ratepension over loftet medregnes til fuld nettoudgift og som
+              hovedstol uden fradrag. Optimeringens slutreserve værdisætter
+              aldersopsparing, ASK og lagerbeskattede frie midler til den viste
+              saldo. Ratepension reduceres med den indtastede skat på
+              pensionsudbetaling. Livrentedepotet indgår ikke i slutreserven,
+              efter det er konverteret til livsvarig indkomst. For
+              realisationsbeskattede frie midler
+              antages den resterende gevinst realiseret på én gang efter
+              2026-satserne.
+            </p>
+            <p>
+              <strong>Ansvarsfraskrivelse:</strong> Resultatet er et overslag
+              og er ikke finansiel rådgivning.
+            </p>
+            <p class="source-link">
+              <a href="https://www.buymeacoffee.com/martinlikesfilter"
+                >Buy me a coffee</a
+              >
+              <a
+                href="https://heymartin.net/git/?p=www.git;a=tree;f=fireberegner;hb=HEAD"
+                >Kildekode</a
+              >
+              <a
+                href="mailto:dontbeevilpls@gmail.com?subject=Re%3A%20FIRE%20beregner"
+                >dontbeevilpls@gmail.com</a
+              >
+            </p>
+          </footer>
+        </div>
+      </div>
+    </main>
+
+    <dialog
+      id="plan-code-dialog"
+      class="plan-code-dialog"
+      aria-labelledby="plan-code-heading"
+      aria-describedby="plan-code-privacy"
+    >
+      <div class="plan-code-dialog-shell">
+        <header class="plan-code-dialog-header">
+          <div>
+            <p>Flyt din plan</p>
+            <h2 id="plan-code-heading">Gem eller indlæs input</h2>
+          </div>
+          <button
+            id="close-plan-code-dialog"
+            class="plan-code-dialog-close"
+            type="button"
+            aria-label="Luk dialogen"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <path d="m4 4 10 10M14 4 4 14" />
+            </svg>
+          </button>
+        </header>
+
+        <p id="plan-code-privacy" class="plan-code-privacy">
+          Koden indeholder dine økonomiske oplysninger. Den bliver hverken
+          sendt eller gemt på serveren.
+        </p>
+
+        <section class="plan-code-section" aria-labelledby="saved-code-label">
+          <div class="plan-code-section-heading">
+            <div>
+              <h3 id="saved-code-label">Kode for dine nuværende input</h3>
+              <p>Gem koden et sikkert sted, så du kan bruge den senere.</p>
+            </div>
+            <p
+              id="copy-plan-code-status"
+              class="plan-code-inline-status"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></p>
+          </div>
+          <textarea
+            id="saved-plan-code"
+            class="plan-code-value"
+            rows="5"
+            readonly
+            spellcheck="false"
+            aria-labelledby="saved-code-label"
+          ></textarea>
+          <div class="plan-code-section-actions">
+            <button
+              id="copy-plan-code"
+              class="plan-code-primary-action"
+              type="button"
+            >
+              Kopiér kode
+            </button>
+          </div>
+        </section>
+
+        <section class="plan-code-section" aria-labelledby="load-code-label">
+          <div class="plan-code-section-heading">
+            <div>
+              <h3 id="load-code-label">Indlæs gemte input</h3>
+              <p>Indsæt en kode for at erstatte formularens input.</p>
+            </div>
+          </div>
+          <textarea
+            id="plan-code-input"
+            class="plan-code-value"
+            rows="5"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-labelledby="load-code-label"
+          ></textarea>
+          <p id="plan-code-error" class="plan-code-error" role="alert" hidden></p>
+          <div class="plan-code-section-actions">
+            <button
+              id="apply-plan-code"
+              class="plan-code-primary-action"
+              type="button"
+            >
+              Indlæs input
+            </button>
+          </div>
+        </section>
+      </div>
+    </dialog>
+
+    <script src="./life-annuity.js?v=20260905-2"></script>
+    <script src="./calculations.js?v=20260905-3"></script>
+    <script src="./monte-carlo.js"></script>
+    <script src="./plan-code.js?v=20260905-1"></script>
+    <script src="./app.js?v=20260905-3"></script>
+  </body>
+</html>

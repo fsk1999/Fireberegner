@@ -1,0 +1,21 @@
+{
+  "name": "fireberegner",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Avanceret dansk FIRE- og pensionsberegner med folkepension, skatteoptimal udbetaling og Monte Carlo-simulering",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-verification.mjs"
+  },
+  "keywords": [
+    "fire",
+    "pension",
+    "danmark",
+    "folkepension",
+    "monte-carlo",
+    "skatteoptimering",
+    "aktiesparekonto"
+  ],
+  "author": "fsk1999",
+  "license": "MIT"
+}
