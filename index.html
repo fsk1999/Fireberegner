@@ -954,90 +954,84 @@
                 class="assumptions"
                 data-step-section="housing-section"
               >
-                <summary>
-                  <span>Bolig og friværdi</span>
-                  <span id="housing-summary-badge" class="badge">Fravalgt</span>
-                </summary>
+                <summary>Bolig og friværdi</summary>
                 <div class="form-grid assumptions-grid">
-                  <label class="field full-width">
-                    <span class="checkbox-label">
+                  <label class="inflation-field">
+                    <span>Bolig og friværdi <i title="Vælg om friværdi i ejer- eller andelsbolig skal medregnes i formuen og evt. frigøres til forbrug ved stop med arbejde (FIRE).">i</i></span>
+                    <span class="inflation-input">
+                      <b id="housing-state">Udelades</b>
                       <input id="include-housing" name="includeHousing" type="checkbox" />
-                      <b>Medregn bolig og friværdi i beregningen</b>
+                      <span class="inflation-switch" aria-hidden="true"></span>
                     </span>
                   </label>
 
-                  <div id="housing-fields-container" class="form-grid assumptions-grid full-width" style="display: none;">
-                    <label class="field">
-                      <span>Boligtype <i title="Vælg om du ejer en ejerbolig, en andelsbolig eller bor til leje.">i</i></span>
-                      <select name="housingType">
-                        <option value="owner" selected>Ejerbolig</option>
-                        <option value="coop">Andelsbolig</option>
-                        <option value="rent">Lejebolig / Ingen</option>
-                      </select>
-                    </label>
+                  <label id="housing-type-field" class="field field-disabled" aria-disabled="true">
+                    <span>Boligtype <i title="Vælg om du bor i ejerbolig, andelsbolig eller lejebolig/uden boligformue.">i</i></span>
+                    <select name="housingType" disabled required>
+                      <option value="owner" selected>Ejerbolig</option>
+                      <option value="coop">Andelsbolig</option>
+                      <option value="rent">Lejebolig / Ingen</option>
+                    </select>
+                  </label>
 
-                    <label class="field">
-                      <span>Boligens salgsværdi i dag (kr.) <i title="Nuværende markedsværdi for hele boligen før fradrag for gæld.">i</i></span>
-                      <input name="housingValue" type="text" inputmode="numeric" data-number-format="integer" value="8.500.000" />
-                    </label>
+                  <label id="housing-value-field" class="field field-disabled" aria-disabled="true">
+                    <span>Boligens salgsværdi i dag <i title="Nuværende markedsværdi for hele boligen før fradrag for gæld.">i</i></span>
+                    <input name="housingValue" type="text" inputmode="numeric" data-number-format="integer" value="8.500.000" disabled required />
+                  </label>
 
-                    <label class="field">
-                      <span>Restgæld i boligen i dag (kr.) <i title="Samlet realkredit- og bankgæld i boligen i dag.">i</i></span>
-                      <input name="housingDebt" type="text" inputmode="numeric" data-number-format="integer" value="1.600.000" />
-                    </label>
+                  <label id="housing-debt-field" class="field field-disabled" aria-disabled="true">
+                    <span>Restgæld i boligen i dag <i title="Samlet realkredit- og bankgæld i boligen i dag.">i</i></span>
+                    <input name="housingDebt" type="text" inputmode="numeric" data-number-format="integer" value="1.600.000" disabled required />
+                  </label>
 
-                    <label class="field">
-                      <span>Årligt afdrag på gæld (kr./år) <i title="Hvor meget der afdrages på restgælden pr. år (0 kr. ved afdragsfrit lån).">i</i></span>
-                      <input name="housingAnnualAmortization" type="text" inputmode="numeric" data-number-format="integer" value="0" />
-                    </label>
+                  <label id="housing-amortization-field" class="field field-disabled" aria-disabled="true">
+                    <span>Årligt afdrag på gæld <i title="Hvor meget der afdrages på restgælden pr. år (0 kr. ved afdragsfrit lån).">i</i></span>
+                    <input name="housingAnnualAmortization" type="text" inputmode="numeric" data-number-format="integer" value="0" disabled required />
+                  </label>
 
-                    <label class="field">
-                      <span>Forventet prisstigning pr. år (%) <i title="Nominel årlig værdistigning på boligen (standard 2 %/år svarende til inflation).">i</i></span>
-                      <span class="slider-input-group">
-                        <input name="housingPriceGrowthSlider" type="range" min="-2" max="10" step="0.5" value="2" />
-                        <span class="input-suffix"><input name="housingPriceGrowth" type="number" min="-2" max="10" step="0.5" value="2" /><b>%</b></span>
-                      </span>
-                    </label>
+                  <label id="housing-growth-field" class="field field-disabled" aria-disabled="true">
+                    <span>Forventet prisstigning pr. år <i title="Nominel årlig værdistigning på boligen (standard 2 %/år svarende til inflation).">i</i></span>
+                    <span class="input-suffix">
+                      <input name="housingPriceGrowth" type="number" min="-5" max="20" step="0.1" value="2" disabled required /><b>%</b>
+                    </span>
+                  </label>
 
-                    <label class="field">
-                      <span>Din ejerandel (%) <i title="Din andel af boligen og friværdien (f.eks. 50 % ved to ejere eller 100 % som eneejer).">i</i></span>
-                      <span class="slider-input-group">
-                        <input name="housingOwnershipShareSlider" type="range" min="0" max="100" step="5" value="50" />
-                        <span class="input-suffix"><input name="housingOwnershipShare" type="number" min="0" max="100" step="1" value="50" /><b>%</b></span>
-                      </span>
-                    </label>
+                  <label id="housing-share-field" class="field field-disabled" aria-disabled="true">
+                    <span>Din ejerandel <i title="Din andel af boligen og friværdien (f.eks. 50 % ved to ejere eller 100 % som eneejer).">i</i></span>
+                    <span class="input-suffix">
+                      <input name="housingOwnershipShare" type="number" min="0" max="100" step="1" value="50" disabled required /><b>%</b>
+                    </span>
+                  </label>
 
-                    <label class="field">
-                      <span>Frigør friværdi ved stop? <i title="Om der skal frigøres friværdi (f.eks. via nedsparingslån eller salg/nedskalering) til at finansiere FIRE. Skattefrit efter Parcelhusreglen.">i</i></span>
-                      <select name="housingUnlock">
-                        <option value="false">Nej (bevar friværdi som reserve)</option>
-                        <option value="true" selected>Ja (frigør friværdi til forbrug)</option>
-                      </select>
-                    </label>
+                  <label id="housing-unlock-field" class="field field-disabled" aria-disabled="true">
+                    <span>Frigør friværdi ved stop? <i title="Om der skal frigøres friværdi (f.eks. via nedsparingslån eller salg/nedskalering) til at finansiere FIRE. Skattefrit efter Parcelhusreglen.">i</i></span>
+                    <select name="housingUnlock" disabled required>
+                      <option value="false">Nej (bevar som reserve)</option>
+                      <option value="true" selected>Ja (frigør til forbrug)</option>
+                    </select>
+                  </label>
 
-                    <div id="housing-unlock-options" class="form-grid assumptions-grid full-width">
-                      <label class="field">
-                        <span>Andel der frigøres (%) <i title="Hvor stor en procentdel af din friværdi der frigøres som likvide midler (f.eks. 50 % ved friværdilån eller 100 % ved salg til lejebolig).">i</i></span>
-                        <span class="slider-input-group">
-                          <input name="housingUnlockShareSlider" type="range" min="10" max="100" step="5" value="50" />
-                          <span class="input-suffix"><input name="housingUnlockShare" type="number" min="10" max="100" step="1" value="50" /><b>%</b></span>
-                        </span>
-                      </label>
+                  <label id="housing-unlock-share-field" class="field field-disabled" aria-disabled="true">
+                    <span>Andel der frigøres <i title="Hvor stor en procentdel af din friværdi der frigøres som likvide midler (f.eks. 50 % ved friværdilån eller 100 % ved salg til lejebolig).">i</i></span>
+                    <span class="input-suffix">
+                      <input name="housingUnlockShare" type="number" min="0" max="100" step="1" value="50" disabled required /><b>%</b>
+                    </span>
+                  </label>
 
-                      <label class="field">
-                        <span>Hvornår frigøres friværdi? <i title="Vælg om friværdien frigøres automatisk det år du stopper med at arbejde, eller ved en fast alder.">i</i></span>
-                        <select name="housingUnlockAgeType">
-                          <option value="fire" selected>Ved stop med arbejde (FIRE)</option>
-                          <option value="custom">Ved specifik alder</option>
-                        </select>
-                      </label>
+                  <label id="housing-unlock-age-type-field" class="field field-disabled" aria-disabled="true">
+                    <span>Tidspunkt for frigørelse <i title="Vælg om friværdien frigøres automatisk det år du stopper med at arbejde (FIRE), eller ved en specifik alder.">i</i></span>
+                    <select name="housingUnlockAgeType" disabled required>
+                      <option value="fire" selected>Ved stop med arbejde (FIRE)</option>
+                      <option value="custom">Ved specifik alder</option>
+                    </select>
+                  </label>
 
-                      <label id="housing-unlock-age-field" class="field" style="display: none;">
-                        <span>Alder for frigørelse <i title="Den specifikke alder hvor friværdien frigøres som skattefri likviditet.">i</i></span>
-                        <span class="input-suffix"><input name="housingUnlockAge" type="number" min="18" max="100" value="60" /><b>år</b></span>
-                      </label>
-                    </div>
-                  </div>
+                  <label id="housing-unlock-age-field" class="field field-disabled" aria-disabled="true">
+                    <span>Alder for frigørelse <i title="Den specifikke alder hvor friværdien frigøres som skattefri likviditet.">i</i></span>
+                    <span class="input-suffix">
+                      <input name="housingUnlockAge" type="number" min="18" max="110" value="60" disabled required /><b>år</b>
+                    </span>
+                  </label>
                 </div>
               </details>
 

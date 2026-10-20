@@ -542,6 +542,7 @@
     renderFolkepensionState();
     renderFreeFundsTaxation();
     renderReturnStrategyState();
+    renderHousingState();
     update();
   }
 
@@ -632,45 +633,48 @@
     }
   }
 
-  const housingFieldsContainer = document.querySelector("#housing-fields-container");
-  const housingSummaryBadge = document.querySelector("#housing-summary-badge");
-  const housingUnlockOptions = document.querySelector("#housing-unlock-options");
+  const housingState = document.querySelector("#housing-state");
+  const housingTypeField = document.querySelector("#housing-type-field");
+  const housingValueField = document.querySelector("#housing-value-field");
+  const housingDebtField = document.querySelector("#housing-debt-field");
+  const housingAmortizationField = document.querySelector("#housing-amortization-field");
+  const housingGrowthField = document.querySelector("#housing-growth-field");
+  const housingShareField = document.querySelector("#housing-share-field");
+  const housingUnlockField = document.querySelector("#housing-unlock-field");
+  const housingUnlockShareField = document.querySelector("#housing-unlock-share-field");
+  const housingUnlockAgeTypeField = document.querySelector("#housing-unlock-age-type-field");
   const housingUnlockAgeField = document.querySelector("#housing-unlock-age-field");
+
+  function setFormFieldEnabled(field, input, enabled) {
+    if (!field || !input) return;
+    field.classList.toggle("field-disabled", !enabled);
+    field.setAttribute("aria-disabled", String(!enabled));
+    input.disabled = !enabled;
+    field.querySelectorAll(".amount-step-button").forEach((button) => {
+      button.disabled = !enabled;
+    });
+  }
 
   function renderHousingState() {
     const included = Boolean(form.elements.includeHousing?.checked);
-    if (housingFieldsContainer) {
-      housingFieldsContainer.style.display = included ? "grid" : "none";
+    if (housingState) {
+      housingState.textContent = included ? "Medregnes" : "Udelades";
     }
-    if (housingSummaryBadge) {
-      housingSummaryBadge.textContent = included ? "Medregnet" : "Fravalgt";
-      housingSummaryBadge.className = included ? "badge badge-active" : "badge";
-    }
-    if (housingUnlockOptions && form.elements.housingUnlock) {
-      housingUnlockOptions.style.display =
-        form.elements.housingUnlock.value === "true" ? "grid" : "none";
-    }
-    if (housingUnlockAgeField && form.elements.housingUnlockAgeType) {
-      housingUnlockAgeField.style.display =
-        form.elements.housingUnlockAgeType.value === "custom" ? "flex" : "none";
-    }
-  }
 
-  function syncHousingSliders(target) {
-    if (!target) return;
-    if (target.name === "housingPriceGrowthSlider" && form.elements.housingPriceGrowth) {
-      form.elements.housingPriceGrowth.value = target.value;
-    } else if (target.name === "housingPriceGrowth" && form.elements.housingPriceGrowthSlider) {
-      form.elements.housingPriceGrowthSlider.value = target.value;
-    } else if (target.name === "housingOwnershipShareSlider" && form.elements.housingOwnershipShare) {
-      form.elements.housingOwnershipShare.value = target.value;
-    } else if (target.name === "housingOwnershipShare" && form.elements.housingOwnershipShareSlider) {
-      form.elements.housingOwnershipShareSlider.value = target.value;
-    } else if (target.name === "housingUnlockShareSlider" && form.elements.housingUnlockShare) {
-      form.elements.housingUnlockShare.value = target.value;
-    } else if (target.name === "housingUnlockShare" && form.elements.housingUnlockShareSlider) {
-      form.elements.housingUnlockShareSlider.value = target.value;
-    }
+    setFormFieldEnabled(housingTypeField, form.elements.housingType, included);
+    setFormFieldEnabled(housingValueField, form.elements.housingValue, included);
+    setFormFieldEnabled(housingDebtField, form.elements.housingDebt, included);
+    setFormFieldEnabled(housingAmortizationField, form.elements.housingAnnualAmortization, included);
+    setFormFieldEnabled(housingGrowthField, form.elements.housingPriceGrowth, included);
+    setFormFieldEnabled(housingShareField, form.elements.housingOwnershipShare, included);
+    setFormFieldEnabled(housingUnlockField, form.elements.housingUnlock, included);
+
+    const unlockActive = included && form.elements.housingUnlock?.value === "true";
+    setFormFieldEnabled(housingUnlockShareField, form.elements.housingUnlockShare, unlockActive);
+    setFormFieldEnabled(housingUnlockAgeTypeField, form.elements.housingUnlockAgeType, unlockActive);
+
+    const customAgeActive = unlockActive && form.elements.housingUnlockAgeType?.value === "custom";
+    setFormFieldEnabled(housingUnlockAgeField, form.elements.housingUnlockAge, customAgeActive);
   }
 
   function syncMonteCarloButtons() {
@@ -2248,7 +2252,6 @@
     if (event.target === form.elements.includeFolkepension) {
       renderFolkepensionState();
     }
-    syncHousingSliders(event.target);
     if (
       event.target === form.elements.includeHousing ||
       event.target === form.elements.housingUnlock ||
