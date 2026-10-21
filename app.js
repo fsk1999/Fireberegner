@@ -111,6 +111,9 @@
   const mathInspectorCalcCard = document.querySelector(
     "#math-inspector-calc-card",
   );
+  const mathInspectorCalcTitle = document.querySelector(
+    "#math-inspector-calc-title",
+  );
   const mathInspectorCalcExample = document.querySelector(
     "#math-inspector-calc-example",
   );
@@ -2564,6 +2567,10 @@
 
     if (mathInspectorCalcCard && mathInspectorCalcExample) {
       if (exp.returnExample) {
+        if (mathInspectorCalcTitle) {
+          mathInspectorCalcTitle.textContent =
+            exp.calcTitle || "Gennemført regneeksempel for afkast";
+        }
         mathInspectorCalcExample.textContent = exp.returnExample;
         if (mathInspectorCalcNote) {
           mathInspectorCalcNote.textContent = exp.returnExampleNote || "";

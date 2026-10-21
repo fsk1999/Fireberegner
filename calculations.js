@@ -995,6 +995,8 @@
       ratePensionNonDeductibleBasis,
       taxFreeRatePensionWithdrawal: 0,
       taxableRatePensionWithdrawal: 0,
+      askWithdrawal: 0,
+      ageSavingsWithdrawal: 0,
       withdrawalSource: "—",
       withdrawalShortfall: false,
       ...values,
@@ -2100,6 +2102,8 @@
                 effectiveWithdrawalTaxRate,
                 withdrawalSource,
                 withdrawalShortfall: shortfall,
+                askWithdrawal: allocation.amounts[ASK] ?? 0,
+                ageSavingsWithdrawal: allocation.amounts[AGE_SAVINGS] ?? 0,
               },
             ),
           );

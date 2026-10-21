@@ -167,6 +167,94 @@
     return text;
   }
 
+  function buildWithdrawalExample({ row, prevRow, inputs, calculation }) {
+    const gross = row.withdrawal ?? 0;
+    const tax = row.totalWithdrawalTax ?? 0;
+    const net = row.netWithdrawal ?? (gross - tax);
+    const desired = row.desiredWithdrawal ?? inputs.desiredAnnualWithdrawal ?? 0;
+    const isCouple = inputs.isCouple ?? false;
+    const shareThreshold = isCouple ? 158800 : 79400;
+    const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.37;
+
+    const freeWithdrawal = row.freeFundsWithdrawal ?? 0;
+    const freeGain = row.realizedFreeFundsGain ?? 0;
+    const freeCostBasis = Math.max(0, freeWithdrawal - freeGain);
+    const freeTax = row.withdrawalTax ?? 0;
+    const gain27 = Math.min(freeGain, shareThreshold);
+    const tax27 = Math.round(gain27 * 0.27);
+    const gain42 = Math.max(0, freeGain - shareThreshold);
+    const tax42 = Math.round(gain42 * 0.42);
+
+    const taxableRate = row.taxableRatePensionWithdrawal ?? 0;
+    const taxFreeRate = row.taxFreeRatePensionWithdrawal ?? 0;
+    const rateTotal = taxableRate + taxFreeRate;
+    const rateTax = Math.round(taxableRate * pensionTaxRate);
+
+    const lifeTotal = row.lifeAnnuityWithdrawal ?? 0;
+    const lifeTax = Math.round(lifeTotal * pensionTaxRate);
+
+    const ageSavingsWithdrawal = row.ageSavingsWithdrawal ?? 0;
+    const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
+
+    let text = `1. Ønsket årligt forbrug:\n`;
+    text += `   ${currency.format(desired)} (${inputs.withdrawalAfterTax ? "efter skat i faste priser" : "før skat"})\n\n`;
+
+    text += `2. Hvorfor skal der hæves ${currency.format(gross)} brutto fra depoterne?\n`;
+    if (row.phase === "FIRE") {
+      text += `   I FIRE-fasen dækkes dit forbrug primært af dine frie investeringsmidler.\n`;
+      text += `   Ved salg af frie midler beskattes den realiserede aktiegevinst som aktieindkomst (27 % / 42 %).\n`;
+      text += `   For at du kan få udbetalt præcis ${currency.format(net)} rent til forbrug, skal der hæves nok til både at dække dit forbrug og den udløste aktieskat:\n`;
+      text += `   ${currency.format(net)} (netto til forbrug) + ${currency.format(tax)} (skat) = ${currency.format(gross)} (brutto hævning).\n\n`;
+    } else {
+      text += `   For at dække dit forbrugsbehov efter skat på ${currency.format(net)}, skal der hæves ${currency.format(gross)} brutto fra dine depoter for at modsvare skatten på ${currency.format(tax)}:\n`;
+      text += `   ${currency.format(net)} (netto til forbrug) + ${currency.format(tax)} (skat) = ${currency.format(gross)} (brutto hævning).\n\n`;
+    }
+
+    text += `3. Fordeling af hævningen på konti (${currency.format(gross)} i alt):\n`;
+    if (freeWithdrawal > 0) {
+      text += `   • Frie midler: ${currency.format(freeWithdrawal)}\n`;
+      text += `     - Heraf ubeskattet købesum (hovedstol): ${currency.format(freeCostBasis)} (0 % skat — dine egne indskud)\n`;
+      text += `     - Heraf skattepligtig aktiegevinst: ${currency.format(freeGain)}\n`;
+    }
+    if (rateTotal > 0) {
+      text += `   • Ratepension: ${currency.format(rateTotal)}\n`;
+      if (taxFreeRate > 0) {
+        text += `     - Heraf skattefri udbetaling: ${currency.format(taxFreeRate)}\n`;
+        text += `     - Heraf skattepligtig udbetaling: ${currency.format(taxableRate)}\n`;
+      }
+    }
+    if (lifeTotal > 0) {
+      text += `   • Livrente: ${currency.format(lifeTotal)} (udbetalt livsvarigt)\n`;
+    }
+    if (ageSavingsWithdrawal > 0) {
+      text += `   • Aldersopsparing: ${currency.format(ageSavingsWithdrawal)} (100 % skattefri ved udbetaling)\n`;
+    }
+    if (askWithdrawal > 0) {
+      text += `   • Aktiesparekonto: ${currency.format(askWithdrawal)} (skattefri ved hævning — løbende lagerbeskattet)\n`;
+    }
+
+    text += `\n4. Sådan beregnes den samlede skat på ${currency.format(tax)}:\n`;
+    if (freeTax > 0) {
+      text += `   • Aktieindkomstskat af frie midler (${currency.format(freeTax)}):\n`;
+      text += `     - 27 % af gevinst op til progressionsgrænsen (${currency.format(gain27)}): ${currency.format(tax27)}\n`;
+      if (gain42 > 0) {
+        text += `     - 42 % af overskydende gevinst over progressionsgrænsen (${currency.format(gain42)}): ${currency.format(tax42)}\n`;
+      }
+    }
+    if (rateTax > 0 || lifeTax > 0) {
+      text += `   • Indkomstskat af pensionsudbetalinger (${percent.format(pensionTaxRate)}):\n`;
+      if (rateTax > 0) {
+        text += `     - Skat af ratepension (${currency.format(taxableRate)} × ${percent.format(pensionTaxRate)}): ${currency.format(rateTax)}\n`;
+      }
+      if (lifeTax > 0) {
+        text += `     - Skat af livrente (${currency.format(lifeTotal)} × ${percent.format(pensionTaxRate)}): ${currency.format(lifeTax)}\n`;
+      }
+    }
+    text += `   = Samlet beregnet skat på hævningen: ${currency.format(tax)}`;
+
+    return text;
+  }
+
   function explainTableCell({ colKey, row, prevRow, calculation, inputs, scenario }) {
     const age = row.age;
     const yearDate = row.date.getFullYear();
@@ -258,10 +346,10 @@
           { label: "Startsaldo (primo)", value: currency.format(start) },
           { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Fradragsberettiget indbetaling" : (isPensionActive ? "Ingen indbetaling" : "Pensionsindbetaling stoppet") },
           { label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
-          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
+          { label: `Nominelt bruttoafkast af primosaldo (${percent.format(pensionNominal)})`, value: `+ ${currency.format(b.grossPrimo)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
+          steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: `+ ${currency.format(b.grossContrib)}`, isSub: true });
         }
         steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
         steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
@@ -342,9 +430,9 @@
         }
         if (row.phase === "Opsparing") {
           steps.push({ label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true });
+          steps.push({ label: `Nominelt bruttoafkast af primosaldo (${percent.format(pensionNominal)})`, value: `+ ${currency.format(b.grossPrimo)}`, isSub: true });
           if (contrib > 0) {
-            steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
+            steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: `+ ${currency.format(b.grossContrib)}`, isSub: true });
           }
           steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
           steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
@@ -446,10 +534,10 @@
           { label: "Startsaldo (primo)", value: currency.format(start) },
           { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud på aldersopsparing" : "Ingen indbetaling" },
           { label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
-          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
+          { label: `Nominelt bruttoafkast af primosaldo (${percent.format(pensionNominal)})`, value: `+ ${currency.format(b.grossPrimo)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
+          steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: `+ ${currency.format(b.grossContrib)}`, isSub: true });
         }
         steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
         steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
@@ -540,10 +628,10 @@
           { label: "Startsaldo (primo)", value: currency.format(start) },
           { label: "Nettobidrag til frie midler", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Inkl. evt. omdirigerede pensionsmidler" : "Ingen nye indbetalinger" },
           { label: "Nettoafkast tilskrevet formuen", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "I faste købekraftspriser" },
-          { label: `Afkast af primosaldo (${percentPrecise.format(grossRealRate)} brutto realrente)`, value: `+ ${currency.format(primoReturn)}`, isSub: true }
+          { label: `Nominelt bruttoafkast af primosaldo (${percent.format(freeNominal)})`, value: `+ ${currency.format(grossPrimo)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}`, isSub: true });
+          steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: `+ ${currency.format(grossContrib)}`, isSub: true });
         }
         if (taxAmount > 0) {
           steps.push({ label: `Heraf lagerskat (${percent.format(inventoryShare)} lagerbeskattet)`, value: `− ${currency.format(taxAmount)}`, isSub: true });
@@ -626,10 +714,10 @@
           { label: "Startsaldo (primo)", value: currency.format(start) },
           { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud op til indskudsloft" : (start >= askCap ? "Indskudsloft nået" : "Ingen indbetaling") },
           { label: "Nettoafkast e. 17 % skat & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
-          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente e. 17 % skat)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
+          { label: `Nominelt bruttoafkast af primosaldo (${percent.format(freeNominal)})`, value: `+ ${currency.format(b.grossPrimo)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af indskud (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
+          steps.push({ label: "Nominelt bruttoafkast af indskud (midtårs)", value: `+ ${currency.format(b.grossContrib)}`, isSub: true });
         }
         steps.push({ label: `Heraf ASK-lagerskat (${percent.format(askTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
         steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
@@ -801,18 +889,68 @@
             ]
           };
         }
+
+        const freeWithdrawal = row.freeFundsWithdrawal ?? 0;
+        const freeGain = row.realizedFreeFundsGain ?? 0;
+        const freeCostBasis = Math.max(0, freeWithdrawal - freeGain);
+        const freeTax = row.withdrawalTax ?? 0;
+
+        const taxableRate = row.taxableRatePensionWithdrawal ?? 0;
+        const taxFreeRate = row.taxFreeRatePensionWithdrawal ?? 0;
+        const rateTotal = taxableRate + taxFreeRate;
+        const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.37;
+        const pensionTaxAmount = row.pensionWithdrawalTax ?? Math.round((taxableRate + (row.lifeAnnuityWithdrawal ?? 0)) * pensionTaxRate);
+
+        const lifeTotal = row.lifeAnnuityWithdrawal ?? 0;
+        const ageSavingsWithdrawal = row.ageSavingsWithdrawal ?? 0;
+        const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
+
+        const returnExample = buildWithdrawalExample({ row, prevRow, inputs, calculation });
+
+        const steps = [
+          { label: "Brutto hævet fra depoter", value: currency.format(gross) }
+        ];
+        if (freeWithdrawal > 0) {
+          steps.push({ label: "Hævet fra frie midler", value: currency.format(freeWithdrawal), isSub: true });
+          steps.push({ label: "Heraf ubeskattet købesum (0 % skat)", value: currency.format(freeCostBasis), isSub: true });
+          steps.push({ label: "Heraf skattepligtig aktiegevinst", value: currency.format(freeGain), isSub: true });
+        }
+        if (rateTotal > 0) {
+          steps.push({ label: "Hævet fra ratepension", value: currency.format(rateTotal), isSub: true });
+          if (taxFreeRate > 0) {
+            steps.push({ label: "Heraf skattefri udbetaling", value: currency.format(taxFreeRate), isSub: true });
+          }
+        }
+        if (lifeTotal > 0) {
+          steps.push({ label: "Udbetalt fra livrente", value: currency.format(lifeTotal), isSub: true });
+        }
+        if (ageSavingsWithdrawal > 0) {
+          steps.push({ label: "Hævet fra aldersopsparing (100 % skattefri)", value: currency.format(ageSavingsWithdrawal), isSub: true });
+        }
+        if (askWithdrawal > 0) {
+          steps.push({ label: "Hævet fra Aktiesparekonto (skattefri ved hævning)", value: currency.format(askWithdrawal), isSub: true });
+        }
+
+        steps.push({ label: "Beregnet samlet skat", value: `− ${currency.format(tax)}` });
+        if (freeTax > 0) {
+          steps.push({ label: "Aktieskat af frie midler (27 % / 42 %)", value: `− ${currency.format(freeTax)}`, isSub: true });
+        }
+        if (pensionTaxAmount > 0) {
+          steps.push({ label: `Indkomstskat af pensioner (${percent.format(pensionTaxRate)})`, value: `− ${currency.format(pensionTaxAmount)}`, isSub: true });
+        }
+        steps.push({ label: "Netto udbetalt til forbrug", value: `= ${currency.format(net)}`, isResult: true });
+
         return {
           title: `Brutto-udbetaling (${yearDate} · ${age} år)`,
           badge: "Hævning",
           quickMath: `${currency.format(gross)} før skat − ${currency.format(tax)} (skat) = ${currency.format(net)} udbetalt til forbrug`,
           description: "Det samlede hævede beløb fra pensioner og frie midler før skat til dækning af dit ønskede årlige forbrug.",
           formula: "Brutto-udbetaling = Hævning fra frie midler + Pensionsudbetalinger",
-          formulaDetails: "Kombineres med eventuel folkepension, ATP og efterløn.",
-          steps: [
-            { label: "Brutto hævet fra depoter", value: currency.format(gross) },
-            { label: "Beregnet samlet skat", value: `− ${currency.format(tax)}` },
-            { label: "Netto udbetalt til forbrug", value: `= ${currency.format(net)}`, isResult: true }
-          ],
+          formulaDetails: "Bruttobeløbet hæves så det efter kildeskat/aktieskat præcis dækker dit ønskede rådighedsbeløb.",
+          calcTitle: "Gennemført regneeksempel for udbetaling og skat",
+          returnExample,
+          returnExampleNote: "Regneeksemplet viser nøjagtigt hvordan det nødvendige bruttobeløb fremkommer, og hvordan skatten beregnes på tværs af kontotyper.",
+          steps,
           assumptions: [
             { label: "Ønsket årligt forbrug", value: currency.format(inputs.desiredAnnualWithdrawal) },
             { label: "Angivet beløb", value: inputs.withdrawalAfterTax ? "Efter skat (købekraft)" : "Før skat" }
