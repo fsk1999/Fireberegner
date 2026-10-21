@@ -113,7 +113,7 @@
                   <label class="field">
                     <span
                       >Udbetaling over
-                      <i title="Antal år med pensionsudbetaling">i</i></span
+                      <i title="Hvor mange år din ratepension skal udbetales over (lovkrav er minimum 10 år og maksimum 30 år, typisk 15-20 år frem mod 85-90 år). Livrente fortsætter livsvarigt uanset dette valg.">i</i></span
                     >
                     <span class="input-suffix"
                       ><input
@@ -143,7 +143,7 @@
                     />
                   </label>
                   <label class="inflation-field">
-                    <span>Hævningsbeløbet er</span>
+                    <span>Hævningsbeløbet er <i title="Vælg om dit ønskede beløb er efter skat (det beløb du faktisk har til rådighed til forbrug) eller før skat (bruttoindkomst). Beregneren modregner automatisk skat på frie midler og pensionsudbetalinger.">i</i></span>
                     <span class="inflation-input">
                       <b id="withdrawal-tax-state">Efter skat</b>
                       <input
@@ -158,7 +158,7 @@
                     <span
                       >Husstand
                       <i
-                        title="Vælg Par for at fordoble grænsen for 27 % aktieindkomst (til 158.800 kr. i 2026), fordoble indskudslofter for ASK og aldersopsparing, og anvende satsen for gifte/samlevende for folkepension."
+                        title="Vælg Par for at fordoble progressionsgrænsen for 27 % aktieindkomstskat (til 158.800 kr. i 2026), fordoble indskudslofter for Aktiesparekonto og aldersopsparing, samt anvende satser for gifte/samlevende ved folkepension og modregning."
                         >i</i
                       ></span
                     >
@@ -172,7 +172,7 @@
                     <span
                       >Udbetalingsstrategi
                       <i
-                        title="Forholdsmæssig hæver proportionalt fra alle frie midler. Skatteoptimeret udnytter den lave 27 % aktieindkomstgrænse først og bruger derefter 0 %-udbetalingsskat konti (lager/ASK/aldersopsparing) før 42 % aktieindkomst."
+                        title="Vælg strategi for udbetaling i FIRE-perioden: 'Forholdsmæssig' hæver jævnt fra alle depoter. 'Skatteoptimeret' udnytter bundgrænsen for 27 % aktieskat først og supplerer med skattefrie udbetalinger (ASK og aldersopsparing), så 42 % aktieskat minimeres."
                         >i</i
                       ></span
                     >
@@ -211,7 +211,7 @@
                     ><span
                       >Livrentedepot
                       <i
-                        title="Ved pensionsstart beregnes første års livrente ud fra depotet, udbetalingsrenten og Finanstilsynets levetidsdata. Pengene forbliver investeret, og udbetalingen reguleres årligt efter afkast efter PAL-skat."
+                        title="Nuværende saldo på livsvarig pension (livrente). Depotet forbliver investeret og omregnes ved pensionsalderen til en livsvarig årlig udbetaling ud fra Finanstilsynets levetidsmodel og udbetalingsrenten."
                         >i</i
                       ></span
                     ><input
@@ -236,7 +236,7 @@
                     ><span
                       >Samlet købspris
                       <i
-                        title="Det samlede beløb, du betalte for de investeringer i frie midler, som du stadig ejer."
+                        title="Din oprindelige anskaffelsessum for de aktier og fonde, du ejer i frie midler. Bruges til præcist at beregne den skattepligtige gevinst (aktieavance) ved fremtidige salg efter realisationsprincippet."
                         >i</i
                       ></span
                     ><input
@@ -270,7 +270,7 @@
                     ><span
                       >Ratepension
                       <i
-                        title="Din samlede årlige indbetaling til ratepension, inklusive indbetalinger via arbejdsgiver og andre ordninger. Beregneren anvender skattebesparelsen op til rateloftet på 68.700 kr. i 2026. Beløb over loftet regnes som indbetaling uden fradrag."
+                        title="Årlig samlet indbetaling til ratepension (inkl. arbejdsgiver). Beregneren medregner automatisk skattebesparelse op til 2026-rateloftet på 68.700 kr. Indbetalinger over loftet behandles som indbetaling uden fradrag (hovedstol uden fradrag)."
                         >i</i
                       ></span
                     ><input
@@ -285,7 +285,7 @@
                     ><span
                       >Aldersopsparing
                       <i
-                        title="Optimeringen bruger det 2026-loft, du vælger under Forudsætninger."
+                        title="Årlig indbetaling til aldersopsparing. Giver intet fradrag ved indskud, men udbetales 100 % skattefrit og modregnes ikke i folkepensionen. Standardloftet er 9.900 kr. i 2026 (64.200 kr. ved under 7 år til folkepension)."
                         >i</i
                       ></span
                     ><input
@@ -300,7 +300,7 @@
                     ><span
                       >Livrente
                       <i
-                        title="Din årlige indbetaling til privat livrente. Optimeringen kan ændre beløbet og værdisætter det gennem den forventede livsvarige udbetaling. Opfyldningsfradraget er 63.200 kr. i 2026."
+                        title="Årlig indbetaling til livsvarig pension (livrente). Giver fuldt skattefradrag op til opfyldningsfradraget på 63.200 kr. i 2026 for privattegnede ordninger (eller ubegrænset via arbejdsgiverordning)."
                         >i</i
                       ></span
                     ><input
@@ -325,7 +325,7 @@
                     ><span
                       >Aktiesparekonto
                       <i
-                        title="Årlig indbetaling til ASK op til indskudsloftet (174.200 kr. for enlige / 348.400 kr. for par i 2026). Hvis saldoen når loftet, overføres overskydende indbetaling automatisk til frie midler."
+                        title="Årlig indbetaling til Aktiesparekonto op til det samlede indskudsloft (174.200 kr. for enlige / 348.400 kr. for par i 2026). Hvis saldoen rammer loftet, ledes overskydende opsparing automatisk over i frie midler."
                         >i</i
                       ></span
                     ><input
@@ -340,7 +340,7 @@
                     <span
                       >Inflationsregulering
                       <i
-                        title="Når funktionen er slået til, reguleres indbetalingerne med inflationen, så de bevarer samme købekraft. Når den er slået fra, er indbetalingerne faste nominelle beløb."
+                        title="Når slået til, stiger dine årlige indbetalinger i takt med inflationen, så du sparer den samme reelle købekraft op hvert år. Når slået fra, er indbetalingerne faste nominelle beløb (falder reelt over tid)."
                         >i</i
                       ></span
                     >
@@ -358,7 +358,7 @@
                     <span
                       >Omdiriger pension
                       <i
-                        title="Når pensionen har nået sit mål, flyttes nettoudgiften til de fremtidige indbetalinger på ratepension og livrente samt indbetalingen på aldersopsparing over til frie midler."
+                        title="Når pensionsmålet er nået (opsparingen er stor nok til at dække udbetalingerne fra pensionsalderen), flyttes nettoudgiften til pensionsindbetalinger automatisk over til frie midler for at fremskynde dit FIRE-tidspunkt."
                         >i</i
                       ></span
                     >
@@ -651,7 +651,7 @@
                     ><span
                       >Afkaststrategi
                       <i
-                        title="Vælg, om afkastet skal være fast eller ændre sig omkring første udbetaling."
+                        title="Vælg profil for forventet afkast over tid: 'Fast afkast' holder samme afkast hele livet. 'Nedtrapning' sænker afkastet frem mod første hævning. 'Obligationstelt' sænker risikoen op til stop og øger den gradvist igen for at reducere sekvensrisiko."
                         >i</i
                       ></span
                     ><select
@@ -684,7 +684,7 @@
                     ><span
                       >Defensivt afkast
                       <i
-                        title="Det forventede årlige afkast ved første udbetaling, før inflation. Værdien skal være mellem 0 % og det forventede afkast."
+                        title="Det lavere årlige afkast i den mest forsigtige periode omkring arbejdsophør (f.eks. 3,5-4 % ved en blanding af obligationer og defensive aktier for at beskytte mod kursfald i starten af udbetalingen)."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -707,7 +707,7 @@
                     ><span
                       >Nedtrapning før første hævning
                       <i
-                        title="Antal hele år fra det forventede afkast begynder at falde, til det defensive afkast nås ved første hævning."
+                        title="Hvor mange år forud for dit arbejdsophør (FIRE) afkastet gradvist nedtrappes fra det normale niveau til det defensive afkastniveau."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -730,7 +730,7 @@
                     ><span
                       >Genoptrapning efter første hævning
                       <i
-                        title="Antal hele år fra det defensive afkast ved første hævning, til det forventede afkast bruges igen."
+                        title="Hvor mange år efter første hævning afkastet gradvist øges tilbage til det normale niveau (kun ved strategien Obligationstelt)."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -760,7 +760,7 @@
                     ><span
                       >Ratepension: hovedstol uden fradrag
                       <i
-                        title="Dokumenterede indbetalinger i den nuværende ratepension, som du ikke har fået fradrags- eller bortseelsesret for. Beløbet kan udbetales skattefrit, mens afkastet beskattes. Beregneren fordeler hovedstolen i lige store nominelle dele over den faste udbetalingsperiode."
+                        title="Beløb indbetalt på ratepension, hvor du ikke har opnået skattefradrag (§ 53 A-lignende hovedstol). Dette beløb udbetales skattefrit i lige store nominelle rater, mens det tilskrevne afkast beskattes normalt."
                         >i</i
                       ></span
                     ><input
@@ -775,7 +775,7 @@
                     ><span
                       >Loft for aldersopsparing
                       <i
-                        title="Vælg kun det forhøjede loft, hvis du har højst 7 år til folkepensionsalderen og ikke er begrænset af 10-års-reglen."
+                        title="Standardloftet er 9.900 kr. i 2026. Det forhøjede loft på 64.200 kr. gælder automatisk fra det 7. år før din folkepensionsalder, forudsat du ikke har påbegyndt visse fradragsberettigede pensionsudbetalinger (10-års-reglen)."
                         >i</i
                       ></span
                     ><select name="ageSavingsContributionLimit" required>
@@ -786,7 +786,7 @@
                   <label class="field"
                     ><span
                       >PAL-skat
-                      <i title="Pensionsafkastskat">i</i></span
+                      <i title="Pensionsafkastskat (PAL) på 15,3 %, der automatisk afregnes af staten hvert år af årets positive afkast på ratepension, aldersopsparing og livrente.">i</i></span
                     ><span class="input-suffix"
                       ><input
                         name="pensionTax"
@@ -801,7 +801,7 @@
                     ><span
                       >Skattebesparelse på pension
                       <i
-                        title="Hvor meget en fradragsberettiget indbetaling til ratepension eller livrente sænker din skat. 40 % betyder, at en indbetaling på 10.000 kr. koster cirka 6.000 kr. efter skat."
+                        title="Din personlige marginale skattebesparelse ved indbetaling med fradrag til ratepension/livrente (typisk ca. 37 % i bundskat, ca. 40 % med det ekstra pensionsfradrag, eller ca. 52,8 % ved topskat)."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -818,7 +818,7 @@
                     ><span
                       >Skat på pensionsudbetaling
                       <i
-                        title="Din forventede effektive indkomstskat på udbetalinger fra ratepension og livrente. Aldersopsparing er fortsat skattefri ved udbetaling."
+                        title="Den forventede gennemsnitlige skatteprocent på dine udbetalinger fra ratepension og livrente som pensionist (typisk 37-39 % svarende til bundskat og kommuneskat uden AM-bidrag). Aldersopsparing er 100 % skattefri."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -835,7 +835,7 @@
                     ><span
                       >Skat på ASK
                       <i
-                        title="ASK beskattes årligt efter lagerprincippet. Den aktuelle værdi bruges som startværdi for fremtidige afkast."
+                        title="Lovbestemt lagerskat på Aktiesparekonto på 17 %, som automatisk afregnes årligt af årets værdistigning. Udbetalinger er helt skattefri."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -850,7 +850,7 @@
                   >
                   <label class="field"
                     ><span>Livrentens udbetalingsrente
-                      <i title="Bestemmer livrentens første udbetaling. Standard: Nordnets udbetalingsrente på 3,22 % i 2026. Satsen holdes konstant i prognosen. Udbetalingen reguleres årligt efter investeringsafkast efter PAL-skat og vises i dagens kroner.">i</i></span
+                      <i title="Den årlige grundlagsrente som pensionsselskabet (f.eks. Nordnet) anvender ved konvertering af livrentedepotet til årlig livsvarig udbetaling. Standardrenten er 3,22 % i 2026. Udbetalingen reguleres årligt efter faktisk afkast efter PAL-skat.">i</i></span
                     ><span class="input-suffix"
                       ><input name="lifeAnnuityPayoutRate" type="number" min="-99" step="0.01" value="3.22" required /><b>%</b></span
                     ></label
@@ -871,7 +871,7 @@
                     ><span
                       >Andel lagerbeskattede frie midler
                       <i
-                        title="Procentdelen anvendes på den nuværende formue, den samlede købspris og fremtidige indbetalinger. Resten behandles som realisationsbeskattede aktier."
+                        title="Hvor stor en procentdel af dine frie midler der investeres i lagerbeskattede instrumenter (f.eks. ETF'er, akkumulerende obligationsfonde eller visse indeksfonde). 0 % betyder ren realisationsbeskatning af aktier."
                         >i</i
                       ></span
                     ><span class="input-suffix"
@@ -897,7 +897,7 @@
                 <summary>Offentlig pension, ATP & efterløn</summary>
                 <div class="form-grid assumptions-grid">
                   <label class="inflation-field">
-                    <span>Folkepension <i title="Medregn statens folkepension: grundbeløb samt pensionstillæg med modregning ud fra dine skattepligtige pensionsudbetalinger.">i</i></span>
+                    <span>Folkepension <i title="Medregn folkepension fra folkepensionsalderen. Beregneren medregner grundbeløb (ca. 85.000 kr./år i 2026 som udbetales til alle) samt pensionstillæg (ca. 101.000 kr. enlig / 52.000 kr. gift), hvor der automatisk modregnes med 30,9 % / 16 % for skattepligtige pensionsudbetalinger over bundgrænsen.">i</i></span>
                     <span class="inflation-input">
                       <b id="folkepension-state">Udelades</b>
                       <input name="includeFolkepension" type="checkbox" />
@@ -905,19 +905,19 @@
                     </span>
                   </label>
                   <label class="field">
-                    <span>Folkepensionsalder <i title="Den officielle folkepensionsalder for din årgang (f.eks. 69 eller 70 år).">i</i></span>
+                    <span>Folkepensionsalder <i title="Din officielle lovfastsatte folkepensionsalder baseret på dit fødselsår (f.eks. 68 år for årgange 1963-1966, 69 år for 1967-1970, og 70+ år for senere årgange jf. Velfærdsaftalen).">i</i></span>
                     <span class="input-suffix"><input name="folkepensionAge" type="number" min="65" max="80" value="69" required /><b>år</b></span>
                   </label>
                   <label class="field">
-                    <span>Årlig ATP-udbetaling <i title="Forventet årlig udbetaling fra ATP Livslang Pension før skat (kan findes på borger.dk).">i</i></span>
+                    <span>Årlig ATP-udbetaling <i title="Forventet livsvarig årlig udbetaling fra ATP Livslang Pension før skat (kan slås op på borger.dk under ATP). Beskattes som almindelig personlig indkomst.">i</i></span>
                     <input name="atpAnnualIncome" type="text" inputmode="numeric" data-number-format="integer" value="0" />
                   </label>
                   <label class="field">
-                    <span>Årlig efterløn før skat <i title="Hvis du er berettiget til efterløn i årene op til folkepensionsalderen.">i</i></span>
+                    <span>Årlig efterløn før skat <i title="Årlig udbetaling af efterløn før skat (hvis du er tilmeldt efterlønsordningen i din a-kasse og opfylder anciennitetskravene ved overgang).">i</i></span>
                     <input name="efterloenAnnualIncome" type="text" inputmode="numeric" data-number-format="integer" value="0" />
                   </label>
                   <label class="field">
-                    <span>Antal år på efterløn <i title="Hvor mange år forud for pensionsalderen du modtager efterløn (maks. 3-4 år).">i</i></span>
+                    <span>Antal år på efterløn <i title="Hvor mange år du ønsker at modtage efterløn forud for folkepensionsalderen (maksimalt 3-4 år afhængigt af din årgang).">i</i></span>
                     <span class="input-suffix"><input name="efterloenYears" type="number" min="0" max="10" value="0" /><b>år</b></span>
                   </label>
                 </div>
@@ -931,19 +931,19 @@
                 <summary>Forbrugsfaser & engangshændelser</summary>
                 <div class="form-grid assumptions-grid">
                   <label class="field">
-                    <span>Alder for forbrugsændring <i title="Alder hvor dit årlige forbrug ændrer sig permanent (f.eks. 75 år når boliglån er betalt eller rejseaktivitet aftager). 0 = ingen ændring.">i</i></span>
+                    <span>Alder for forbrugsændring <i title="Alder hvor dit årlige forbrugsbehov ændrer sig permanent (f.eks. 75 år når boliglånet er fuldt afbetalt, børnebørn er store, eller rejseaktivitet aftager). Angiv 0 for uændret forbrug hele livet.">i</i></span>
                     <span class="input-suffix"><input name="spendingStepAge" type="number" min="0" max="110" value="0" /><b>år</b></span>
                   </label>
                   <label class="field">
-                    <span>Ændring i forbrug (%) <i title="Procentvis stigning (+) eller fald (-) i ønsket årlig hævning fra ovenstående alder (f.eks. -15 %).">i</i></span>
+                    <span>Ændring i forbrug (%) <i title="Procentvis ændring i dit årlige forbrug fra den valgte alder. F.eks. -15 % for et lavere forbrug i alderdommen, eller +10 % hvis du planlægger dyrere aktiviteter."">i</i></span>
                     <span class="input-suffix"><input name="spendingStepPercent" type="number" min="-90" max="200" step="1" value="0" /><b>%</b></span>
                   </label>
                   <label class="field">
-                    <span>Alder for engangshændelse <i title="Alder for en stor engangsindtægt eller udgift (f.eks. arv, salg af fast ejendom eller større renovering). 0 = deaktiveret.">i</i></span>
+                    <span>Alder for engangshændelse <i title="Alder hvor du forventer en stor enkeltstående indtægt eller udgift (f.eks. forventet arv, salg af sommerhus, ny bil, eller renovering af tag). 0 = deaktiveret.">i</i></span>
                     <span class="input-suffix"><input name="oneOffEventAge" type="number" min="0" max="110" value="0" /><b>år</b></span>
                   </label>
                   <label class="field">
-                    <span>Engangsbeløb (dagens kr.) <i title="Positivt beløb = ekstra likviditet (arv, friværdi). Negativt beløb = ekstra engangsudgift.">i</i></span>
+                    <span>Engangsbeløb (dagens kr.) <i title="Størrelsen på engangshændelsen i dagens købekraft. Positivt beløb = ekstra formue/indtægt (f.eks. arv). Negativt beløb = stor engangsudgift.">i</i></span>
                     <input name="oneOffEventAmount" type="text" inputmode="numeric" data-number-format="integer" value="0" />
                   </label>
                 </div>
@@ -957,7 +957,7 @@
                 <summary>Bolig og friværdi</summary>
                 <div class="form-grid assumptions-grid">
                   <label class="inflation-field">
-                    <span>Bolig og friværdi <i title="Vælg om friværdi i ejer- eller andelsbolig skal medregnes i formuen og evt. frigøres til forbrug ved stop med arbejde (FIRE).">i</i></span>
+                    <span>Bolig og friværdi <i title="Vælg om friværdi i ejer- eller andelsbolig skal medregnes i den samlede formue og eventuelt frigøres til forbrug, når du stopper med at arbejde (FIRE).">i</i></span>
                     <span class="inflation-input">
                       <b id="housing-state">Udelades</b>
                       <input id="include-housing" name="includeHousing" type="checkbox" />
@@ -966,7 +966,7 @@
                   </label>
 
                   <label id="housing-type-field" class="field field-disabled" aria-disabled="true">
-                    <span>Boligtype <i title="Vælg om du bor i ejerbolig, andelsbolig eller lejebolig/uden boligformue.">i</i></span>
+                    <span>Boligtype <i title="Vælg om din bolig er en ejerbolig eller andelsbolig. Eventuel gevinst ved salg af ejerbolig er normalt 100 % skattefri efter Parcelhusreglen.">i</i></span>
                     <select name="housingType" disabled required>
                       <option value="owner" selected>Ejerbolig</option>
                       <option value="coop">Andelsbolig</option>
@@ -975,36 +975,36 @@
                   </label>
 
                   <label id="housing-value-field" class="field field-disabled" aria-disabled="true">
-                    <span>Boligens salgsværdi i dag <i title="Nuværende markedsværdi for hele boligen før fradrag for gæld.">i</i></span>
+                    <span>Boligens salgsværdi i dag <i title="Nuværende markedsværdi for hele boligen (kontantpris før gæld og salgsomkostninger).">i</i></span>
                     <input name="housingValue" type="text" inputmode="numeric" data-number-format="integer" value="8.500.000" disabled required />
                   </label>
 
                   <label id="housing-debt-field" class="field field-disabled" aria-disabled="true">
-                    <span>Restgæld i boligen i dag <i title="Samlet realkredit- og bankgæld i boligen i dag.">i</i></span>
+                    <span>Restgæld i boligen i dag <i title="Samlet restgæld på realkreditlån, banklån og prioritetslån i boligen på nuværende tidspunkt.">i</i></span>
                     <input name="housingDebt" type="text" inputmode="numeric" data-number-format="integer" value="1.600.000" disabled required />
                   </label>
 
                   <label id="housing-amortization-field" class="field field-disabled" aria-disabled="true">
-                    <span>Årligt afdrag på gæld <i title="Hvor meget der afdrages på restgælden pr. år (0 kr. ved afdragsfrit lån).">i</i></span>
+                    <span>Årligt afdrag på gæld <i title="Hvor meget der afdrages på restgælden pr. år (ekskl. renter og bidrag). Angiv 0 kr., hvis du har et afdragsfrit lån.">i</i></span>
                     <input name="housingAnnualAmortization" type="text" inputmode="numeric" data-number-format="integer" value="0" disabled required />
                   </label>
 
                   <label id="housing-growth-field" class="field field-disabled" aria-disabled="true">
-                    <span>Forventet prisstigning pr. år <i title="Nominel årlig værdistigning på boligen (standard 2 %/år svarende til inflation).">i</i></span>
+                    <span>Forventet prisstigning pr. år <i title="Forventet nominel årlig værdistigning på boligen (standard er 2,0 % pr. år svarende til den langsigtede inflation, hvilket bevarer boligens realværdi).">i</i></span>
                     <span class="input-suffix">
                       <input name="housingPriceGrowth" type="number" min="-5" max="20" step="0.1" value="2" disabled required /><b>%</b>
                     </span>
                   </label>
 
                   <label id="housing-share-field" class="field field-disabled" aria-disabled="true">
-                    <span>Din ejerandel <i title="Din andel af boligen og friværdien (f.eks. 50 % ved to ejere eller 100 % som eneejer).">i</i></span>
+                    <span>Din ejerandel <i title="Din personlige ejerandel af boligen og friværdien (f.eks. 50 % hvis du ejer boligen sammen med din ægtefælle/partner, eller 100 % som eneejer).">i</i></span>
                     <span class="input-suffix">
                       <input name="housingOwnershipShare" type="number" min="0" max="100" step="1" value="50" disabled required /><b>%</b>
                     </span>
                   </label>
 
                   <label id="housing-unlock-field" class="field field-disabled" aria-disabled="true">
-                    <span>Frigør friværdi ved stop? <i title="Om der skal frigøres friværdi (f.eks. via nedsparingslån eller salg/nedskalering) til at finansiere FIRE. Skattefrit efter Parcelhusreglen.">i</i></span>
+                    <span>Frigør friværdi ved stop? <i title="Vælg om en del af friværdien skal konverteres til likvide forbrugsmidler ved FIRE (f.eks. via nedsparingslån/prioritetslån, salg og flytning til lejebolig, eller nedskalering til en billigere bolig).">i</i></span>
                     <select name="housingUnlock" disabled required>
                       <option value="false">Nej (bevar som reserve)</option>
                       <option value="true" selected>Ja (frigør til forbrug)</option>
@@ -1012,14 +1012,14 @@
                   </label>
 
                   <label id="housing-unlock-share-field" class="field field-disabled" aria-disabled="true">
-                    <span>Andel der frigøres <i title="Hvor stor en procentdel af din friværdi der frigøres som likvide midler (f.eks. 50 % ved friværdilån eller 100 % ved salg til lejebolig).">i</i></span>
+                    <span>Andel der frigøres <i title="Hvor stor en procentdel af din friværdi du ønsker at frigøre som likvide midler til forbrug (f.eks. 50 % ved friværdilån/nedsparingslån, eller 100 % ved salg til lejebolig).">i</i></span>
                     <span class="input-suffix">
                       <input name="housingUnlockShare" type="number" min="0" max="100" step="1" value="50" disabled required /><b>%</b>
                     </span>
                   </label>
 
                   <label id="housing-unlock-age-type-field" class="field field-disabled" aria-disabled="true">
-                    <span>Tidspunkt for frigørelse <i title="Vælg om friværdien frigøres automatisk det år du stopper med at arbejde (FIRE), eller ved en specifik alder.">i</i></span>
+                    <span>Tidspunkt for frigørelse <i title="Vælg om friværdien skal frigøres automatisk det år du opnår FIRE og stopper med at arbejde, eller ved en fast foruddefineret alder (f.eks. 65 eller 70 år).">i</i></span>
                     <select name="housingUnlockAgeType" disabled required>
                       <option value="fire" selected>Ved stop med arbejde (FIRE)</option>
                       <option value="custom">Ved specifik alder</option>
@@ -1027,7 +1027,7 @@
                   </label>
 
                   <label id="housing-unlock-age-field" class="field field-disabled" aria-disabled="true">
-                    <span>Alder for frigørelse <i title="Den specifikke alder hvor friværdien frigøres som skattefri likviditet.">i</i></span>
+                    <span>Alder for frigørelse <i title="Den specifikke alder hvor friværdien frigøres som skattefri likviditet til dit frie depot.">i</i></span>
                     <span class="input-suffix">
                       <input name="housingUnlockAge" type="number" min="18" max="110" value="60" disabled required /><b>år</b>
                     </span>
@@ -1043,11 +1043,11 @@
                 <summary>Monte Carlo-simulering (markedsudsving)</summary>
                 <div class="form-grid assumptions-grid">
                   <label class="field">
-                    <span>Årlig volatilitet (risiko) <i title="Standardafvigelse for det årlige aktieafkast. Typisk 15-18 % for en global aktieportefølje.">i</i></span>
+                    <span>Årlig volatilitet (risiko) <i title="Standardafvigelsen (risikoen) for det årlige aktieafkast. Globale aktier (MSCI World) har historisk haft en årlig volatilitet på 15-18 %. Højere volatilitet øger spredningen mellem gode og dårlige år (sekvensrisiko).">i</i></span>
                     <span class="input-suffix"><input name="returnVolatility" type="number" min="1" max="50" step="0.5" value="15" required /><b>%</b></span>
                   </label>
                   <label class="field">
-                    <span>Antal simuleringer <i title="Antal tilfældige markedsforløb (stokastiske iterationer). Typisk 200 - 1.000 forløb.">i</i></span>
+                    <span>Antal simuleringer <i title="Antal tilfældige markedsforløb (stokastiske simuleringer) der gennemregnes. 500-1.000 simuleringer giver et statistisk stabilt billede af sandsynligheden for at pengene rækker hele livet.">i</i></span>
                     <input name="monteCarloRuns" type="number" min="50" max="5000" step="50" value="500" required />
                   </label>
                   <div class="optimization-actions" style="grid-column: 1 / -1; margin-top: 0.5rem;">
@@ -1560,6 +1560,40 @@
                 skat viser skatten på årets samlede udbetaling som procent af
                 brutto-udb. Lagerskat indgår ikke i denne procentsats.
               </p>
+              <div class="projection-guide-box">
+                <h4>Sådan læser du op- og nedsparingstabellen:</h4>
+                <div class="projection-guide-grid">
+                  <div class="guide-item">
+                    <b>Faserne i dit liv</b>
+                    <p>
+                      <strong>Opsparing:</strong> Depoterne vokser med dine årlige indbetalinger og forventede investeringsafkast fratrukket PAL- og lagerskat.<br/>
+                      <strong>FIRE:</strong> Du er stoppet med at arbejde. Forbruget finansieres af frie midler, Aktiesparekonto og eventuelt frigjort boligfriværdi.<br/>
+                      <strong>Pension:</strong> Ratepension, livrente, aldersopsparing og folkepension udbetales.
+                    </p>
+                  </div>
+                  <div class="guide-item">
+                    <b>Brutto- vs. Netto-udbetaling</b>
+                    <p>
+                      <strong>Brutto-udb.</strong> er det samlede beløb der hæves fra dine konti.<br/>
+                      <strong>Netto-udb.</strong> er det beløb du modtager til forbrug efter fratræk af skat (aktieavancebeskatning og udbetalingsskat på pensioner).
+                    </p>
+                  </div>
+                  <div class="guide-item">
+                    <b>Lagerskat & Effektiv skat</b>
+                    <p>
+                      <strong>Lagerskat:</strong> 17 % årligt på ASK, 15,3 % PAL-skat på pensioner og skat på lagerbeskattede frie midler trækkes løbende fra formuen.<br/>
+                      <strong>Effektiv skat:</strong> Den samlede skatteprocent på årets udbetalinger (ekskl. lagerskat).
+                    </p>
+                  </div>
+                  <div class="guide-item">
+                    <b>Scenarier & Interaktiv hjælp</b>
+                    <p>
+                      Brug knapperne foroven til at skifte mellem <em>Uden MC (Fast afkast)</em> og Monte Carlo <em>P10 (Pessimistisk)</em>, <em>P50 (Median)</em> og <em>P90 (Optimistisk)</em>.<br/>
+                      💡 <strong>Hold musen over et tal</strong> for hurtig delberegning, eller <strong>højreklik</strong> for fuld matematisk formel, afkastnedbrydning og skatteberegning.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </details>
           </section>
 
@@ -1710,82 +1744,91 @@
           </details>
 
           <footer class="calculator-notes">
-            <p>
-              <strong>Afkast og udbetalinger:</strong> Beregningen bruger den
-              valgte, deterministiske afkaststrategi og viser alle beløb i
-              dagens kroner. Strategierne simulerer ikke markedsudsving eller
-              rækkefølgerisiko. Indbetalinger antages at ske midt i hvert
-              beregningsår som en tilnærmelse til løbende indbetalinger. Det
-              giver årets indbetalinger et halvt års beregnet afkast. Hævninger
-              sker ved starten af hver udbetalingsperiode.
-            </p>
-            <p>
-              <strong>Frie midler:</strong> Den valgte procentdel lagerbeskattes.
-              Resten realisationsbeskattes. Fordelingen anvendes på
-              startformuen, den samlede købspris og fremtidige indbetalinger.
-              Ved realisationsbeskatning beregnes skat af gevinsten ved salg.
-              Ved lagerbeskatning beregnes skat årligt af positive afkast og
-              trækkes fra formuen. Beregningen bruger 2026-satserne for en enlig
-              uden anden aktieindkomst og medregner ikke udbytter eller
-              fremførte tab.
-            </p>
-            <p>
-              <strong>Ratepension:</strong> Udbetalinger beskattes med den
-              indtastede effektive sats. Den indtastede skattebesparelse
-              anvendes på indbetalinger op til 2026-rateloftet. Indbetalinger
-              over loftet medregnes uden fradrag.
-            </p>
-            <p>
-              <strong>Livrente:</strong> Udbetalinger beskattes med den
-              indtastede effektive sats. Skattebesparelsen anvendes på hele den
-              indtastede indbetaling op til opfyldningsfradraget på 63.200 kr.
-              Private indbetalinger over opfyldningsfradraget kan have andre
-              fradragsforløb. Livrentedepotet omregnes ved pensionsstart til en
-              forventet livsvarig udbetaling. Beregningen bruger en
-              50/50-unisexbestand,
-              <a
-                href="https://www.finanstilsynet.dk/finansielle-temaer/forsikring-og-pension/levetidsmodel"
-                >Finanstilsynets levetidsbenchmark for 2024</a
-              >, de forventede levetidsforbedringer og den valgte
-              udbetalingsrente. Standardrenten er 3,22 % fra
-              <a href="https://www.nordnet.dk/academy/hvordan-fastsaettes-udbetalingerne-pa-din-livsvarige-pension">Nordnets beregningsgrundlag for 2026</a>.
-              Udbetalingen reguleres årligt efter afkast efter PAL-skat i forhold
-              til udbetalingsrenten og omregnes til dagens kroner. Modellen
-              forudsætter uændret levetidsgrundlag og risikodeling blandt de
-              forsikrede. Det er en tilnærmelse, ikke et tilbud fra Nordnet.
-              Den medregner ikke udbetalingsgaranti,
-              ægtefællepension eller særskilte omkostninger.
-            </p>
-            <p>
-              <strong>Aldersopsparing:</strong> Indbetalinger giver ikke en
-              beregnet skattebesparelse. Afkast beskattes med den indtastede
-              PAL-sats. Udbetalinger er skattefri.
-            </p>
-            <p>
-              <strong>Aktiesparekonto:</strong> Afkast beskattes med den
-              indtastede ASK-sats. Beregningen beskatter kun fremtidige afkast
-              fra den indtastede startværdi og medregner ikke allerede optjent
-              ASK-skat.
-            </p>
-            <p>
-              <strong>Optimering:</strong> Optimeringen bruger højst
-              opfyldningsfradraget til livrente. Den prioriterer altid det
-              tidligste FIRE-år inden for den nuværende årlige nettopris og
-              derefter den laveste nettopris, som kan nå det år. Indbetalinger
-              på ratepension over loftet medregnes til fuld nettoudgift og som
-              hovedstol uden fradrag. Optimeringens slutreserve værdisætter
-              aldersopsparing, ASK og lagerbeskattede frie midler til den viste
-              saldo. Ratepension reduceres med den indtastede skat på
-              pensionsudbetaling. Livrentedepotet indgår ikke i slutreserven,
-              efter det er konverteret til livsvarig indkomst. For
-              realisationsbeskattede frie midler
-              antages den resterende gevinst realiseret på én gang efter
-              2026-satserne.
-            </p>
-            <p>
-              <strong>Ansvarsfraskrivelse:</strong> Resultatet er et overslag
-              og er ikke finansiel rådgivning.
-            </p>
+            <div class="notes-header">
+              <h3>Metodedokumentation og forudsætninger</h3>
+              <p>Overblik over lovgrundlag, skatteregler (2026) og matematiske principper anvendt i beregneren.</p>
+            </div>
+            <div class="notes-grid">
+              <section class="note-card">
+                <h4>Købekraft & Nutidskroner</h4>
+                <p>
+                  Alle fremtidige beløb, udbetalinger og formuer vises i <strong>dagens kroner (nutidskroner)</strong>. Det betyder, at inflationen løbende fratrækkes det nominelle afkast, så et beløb på 300.000 kr. om 25 år svarer præcis til den købekraft 300.000 kr. har i dag.
+                </p>
+                <p>
+                  Indbetalinger antages at ske midt i beregningsåret (svarende til løbende månedlige indskud) og tilskrives et halvt års afkast. Udbetalinger sker ved årets start.
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>Skatteoptimering & Udbetalingsrækkefølge</h4>
+                <p>
+                  <strong>Forholdsmæssig:</strong> Hæver proportionalt fra alle tilgængelige likvide depoter.
+                </p>
+                <p>
+                  <strong>Skatteoptimeret:</strong> Hæver op til progressionsgrænsen for 27 % aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) og supplerer med skattefrie midler (Aktiesparekonto og Aldersopsparing) for at minimere eller helt undgå den høje 42 % aktieskat.
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>De tre pensionsordninger</h4>
+                <p>
+                  <strong>Ratepension:</strong> Indskud giver skattefradrag op til 68.700 kr. i 2026. Udbetalinger beskattes som personlig indkomst. Afkast beskattes med 15,3 % PAL-skat.
+                </p>
+                <p>
+                  <strong>Aldersopsparing:</strong> Intet indskudsfradrag. Afkast beskattes med 15,3 % PAL-skat. Udbetalinger er 100 % skattefrie og modregnes hverken i folkepensionens grundbeløb eller pensionstillæg.
+                </p>
+                <p>
+                  <strong>Livrente:</strong> Giver fuldt skattefradrag op til opfyldningsfradraget på 63.200 kr. i 2026 (privat). Depotet konverteres ved pensionsalderen til en livsvarig udbetaling baseret på Finanstilsynets levetidsmodel 2024 og Nordnets udbetalingsrente (3,22 % i 2026).
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>Frie midler & Aktiesparekonto</h4>
+                <p>
+                  <strong>Aktiesparekonto (ASK):</strong> Beskattes årligt med kun 17 % i lagerskat (op til 174.200 kr. for enlige / 348.400 kr. for par i 2026). Udbetalinger er helt skattefrie og yderst fleksible i FIRE-fasen.
+                </p>
+                <p>
+                  <strong>Frie midler:</strong> Realisationsbeskattes som aktieindkomst (27 % / 42 %) baseret på din gennemsnitlige købspris, eller lagerbeskattes for den valgte andel.
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>Bolig og friværdi</h4>
+                <p>
+                  <strong>Parcelhusreglen:</strong> Gevinst ved salg af privat ejerbolig er som udgangspunkt 100 % skattefri.
+                </p>
+                <p>
+                  <strong>Frigørelse af friværdi:</strong> Friværdi kan frigøres til forbrug ved stop med arbejde (FIRE) via f.eks. nedsparingslån, prioritetslån eller salg/nedskalering, hvilket forlænger formuereserven i den tidlige FIRE-periode.
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>Offentlige ydelser & Modregning</h4>
+                <p>
+                  <strong>Folkepension:</strong> Består af et grundbeløb (ca. 85.000 kr./år i 2026), som udbetales ubeskåret uanset pensionsformue, samt et pensionstillæg, der aftrappes med 30,9 % (enlige) eller 16 % (par) for skattepligtige pensionsudbetalinger over bundfradraget.
+                </p>
+                <p>
+                  <strong>ATP & Efterløn:</strong> ATP udbetales livsvarigt. Eventuel efterløn udbetales i op til 3-4 år forud for folkepensionsalderen.
+                </p>
+              </section>
+
+              <section class="note-card">
+                <h4>Monte Carlo & Sekvensrisiko</h4>
+                <p>
+                  <strong>Sequence of Returns Risk:</strong> Gennemsnitligt afkast er sjældent jævnt i virkeligheden. Store kursfald i de første år efter arbejdsophør kan udhule en formue markant hurtigere, fordi der tæres på kapitalen under et markedskrak.
+                </p>
+                <p>
+                  <strong>P10 / P50 / P90:</strong> P10 angiver det pessimistiske 10 %-udfald (hård modvind), P50 medianen, og P90 det optimistiske 90 %-udfald (stærk medvind).
+                </p>
+              </section>
+
+              <section class="note-card note-disclaimer">
+                <h4>Ansvarsfraskrivelse</h4>
+                <p>
+                  Beregneren er et uafhængigt simuleringsværktøj beregnet til planlægning og overslag. Resultatet udgør ikke personlig finansiel, juridisk eller skattemæssig rådgivning. Skatteregler og satser følger gældende 2026-lovgivning.
+                </p>
+              </section>
+            </div>
           </footer>
         </div>
       </div>

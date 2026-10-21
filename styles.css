@@ -2925,3 +2925,93 @@ th.housing-col {
   }
 
 }
+
+/* --- Projection Table Guide & Rich Notes --- */
+.projection-guide-box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+}
+
+.projection-guide-box h4 {
+  color: var(--ink);
+  font-size: var(--text-label-size);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-3);
+}
+
+.projection-guide-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.guide-item b {
+  color: var(--ink);
+  display: block;
+  font-size: var(--text-caption-size);
+  margin-bottom: var(--space-1);
+}
+
+.guide-item p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  margin: 0;
+}
+
+.notes-header {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+}
+
+.notes-header h3 {
+  color: var(--ink);
+  font-size: var(--text-section-size);
+  font-weight: var(--weight-bold);
+  margin: 0 0 var(--space-1);
+}
+
+.notes-header p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  margin: 0;
+}
+
+.notes-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.note-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.note-card h4 {
+  color: var(--ink);
+  font-size: var(--text-label-size);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-2);
+}
+
+.note-card p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  margin: 0 0 var(--space-2);
+}
+
+.note-card p:last-child {
+  margin-bottom: 0;
+}
+
+.note-disclaimer {
+  background: var(--phase-background);
+}
