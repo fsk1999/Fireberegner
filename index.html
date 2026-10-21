@@ -78,7 +78,7 @@
                   <label class="field">
                     <span
                       >Nuværende alder
-                      <i title="Beregningen bruger hele år fra dagens dato"
+                      <i title="Din nuværende alder i hele år. Beregneren fremskriver din formue år for år fra denne alder og frem mod dit tidligste FIRE-tidspunkt og folkepensionsalderen."
                         >i</i
                       ></span
                     >
@@ -96,7 +96,7 @@
                   <label class="field">
                     <span
                       >Pensionsalder
-                      <i title="Alderen hvor pensionen kan udbetales"
+                      <i title="Den alder hvor du tidligst kan få udbetalt dine pensionsordninger (ratepension og livrente). For ordninger oprettet efter 1. januar 2018 er dette typisk 3 år før din folkepensionsalder."
                         >i</i
                       ></span
                     >
@@ -129,7 +129,7 @@
                     <span
                       >Ønsket årlig hævning
                       <i
-                        title="Beløbet vises i dagens kroner. Efter skat omfatter beregnet skat på frie midler og den indtastede effektive skat på udbetalinger fra ratepension og livrente."
+                        title="Det samlede årlige beløb du ønsker til dit privatforbrug, boligudgifter og faste omkostninger i nutidskroner. Hvis 'Efter skat' er valgt, bruttificerer modellen automatisk hævningerne ud fra de relevante skattesatser for hver depottype."
                         >i</i
                       ></span
                     >
@@ -143,7 +143,7 @@
                     />
                   </label>
                   <label class="inflation-field">
-                    <span>Hævningsbeløbet er <i title="Vælg om dit ønskede beløb er efter skat (det beløb du faktisk har til rådighed til forbrug) eller før skat (bruttoindkomst). Beregneren modregner automatisk skat på frie midler og pensionsudbetalinger.">i</i></span>
+                    <span>Hævningsbeløbet er <i title="Vælg om dit ønskede hævningsbeløb er efter skat (det faktiske beløb du har i hånden til forbrug) eller før skat (bruttoindkomst). Vælger du 'Efter skat', beregner modellen automatisk de nødvendige skattetillæg på aktiegevinster og pensionsudbetalinger.">i</i></span>
                     <span class="inflation-input">
                       <b id="withdrawal-tax-state">Efter skat</b>
                       <input
@@ -188,7 +188,12 @@
                 <legend>Nuværende formue</legend>
                 <div class="form-grid wealth-grid">
                   <label class="field"
-                    ><span>Ratepension</span
+                    ><span
+                      >Ratepension
+                      <i
+                        title="Din nuværende samlede opsparing på ratepensioner og kapitalpensioner. Formuen vokser med dit investeringsafkast fratrukket 15,3 % PAL-skat. Udbetalinger beskattes som personlig indkomst uden AM-bidrag."
+                        >i</i
+                      ></span
                     ><input
                       name="ratePensionBalance"
                       type="text"
@@ -198,7 +203,12 @@
                       required
                   /></label>
                   <label class="field"
-                    ><span>Aldersopsparing</span
+                    ><span
+                      >Aldersopsparing
+                      <i
+                        title="Din nuværende saldo på aldersopsparing. Afkast beskattes med lav PAL-skat på 15,3 %. Udbetalinger er 100 % skattefrie og modregnes hverken i folkepensionens grundbeløb eller pensionstillæg."
+                        >i</i
+                      ></span
                     ><input
                       name="ageSavingsBalance"
                       type="text"
@@ -223,7 +233,12 @@
                       required
                   /></label>
                   <label class="field"
-                    ><span>Frie midler</span
+                    ><span
+                      >Frie midler
+                      <i
+                        title="Nuværende værdi af dine almindelige investeringer for frie midler (aktier, obligationer, ETF'er og investeringsforeninger i åbent depot). Dette er din vigtigste likvide buffer til at finansiere FIRE-perioden, før pensionsordningerne må åbnes."
+                        >i</i
+                      ></span
                     ><input
                       name="freeFundsBalance"
                       type="text"
@@ -248,7 +263,12 @@
                       required
                   /></label>
                   <label class="field"
-                    ><span>Aktiesparekonto</span
+                    ><span
+                      >Aktiesparekonto
+                      <i
+                        title="Nuværende indestående på din Aktiesparekonto. Gevinster beskattes årligt med kun 17 % i lagerskat. Udbetalinger er helt skattefrie og kan hæves fleksibelt på et hvilket som helst tidspunkt forud for pensionsalderen."
+                        >i</i
+                      ></span
                     ><input
                       name="askBalance"
                       type="text"
@@ -312,7 +332,12 @@
                       required
                   /></label>
                   <label class="field"
-                    ><span>Frie midler</span
+                    ><span
+                      >Frie midler
+                      <i
+                        title="Det beløb du sparer op i frie midler hvert år (efter skat). Denne opsparing er fundamentet for at kunne stoppe tidligt med at arbejde (FIRE), da pengene kan hæves frit uden aldersbegrænsninger eller strafafgifter."
+                        >i</i
+                      ></span
                     ><input
                       name="annualFreeFundsContribution"
                       type="text"
@@ -665,7 +690,12 @@
                     </select></label
                   >
                   <label class="field"
-                    ><span>Forventet afkast</span
+                    ><span
+                      >Forventet afkast
+                      <i
+                        title="Det gennemsnitlige årlige nominelle afkast før skat og inflation på dine investeringer (historisk ca. 7-8 % for en bred global aktieportefølje som MSCI World / ACWI)."
+                        >i</i
+                      ></span
                     ><span class="input-suffix"
                       ><input
                         name="returnRate"
@@ -856,7 +886,12 @@
                     ></label
                   >
                   <label class="field"
-                    ><span>Forventet inflation</span
+                    ><span
+                      >Forventet inflation
+                      <i
+                        title="Den forventede årlige stigning i forbrugerpriserne (inflation). Danmarks Nationalbank og ECB har et langsigtet inflationsmål på 2,0 % pr. år. Beregneren omregner alle fremtidige beløb til nutidskroner baseret på denne sats."
+                        >i</i
+                      ></span
                     ><span class="input-suffix"
                       ><input
                         name="inflationRate"
@@ -935,7 +970,7 @@
                     <span class="input-suffix"><input name="spendingStepAge" type="number" min="0" max="110" value="0" /><b>år</b></span>
                   </label>
                   <label class="field">
-                    <span>Ændring i forbrug (%) <i title="Procentvis ændring i dit årlige forbrug fra den valgte alder. F.eks. -15 % for et lavere forbrug i alderdommen, eller +10 % hvis du planlægger dyrere aktiviteter."">i</i></span>
+                    <span>Ændring i forbrug (%) <i title="Procentvis ændring i dit årlige forbrug fra den valgte alder. F.eks. -15 % for et lavere forbrug i alderdommen, eller +10 % hvis du planlægger dyrere aktiviteter.">i</i></span>
                     <span class="input-suffix"><input name="spendingStepPercent" type="number" min="-90" max="200" step="1" value="0" /><b>%</b></span>
                   </label>
                   <label class="field">
@@ -1483,7 +1518,7 @@
                       type="checkbox"
                       checked
                     />
-                    <span>Vis sammenligningskolonner (Uden vs. Med Monte Carlo)</span>
+                    <span>Vis sammenligningskolonner <i title="Slå til for at få kolonner i tabellen, der sammenligner fast afkast direkte mod Monte Carlo P10 (pessimistisk), P50 (median), P90 (optimistisk) samt forskellen mellem P50 og fast afkast.">i</i></span>
                   </label>
                 </div>
                 <div id="mc-table-active-banner" class="mc-table-active-banner is-without">

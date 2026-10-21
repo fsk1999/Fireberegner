@@ -581,6 +581,7 @@ legend,
   border: 1px solid currentColor;
   border-radius: 50%;
   color: var(--muted);
+  cursor: help;
   display: inline-flex;
   font-size: var(--text-info-icon-size);
   font-style: normal;
