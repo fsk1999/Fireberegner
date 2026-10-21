@@ -2671,12 +2671,14 @@ th.housing-col {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   box-shadow: 0 16px 40px rgba(20, 35, 33, 0.22);
+  box-sizing: border-box;
   color: var(--ink);
   max-height: calc(100dvh - 40px);
-  max-width: 640px;
+  max-width: 760px;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 0;
-  width: calc(100vw - 32px);
+  width: min(760px, calc(100vw - 32px));
 }
 
 .math-inspector-dialog::backdrop {
@@ -2689,7 +2691,7 @@ th.housing-col {
   border-bottom: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-4);
 }
 
 .math-inspector-title-area {
@@ -2738,15 +2740,19 @@ th.housing-col {
 
 .math-inspector-body {
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5) var(--space-5);
+  gap: var(--space-3);
+  min-width: 0;
+  overflow-x: hidden;
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
 .math-inspector-card {
   background: var(--surface-soft);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+  overflow-x: hidden;
+  padding: 10px 14px;
 }
 
 .math-inspector-card h3 {
@@ -2754,44 +2760,51 @@ th.housing-col {
   font-size: 11px;
   font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
-  margin: 0 0 var(--space-2);
+  margin: 0 0 6px;
   text-transform: uppercase;
 }
 
 .math-inspector-card p {
   color: var(--ink);
   font-size: var(--text-data-sm-size);
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0;
 }
 
 .math-formula-box {
   background: #192522;
   border-radius: 6px;
+  box-sizing: border-box;
   color: #79f2c3;
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.5;
-  overflow-x: auto;
-  padding: 10px 12px;
+  margin: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .math-formula-detail {
   color: var(--muted);
   font-size: var(--text-caption-size);
-  margin-top: 6px;
+  margin-top: 5px;
 }
 
 .math-steps-table {
   border-collapse: collapse;
   font-size: 12.5px;
-  margin-top: var(--space-1);
+  margin-top: 4px;
+  min-width: 0;
+  table-layout: fixed;
   width: 100%;
 }
 
 .math-steps-table td {
   border-bottom: 1px solid var(--line);
-  padding: 6px 4px;
+  padding: 5px 4px;
 }
 
 .math-steps-table tr:last-child td {
@@ -2800,6 +2813,9 @@ th.housing-col {
 
 .math-step-label {
   color: var(--ink);
+  overflow-wrap: break-word;
+  padding-right: 8px;
+  word-break: break-word;
 }
 
 .math-step-value {
@@ -2808,6 +2824,7 @@ th.housing-col {
   font-weight: var(--weight-semibold);
   text-align: right;
   white-space: nowrap;
+  width: 130px;
 }
 
 .math-step-result td {
@@ -2825,9 +2842,9 @@ th.housing-col {
 
 .math-assumptions-list {
   display: grid;
-  gap: var(--space-2);
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  margin-top: var(--space-2);
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 6px;
 }
 
 .math-assumption-item {
@@ -2837,17 +2854,17 @@ th.housing-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px 10px;
+  padding: 5px 8px;
 }
 
 .math-assumption-item small {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 10px;
 }
 
 .math-assumption-item strong {
   font-family: var(--data);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .math-inspector-footer {
