@@ -223,6 +223,18 @@ console.assert(housingCalc.planRows[0].housingEquity > 0, "Plan rows should cont
 console.assert(housingCalc.finalReserveAfterTaxWithHousing > housingCalc.finalReserveAfterTax, "Reserve with housing should be greater than portfolio reserve alone");
 console.log("✓ Housing equity calculation, unlock at FIRE, and wealth aggregation verified.");
 
-console.log("\n=================================");
-console.log("ALL 9 VERIFICATION SUITES PASSED!");
-console.log("=================================");
+console.log("\n=== 10. Monte Carlo Simulation with Housing ===");
+const mcNoHousing = FireMonteCarlo.runMonteCarlo(baseInputs, { runs: 50, volatility: 0.15, seed: 42 });
+const mcHousing = FireMonteCarlo.runMonteCarlo(housingInputs, { runs: 50, volatility: 0.15, seed: 42 });
+
+console.assert(mcHousing.percentileBands.length > 0, "MC with housing should produce percentile bands");
+console.assert(mcHousing.percentileBands[0].baselineTotal === housingCalc.planRows[0].totalWealthWithHousing, "MC baselineTotal should reflect totalWealthWithHousing");
+console.assert(mcHousing.percentileBands[0].baselineHousing === housingCalc.planRows[0].housingEquity, "MC baselineHousing should match housingEquity");
+console.assert(mcHousing.medianFinalReserve > mcNoHousing.medianFinalReserve, "Median final reserve with housing should exceed reserve without housing");
+console.assert(mcHousing.scenarios.p50.calculation.includeHousing === true, "P50 scenario calculation should have includeHousing true");
+console.assert(mcHousing.scenarios.p50.calculation.planRows[0].housingEquity === housingCalc.planRows[0].housingEquity, "P50 scenario should include housing equity");
+console.log("✓ Monte Carlo simulation correctly reflects housing equity in bands, scenarios, and reserves.");
+
+console.log("\n==================================");
+console.log("ALL 10 VERIFICATION SUITES PASSED!");
+console.log("==================================");

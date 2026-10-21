@@ -81,6 +81,7 @@
         pension: [],
         freeFunds: [],
         depot: [],
+        housing: [],
       });
     }
 
@@ -135,8 +136,13 @@
           solventRuns += 1;
         }
 
-        const finalReserve = sim.finalReserveAfterTax ?? 0;
-        const finalTotalBalance = sim.finalRow?.totalBalance ?? 0;
+        const includeHousing = Boolean(inputs.includeHousing);
+        const finalReserve = includeHousing
+          ? (sim.finalReserveAfterTaxWithHousing ?? ((sim.finalReserveAfterTax ?? 0) + (sim.finalRow?.housingEquity ?? 0)))
+          : (sim.finalReserveAfterTax ?? 0);
+        const finalTotalBalance = includeHousing
+          ? (sim.finalRow?.totalWealthWithHousing ?? ((sim.finalRow?.totalBalance ?? 0) + (sim.finalRow?.housingEquity ?? 0)))
+          : (sim.finalRow?.totalBalance ?? 0);
         const effectiveFireAge = adaptiveSim.fireRow
           ? adaptiveSim.fireRow.age
           : inputs.retirementAge;
@@ -160,15 +166,19 @@
 
         let lifetimeWealthSum = 0;
         sim.planRows.forEach((row) => {
-          lifetimeWealthSum += row.totalBalance;
+          const wealth = includeHousing
+            ? (row.totalWealthWithHousing ?? (row.totalBalance + (row.housingEquity ?? 0)))
+            : row.totalBalance;
+          lifetimeWealthSum += wealth;
           const bucket = ageTrajectoryMap.get(row.age);
           if (bucket) {
             const pensionVal = row.ratePension + row.lifeAnnuity + row.ageSavings;
             const freeVal = row.freeFunds + row.ask;
-            bucket.total.push(row.totalBalance);
+            bucket.total.push(wealth);
             bucket.pension.push(pensionVal);
             bucket.freeFunds.push(freeVal);
             bucket.depot.push(row.totalDepotValue);
+            bucket.housing.push(row.housingEquity ?? 0);
           }
         });
 
@@ -219,23 +229,32 @@
     };
 
     const percentileBands = [];
+    const includeHousing = Boolean(inputs.includeHousing);
     ageTrajectoryMap.forEach((bucket, age) => {
       bucket.total.sort((a, b) => a - b);
       bucket.pension.sort((a, b) => a - b);
       bucket.freeFunds.sort((a, b) => a - b);
       bucket.depot.sort((a, b) => a - b);
+      bucket.housing.sort((a, b) => a - b);
 
       const baseRow = baselineByAge.get(age);
       const basePension = baseRow
         ? baseRow.ratePension + baseRow.lifeAnnuity + baseRow.ageSavings
         : 0;
       const baseFree = baseRow ? baseRow.freeFunds + baseRow.ask : 0;
+      const baseHousing = baseRow && includeHousing ? (baseRow.housingEquity ?? 0) : 0;
+      const baseTotal = baseRow
+        ? (includeHousing
+            ? (baseRow.totalWealthWithHousing ?? (baseRow.totalBalance + (baseRow.housingEquity ?? 0)))
+            : baseRow.totalBalance)
+        : 0;
 
       percentileBands.push({
         age,
-        baselineTotal: baseRow ? baseRow.totalBalance : 0,
+        baselineTotal: baseTotal,
         baselinePension: basePension,
         baselineFreeFunds: baseFree,
+        baselineHousing: baseHousing,
         baselineDepot: baseRow ? baseRow.totalDepotValue : 0,
         p10: percentile(bucket.total, 10),
         p25: percentile(bucket.total, 25),
@@ -248,6 +267,9 @@
         freeFundsP10: percentile(bucket.freeFunds, 10),
         freeFundsP50: percentile(bucket.freeFunds, 50),
         freeFundsP90: percentile(bucket.freeFunds, 90),
+        housingP10: percentile(bucket.housing, 10),
+        housingP50: percentile(bucket.housing, 50),
+        housingP90: percentile(bucket.housing, 90),
         depotP10: percentile(bucket.depot, 10),
         depotP50: percentile(bucket.depot, 50),
         depotP90: percentile(bucket.depot, 90),

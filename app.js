@@ -31,6 +31,7 @@
   const legendGroupWithout = document.querySelector("#legend-group-without");
   const legendGroupWith = document.querySelector("#legend-group-with");
   const legendBaselineTotal = document.querySelector("#legend-baseline-total");
+  const legendHousing = document.querySelector("#legend-housing");
   const freeFundsCostBasisField = document.querySelector(
     "#free-funds-cost-basis-field",
   );
@@ -752,7 +753,13 @@
     );
     setText(
       "mc-comp-base-fire-wealth",
-      fire ? currency.format(fire.totalBalance) : "—",
+      fire
+        ? currency.format(
+            calculation.includeHousing
+              ? (fire.totalWealthWithHousing ?? fire.totalBalance)
+              : fire.totalBalance,
+          )
+        : "—",
     );
     setText(
       "mc-comp-base-status",
@@ -760,7 +767,11 @@
     );
     setText(
       "mc-comp-base-reserve",
-      currency.format(calculation.finalRow.totalBalance),
+      currency.format(
+        calculation.includeHousing
+          ? (calculation.finalReserveAfterTaxWithHousing ?? calculation.finalRow.totalWealthWithHousing ?? calculation.finalRow.totalBalance)
+          : calculation.finalRow.totalBalance,
+      ),
     );
     setText(
       "mc-comp-base-depot",
@@ -1562,6 +1573,8 @@
     const pensionValue = (row) =>
       row.ratePension + row.lifeAnnuity + row.ageSavings;
     const freeFundsValue = (row) => row.freeFunds + row.ask;
+    const housingValue = (row) =>
+      calculation.includeHousing ? (row.housingEquity ?? 0) : 0;
 
     const showMcOnChart = Boolean(mc) && mcChartMode !== "without";
     const showWithoutOnChart = mcChartMode !== "with";
@@ -1572,6 +1585,9 @@
     if (legendGroupWithout) {
       legendGroupWithout.hidden = !showWithoutOnChart;
     }
+    if (legendHousing) {
+      legendHousing.hidden = !(showWithoutOnChart && calculation.includeHousing);
+    }
     if (legendBaselineTotal) {
       legendBaselineTotal.hidden = !(showMcOnChart && showWithoutOnChart);
     }
@@ -1580,11 +1596,23 @@
     }
 
     const baseMax = Math.max(
-      ...rows.map((row) =>
-        showMcOnChart
-          ? Math.max(pensionValue(row), freeFundsValue(row), row.totalBalance)
-          : Math.max(pensionValue(row), freeFundsValue(row)),
-      ),
+      ...rows.map((row) => {
+        const total = calculation.includeHousing
+          ? (row.totalWealthWithHousing ?? row.totalBalance)
+          : row.totalBalance;
+        return showMcOnChart
+          ? Math.max(
+              pensionValue(row),
+              freeFundsValue(row),
+              housingValue(row),
+              total,
+            )
+          : Math.max(
+              pensionValue(row),
+              freeFundsValue(row),
+              housingValue(row),
+            );
+      }),
       1,
     );
     const mcMax = showMcOnChart
@@ -1606,15 +1634,27 @@
       x: xForAge(row.age).toFixed(2),
       y: yForValue(freeFundsValue(row)).toFixed(2),
     }));
+    const housingPoints = rows.map((row) => ({
+      age: row.age,
+      x: xForAge(row.age).toFixed(2),
+      y: yForValue(housingValue(row)).toFixed(2),
+    }));
     const totalBaselinePoints = rows.map((row) => ({
       age: row.age,
       x: xForAge(row.age).toFixed(2),
-      y: yForValue(row.totalBalance).toFixed(2),
+      y: yForValue(
+        calculation.includeHousing
+          ? (row.totalWealthWithHousing ?? row.totalBalance)
+          : row.totalBalance,
+      ).toFixed(2),
     }));
     const mcPointsForKey = (key) =>
       rows.map((row) => {
         const band = bandsByAge.get(row.age);
-        const val = band ? band[key] : row.totalBalance;
+        const fallback = calculation.includeHousing
+          ? (row.totalWealthWithHousing ?? row.totalBalance)
+          : row.totalBalance;
+        const val = band ? band[key] : fallback;
         return {
           age: row.age,
           x: xForAge(row.age).toFixed(2),
@@ -1705,18 +1745,86 @@
     const withoutAreaLayers = showWithoutOnChart
       ? `
           <path class="chart-area-pension" d="${areaPath(pensionPoints, plotBottom)}" />
-          <path class="chart-area-free-funds" d="${areaPath(freeFundsPoints, plotBottom)}" />`
+          <path class="chart-area-free-funds" d="${areaPath(freeFundsPoints, plotBottom)}" />
+          ${calculation.includeHousing ? `<path class="chart-area-housing" d="${areaPath(housingPoints, plotBottom)}" />` : ""}`
       : "";
     const withoutLineLayers = showWithoutOnChart
       ? `
           <path class="chart-line-pension" d="${pointPath(pensionPoints)}" />
           <path class="chart-line-free-funds" d="${pointPath(freeFundsPoints)}" />
+          ${calculation.includeHousing ? `<path class="chart-line-housing" d="${pointPath(housingPoints)}" />` : ""}
           ${showMcOnChart ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
       : "";
 
     const tooltipWidth = showMcOnChart ? 236 : 184;
-    const tooltipHeight = showMcOnChart ? 156 : 84;
+    const tooltipHeight = showMcOnChart
+      ? calculation.includeHousing
+        ? 174
+        : 156
+      : calculation.includeHousing
+        ? 104
+        : 84;
     const valX = tooltipWidth - 10;
+
+    const tooltipContent = showMcOnChart
+      ? calculation.includeHousing
+        ? `
+            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
+            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
+            <text class="chart-tooltip-section-tag" x="10" y="32">UDEN MONTE CARLO (FAST)</text>
+            <text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>
+            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="47"></text>
+            <text class="chart-tooltip-label" x="10" y="63">Friværdi (Fast)</text>
+            <text id="chart-tooltip-housing" class="chart-tooltip-value" x="${valX}" y="63"></text>
+            <text class="chart-tooltip-label" x="10" y="79">Samlet formue (Fast)</text>
+            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="79"></text>
+            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="88" y2="88" />
+            <text class="chart-tooltip-section-tag chart-tooltip-section-mc" x="10" y="102">MED MONTE CARLO (UDSVING)</text>
+            <text class="chart-tooltip-label" x="10" y="118">MC P50 (Median)</text>
+            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="118"></text>
+            <text class="chart-tooltip-label" x="10" y="136">MC P10 (Pessimistisk)</text>
+            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="136"></text>
+            <text class="chart-tooltip-label" x="10" y="154">MC P90 (Optimistisk)</text>
+            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="154"></text>`
+        : `
+            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
+            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
+            <text class="chart-tooltip-section-tag" x="10" y="32">UDEN MONTE CARLO (FAST)</text>
+            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="47"></text>
+            <text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>
+            <text class="chart-tooltip-label" x="10" y="63">Samlet formue (Fast)</text>
+            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="63"></text>
+            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="72" y2="72" />
+            <text class="chart-tooltip-section-tag chart-tooltip-section-mc" x="10" y="86">MED MONTE CARLO (UDSVING)</text>
+            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="102"></text>
+            <text class="chart-tooltip-label" x="10" y="102">MC P50 (Median)</text>
+            <text class="chart-tooltip-label" x="10" y="120">MC P10 (Pessimistisk)</text>
+            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="120"></text>
+            <text class="chart-tooltip-label" x="10" y="138">MC P90 (Optimistisk)</text>
+            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="138"></text>`
+      : calculation.includeHousing
+        ? `
+            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
+            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
+            <text class="chart-tooltip-label" x="10" y="35">Pension</text>
+            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="35"></text>
+            <text class="chart-tooltip-label" x="10" y="52">Frie midler</text>
+            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="52"></text>
+            <text class="chart-tooltip-label" x="10" y="69">Friværdi</text>
+            <text id="chart-tooltip-housing" class="chart-tooltip-value" x="${valX}" y="69"></text>
+            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="77" y2="77" />
+            <text class="chart-tooltip-label" x="10" y="93">Samlet formue</text>
+            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="93"></text>`
+        : `
+            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
+            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
+            <text class="chart-tooltip-section-tag" x="10" y="32">Pension</text>
+            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="36"></text>
+            <text class="chart-tooltip-label" x="10" y="52">Frie midler</text>
+            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="52"></text>
+            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="61" y2="61" />
+            <text class="chart-tooltip-label" x="10" y="76">Samlet formue</text>
+            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="76"></text>`;
 
     chart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pension og frie midler fra ${ages.format(minAge)} til ${ages.format(maxAge)} år" aria-describedby="wealth-chart-description">
@@ -1742,28 +1850,10 @@
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
           <circle class="chart-hover-point-pension" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
           <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-housing" cx="0" cy="0" r="4" ${showWithoutOnChart && calculation.includeHousing ? "" : 'style="display:none"'} />
           <circle class="chart-hover-point-mc-p50" cx="0" cy="0" r="4" ${showMcOnChart ? "" : 'style="display:none"'} />
           <g class="chart-tooltip">
-            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
-            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-section-tag" x="10" y="32">${showMcOnChart ? "UDEN MONTE CARLO (FAST)" : "Pension"}</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 47 : 36}"></text>
-            ${showMcOnChart ? `<text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>` : ""}
-            <text class="chart-tooltip-label" x="10" y="${showMcOnChart ? 63 : 52}">${showMcOnChart ? "Samlet formue (Fast)" : "Frie midler"}</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 63 : 52}"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="${showMcOnChart ? 72 : 61}" y2="${showMcOnChart ? 72 : 61}" />
-            <text class="${showMcOnChart ? "chart-tooltip-section-tag chart-tooltip-section-mc" : "chart-tooltip-label"}" x="10" y="${showMcOnChart ? 86 : 76}">${showMcOnChart ? "MED MONTE CARLO (UDSVING)" : "Samlet formue"}</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="${showMcOnChart ? 102 : 76}"></text>
-            ${
-              showMcOnChart
-                ? `
-            <text class="chart-tooltip-label" x="10" y="102">MC P50 (Median)</text>
-            <text class="chart-tooltip-label" x="10" y="120">MC P10 (Pessimistisk)</text>
-            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="120"></text>
-            <text class="chart-tooltip-label" x="10" y="138">MC P90 (Optimistisk)</text>
-            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="138"></text>`
-                : ""
-            }
+            ${tooltipContent}
           </g>
         </g>
       </svg>`;
@@ -1776,6 +1866,7 @@
     const hoverFreeFundsPoint = svg.querySelector(
       ".chart-hover-point-free-funds",
     );
+    const hoverHousingPoint = svg.querySelector(".chart-hover-point-housing");
     const hoverMcP50Point = svg.querySelector(".chart-hover-point-mc-p50");
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
@@ -1788,6 +1879,9 @@
       const x = Number(pensionPoint.x);
       const pensionY = Number(pensionPoint.y);
       const freeFundsY = Number(freeFundsPoint.y);
+      const totalBalanceVal = calculation.includeHousing
+        ? (row.totalWealthWithHousing ?? row.totalBalance)
+        : row.totalBalance;
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
           ? x - tooltipWidth - 12
@@ -1800,6 +1894,10 @@
       hoverPensionPoint.setAttribute("cy", pensionY);
       hoverFreeFundsPoint.setAttribute("cx", x);
       hoverFreeFundsPoint.setAttribute("cy", freeFundsY);
+      if (hoverHousingPoint && calculation.includeHousing && housingPoints[activeIndex]) {
+        hoverHousingPoint.setAttribute("cx", x);
+        hoverHousingPoint.setAttribute("cy", Number(housingPoints[activeIndex].y));
+      }
       if (showMcOnChart && hoverMcP50Point && mcP50Points[activeIndex]) {
         hoverMcP50Point.setAttribute("cx", x);
         hoverMcP50Point.setAttribute("cy", Number(mcP50Points[activeIndex].y));
@@ -1812,8 +1910,12 @@
         const band = bandsByAge.get(row.age);
         svg.querySelector("#chart-tooltip-pension").textContent =
           `${compactNumber.format(pensionValue(row))} / ${compactNumber.format(freeFundsValue(row))} kr.`;
+        const housingTip = svg.querySelector("#chart-tooltip-housing");
+        if (housingTip) {
+          housingTip.textContent = currency.format(housingValue(row));
+        }
         svg.querySelector("#chart-tooltip-free-funds").textContent =
-          currency.format(row.totalBalance);
+          currency.format(totalBalanceVal);
         svg.querySelector("#chart-tooltip-total").textContent = band
           ? currency.format(band.p50)
           : "—";
@@ -1825,21 +1927,31 @@
         if (p90Node) {
           p90Node.textContent = band ? currency.format(band.p90) : "—";
         }
+        const housingAria = calculation.includeHousing
+          ? ` Friværdi ${currency.format(housingValue(row))}.`
+          : "";
         hoverTarget.setAttribute(
           "aria-label",
-          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Uden Monte Carlo samlet formue ${currency.format(row.totalBalance)}. Med Monte Carlo P50 ${band ? currency.format(band.p50) : "—"}, P10 ${band ? currency.format(band.p10) : "—"}, P90 ${band ? currency.format(band.p90) : "—"}.`,
+          `${row.date.getFullYear()}, ${ages.format(row.age)} år.${housingAria} Uden Monte Carlo samlet formue ${currency.format(totalBalanceVal)}. Med Monte Carlo P50 ${band ? currency.format(band.p50) : "—"}, P10 ${band ? currency.format(band.p10) : "—"}, P90 ${band ? currency.format(band.p90) : "—"}.`,
         );
       } else {
         svg.querySelector("#chart-tooltip-pension").textContent =
           currency.format(pensionValue(row));
         svg.querySelector("#chart-tooltip-free-funds").textContent =
           currency.format(freeFundsValue(row));
+        const housingTip = svg.querySelector("#chart-tooltip-housing");
+        if (housingTip) {
+          housingTip.textContent = currency.format(housingValue(row));
+        }
         svg.querySelector("#chart-tooltip-total").textContent = currency.format(
-          row.totalBalance,
+          totalBalanceVal,
         );
+        const housingAria = calculation.includeHousing
+          ? ` Friværdi ${currency.format(housingValue(row))}`
+          : "";
         hoverTarget.setAttribute(
           "aria-label",
-          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Pension ${currency.format(pensionValue(row))} Frie midler ${currency.format(freeFundsValue(row))} Samlet formue ${currency.format(row.totalBalance)}`,
+          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Pension ${currency.format(pensionValue(row))} Frie midler ${currency.format(freeFundsValue(row))}${housingAria} Samlet formue ${currency.format(totalBalanceVal)}`,
         );
       }
       hoverLayer.style.display = "block";
@@ -2132,7 +2244,11 @@
         ? `${ages.format(activeTableCalc.fireRow.age)} år`
         : "Ikke nået";
       const scenarioReserve = currency.format(
-        activeTableCalc.finalRow.totalBalance,
+        calculation.includeHousing
+          ? (activeTableCalc.finalReserveAfterTaxWithHousing ??
+              activeTableCalc.finalRow.totalWealthWithHousing ??
+              activeTableCalc.finalRow.totalBalance)
+          : activeTableCalc.finalRow.totalBalance,
       );
       if (mcTableScenario === "baseline" || !mc) {
         mcTableActiveBanner.className = "mc-table-active-banner is-without";

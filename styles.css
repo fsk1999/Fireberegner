@@ -18,6 +18,8 @@
   --color-free-funds-soft: #eaf2f7;
   --color-free-funds-line: #276b98;
   --color-free-funds-fill: #3b7aa5;
+  --color-housing-line: #c2410c;
+  --color-housing-fill: #ea580c;
   --color-danger: #a6392f;
 
   --background: var(--color-canvas);
@@ -1561,7 +1563,8 @@ legend,
 }
 
 .chart-line-pension,
-.chart-line-free-funds {
+.chart-line-free-funds,
+.chart-line-housing {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1578,12 +1581,21 @@ legend,
   opacity: 0.15;
 }
 
+.chart-area-housing {
+  fill: var(--color-housing-fill);
+  opacity: 0.14;
+}
+
 .chart-line-pension {
   stroke: var(--color-pension-line);
 }
 
 .chart-line-free-funds {
   stroke: var(--color-free-funds-line);
+}
+
+.chart-line-housing {
+  stroke: var(--color-housing-line);
 }
 
 .chart-line-total-baseline {
@@ -1696,6 +1708,10 @@ legend,
   background: var(--color-free-funds-line);
 }
 
+.legend-housing {
+  background: var(--color-housing-line);
+}
+
 .legend-total-baseline {
   background: #1d2b27;
 }
@@ -1760,6 +1776,7 @@ legend,
 
 .chart-hover-point-pension,
 .chart-hover-point-free-funds,
+.chart-hover-point-housing,
 .chart-hover-point-mc-p50 {
   fill: #fff;
   stroke-width: 2.5;
@@ -1771,6 +1788,10 @@ legend,
 
 .chart-hover-point-free-funds {
   stroke: var(--color-free-funds-line);
+}
+
+.chart-hover-point-housing {
+  stroke: var(--color-housing-line);
 }
 
 .chart-hover-point-mc-p50 {
