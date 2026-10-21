@@ -1794,76 +1794,6 @@
           ${showMcOnChart ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
       : "";
 
-    const tooltipWidth = showMcOnChart ? 236 : 184;
-    const tooltipHeight = showMcOnChart
-      ? calculation.includeHousing
-        ? 174
-        : 156
-      : calculation.includeHousing
-        ? 104
-        : 84;
-    const valX = tooltipWidth - 10;
-
-    const tooltipContent = showMcOnChart
-      ? calculation.includeHousing
-        ? `
-            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
-            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-section-tag" x="10" y="32">UDEN MONTE CARLO (FAST)</text>
-            <text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="47"></text>
-            <text class="chart-tooltip-label" x="10" y="63">Friværdi (Fast)</text>
-            <text id="chart-tooltip-housing" class="chart-tooltip-value" x="${valX}" y="63"></text>
-            <text class="chart-tooltip-label" x="10" y="79">Samlet formue (Fast)</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="79"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="88" y2="88" />
-            <text class="chart-tooltip-section-tag chart-tooltip-section-mc" x="10" y="102">MED MONTE CARLO (UDSVING)</text>
-            <text class="chart-tooltip-label" x="10" y="118">MC P50 (Median)</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="118"></text>
-            <text class="chart-tooltip-label" x="10" y="136">MC P10 (Pessimistisk)</text>
-            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="136"></text>
-            <text class="chart-tooltip-label" x="10" y="154">MC P90 (Optimistisk)</text>
-            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="154"></text>`
-        : `
-            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
-            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-section-tag" x="10" y="32">UDEN MONTE CARLO (FAST)</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="47"></text>
-            <text class="chart-tooltip-label" x="10" y="47">Pension / Frie (Fast)</text>
-            <text class="chart-tooltip-label" x="10" y="63">Samlet formue (Fast)</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="63"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="72" y2="72" />
-            <text class="chart-tooltip-section-tag chart-tooltip-section-mc" x="10" y="86">MED MONTE CARLO (UDSVING)</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="102"></text>
-            <text class="chart-tooltip-label" x="10" y="102">MC P50 (Median)</text>
-            <text class="chart-tooltip-label" x="10" y="120">MC P10 (Pessimistisk)</text>
-            <text id="chart-tooltip-mc-p10" class="chart-tooltip-value" x="${valX}" y="120"></text>
-            <text class="chart-tooltip-label" x="10" y="138">MC P90 (Optimistisk)</text>
-            <text id="chart-tooltip-mc-p90" class="chart-tooltip-value" x="${valX}" y="138"></text>`
-      : calculation.includeHousing
-        ? `
-            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
-            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-label" x="10" y="35">Pension</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="35"></text>
-            <text class="chart-tooltip-label" x="10" y="52">Frie midler</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="52"></text>
-            <text class="chart-tooltip-label" x="10" y="69">Friværdi</text>
-            <text id="chart-tooltip-housing" class="chart-tooltip-value" x="${valX}" y="69"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="77" y2="77" />
-            <text class="chart-tooltip-label" x="10" y="93">Samlet formue</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="93"></text>`
-        : `
-            <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${tooltipHeight}" rx="6" />
-            <text id="chart-tooltip-title" class="chart-tooltip-title" x="10" y="17"></text>
-            <text class="chart-tooltip-section-tag" x="10" y="32">Pension</text>
-            <text id="chart-tooltip-pension" class="chart-tooltip-value" x="${valX}" y="36"></text>
-            <text class="chart-tooltip-label" x="10" y="52">Frie midler</text>
-            <text id="chart-tooltip-free-funds" class="chart-tooltip-value" x="${valX}" y="52"></text>
-            <line class="chart-tooltip-total-rule" x1="10" x2="${valX}" y1="61" y2="61" />
-            <text class="chart-tooltip-label" x="10" y="76">Samlet formue</text>
-            <text id="chart-tooltip-total" class="chart-tooltip-value" x="${valX}" y="76"></text>`;
-
     chart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pension og frie midler fra ${ages.format(minAge)} til ${ages.format(maxAge)} år" aria-describedby="wealth-chart-description">
         <desc id="wealth-chart-description">Grafen viser formueudviklingen med og uden Monte Carlo-simulering for hvert år.</desc>
@@ -1890,9 +1820,7 @@
           <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
           <circle class="chart-hover-point-housing" cx="0" cy="0" r="4" ${showWithoutOnChart && calculation.includeHousing ? "" : 'style="display:none"'} />
           <circle class="chart-hover-point-mc-p50" cx="0" cy="0" r="4" ${showMcOnChart ? "" : 'style="display:none"'} />
-          <g class="chart-tooltip">
-            ${tooltipContent}
-          </g>
+          <g class="chart-tooltip"></g>
         </g>
       </svg>`;
 
@@ -1920,6 +1848,52 @@
       const totalBalanceVal = calculation.includeHousing
         ? (row.totalWealthWithHousing ?? row.totalBalance)
         : row.totalBalance;
+      const band = showMcOnChart ? bandsByAge.get(row.age) : null;
+
+      const items = [];
+      if (showWithoutOnChart) {
+        items.push({
+          label: "Pension",
+          value: pensionValue(row),
+        });
+        items.push({
+          label: "Frie midler",
+          value: freeFundsValue(row),
+        });
+        if (calculation.includeHousing) {
+          items.push({
+            label: "Friværdi",
+            value: housingValue(row),
+          });
+        }
+      }
+      items.push({
+        label: showMcOnChart ? "Samlet formue (Fast)" : "Samlet formue",
+        value: totalBalanceVal,
+      });
+      if (showMcOnChart && band) {
+        items.push({
+          label: "MC P90 (Optimistisk)",
+          value: band.p90,
+        });
+        items.push({
+          label: "MC P50 (Median)",
+          value: band.p50,
+        });
+        items.push({
+          label: "MC P10 (Pessimistisk)",
+          value: band.p10,
+        });
+      }
+
+      // Sorter faldende efter beløb: grafen med det højeste beløb øverst, dernæst de øvrige mod laveste beløb nederst
+      items.sort((a, b) => b.value - a.value);
+
+      const tooltipWidth = showMcOnChart ? 244 : 196;
+      const valX = tooltipWidth - 10;
+      const rowHeight = 17;
+      const boxHeight = 26 + items.length * rowHeight + 8;
+
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
           ? x - tooltipWidth - 12
@@ -1940,58 +1914,31 @@
         hoverMcP50Point.setAttribute("cx", x);
         hoverMcP50Point.setAttribute("cy", Number(mcP50Points[activeIndex].y));
       }
-      tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
-      svg.querySelector("#chart-tooltip-title").textContent =
-        `${row.date.getFullYear()} · ${ages.format(row.age)} år`;
 
-      if (showMcOnChart) {
-        const band = bandsByAge.get(row.age);
-        svg.querySelector("#chart-tooltip-pension").textContent =
-          `${compactNumber.format(pensionValue(row))} / ${compactNumber.format(freeFundsValue(row))} kr.`;
-        const housingTip = svg.querySelector("#chart-tooltip-housing");
-        if (housingTip) {
-          housingTip.textContent = currency.format(housingValue(row));
-        }
-        svg.querySelector("#chart-tooltip-free-funds").textContent =
-          currency.format(totalBalanceVal);
-        svg.querySelector("#chart-tooltip-total").textContent = band
-          ? currency.format(band.p50)
-          : "—";
-        const p10Node = svg.querySelector("#chart-tooltip-mc-p10");
-        const p90Node = svg.querySelector("#chart-tooltip-mc-p90");
-        if (p10Node) {
-          p10Node.textContent = band ? currency.format(band.p10) : "—";
-        }
-        if (p90Node) {
-          p90Node.textContent = band ? currency.format(band.p90) : "—";
-        }
-        const housingAria = calculation.includeHousing
-          ? ` Friværdi ${currency.format(housingValue(row))}.`
-          : "";
-        hoverTarget.setAttribute(
-          "aria-label",
-          `${row.date.getFullYear()}, ${ages.format(row.age)} år.${housingAria} Uden Monte Carlo samlet formue ${currency.format(totalBalanceVal)}. Med Monte Carlo P50 ${band ? currency.format(band.p50) : "—"}, P10 ${band ? currency.format(band.p10) : "—"}, P90 ${band ? currency.format(band.p90) : "—"}.`,
-        );
-      } else {
-        svg.querySelector("#chart-tooltip-pension").textContent =
-          currency.format(pensionValue(row));
-        svg.querySelector("#chart-tooltip-free-funds").textContent =
-          currency.format(freeFundsValue(row));
-        const housingTip = svg.querySelector("#chart-tooltip-housing");
-        if (housingTip) {
-          housingTip.textContent = currency.format(housingValue(row));
-        }
-        svg.querySelector("#chart-tooltip-total").textContent = currency.format(
-          totalBalanceVal,
-        );
-        const housingAria = calculation.includeHousing
-          ? ` Friværdi ${currency.format(housingValue(row))}`
-          : "";
-        hoverTarget.setAttribute(
-          "aria-label",
-          `${row.date.getFullYear()}, ${ages.format(row.age)} år. Pension ${currency.format(pensionValue(row))} Frie midler ${currency.format(freeFundsValue(row))}${housingAria} Samlet formue ${currency.format(totalBalanceVal)}`,
-        );
-      }
+      tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
+
+      const rowsSvg = items
+        .map((item, idx) => {
+          const y = 35 + idx * rowHeight;
+          return `
+            <text class="chart-tooltip-label" x="10" y="${y}">${item.label}</text>
+            <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
+        })
+        .join("");
+
+      tooltip.innerHTML = `
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
+        <text class="chart-tooltip-title" x="10" y="17">${row.date.getFullYear()} · ${ages.format(row.age)} år</text>
+        ${rowsSvg}`;
+
+      const ariaDetails = items
+        .map((it) => `${it.label} ${currency.format(it.value)}`)
+        .join(". ");
+      hoverTarget.setAttribute(
+        "aria-label",
+        `${row.date.getFullYear()}, ${ages.format(row.age)} år. ${ariaDetails}`,
+      );
+
       hoverLayer.style.display = "block";
     }
 
@@ -2036,6 +1983,9 @@
         showYear(activeIndex + (event.key === "ArrowRight" ? 1 : -1));
       }
     });
+
+    showYear(0);
+    hoverLayer.style.display = "none";
   }
 
   function render(calculation, inputs) {
