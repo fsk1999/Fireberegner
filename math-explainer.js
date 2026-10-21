@@ -33,82 +33,137 @@
     return `${prefix}${currency.format(diff)}`;
   }
 
-  function buildPensionReturnExample({ nominalReturn, palTaxRate, inflRate, start, contrib, afkast, accountName }) {
-    const netNominal = nominalReturn * (1 - palTaxRate);
-    const realRate = (1 + netNominal) / (1 + inflRate) - 1;
+  function calculateReturnBreakdown({ nominalReturn, taxRate, inflRate, start, contrib, afkast }) {
+    const netNominalRate = nominalReturn * (1 - taxRate);
+    const realRate = (1 + netNominalRate) / (1 + inflRate) - 1;
     const midyearFactor = Math.sqrt(1 + realRate) - 1;
     const primoReturn = Math.round(start * realRate);
     const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
 
-    let text = `1. Nominelt afkast før skat:\n   ${percent.format(nominalReturn)}\n\n`;
-    text += `2. PAL-skat (${percent.format(palTaxRate)}):\n   ${percent.format(nominalReturn)} × (1 − ${percent.format(palTaxRate)}) = ${percentPrecise.format(netNominal)} efter PAL\n\n`;
-    text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n   Formel: (1 + nominelt efter PAL) / (1 + inflation) − 1\n   (1 + ${percentPrecise.format(netNominal)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(realRate)} realt købekraftsafkast (r)\n\n`;
-    text += `4. Afkast af primosaldo (${currency.format(start)} i et helt år):\n   ${currency.format(start)} × ${percentPrecise.format(realRate)} = ${currency.format(primoReturn)}\n`;
+    const grossPrimo = Math.round(start * nominalReturn);
+    const midyearNominal = Math.sqrt(1 + nominalReturn) - 1;
+    const grossContrib = contrib > 0 ? Math.round(contrib * midyearNominal) : 0;
+    const grossTotal = grossPrimo + grossContrib;
 
+    const taxAmount = grossTotal > 0 ? Math.round(grossTotal * taxRate) : 0;
+    const netNominalTotal = grossTotal - taxAmount;
+    const inflationAmount = Math.max(0, netNominalTotal - afkast);
+
+    return {
+      netNominalRate,
+      realRate,
+      midyearFactor,
+      primoReturn,
+      contribReturn,
+      grossPrimo,
+      grossContrib,
+      grossTotal,
+      taxAmount,
+      inflationAmount
+    };
+  }
+
+  function buildPensionReturnExample({ nominalReturn, palTaxRate, inflRate, start, contrib, afkast, accountName }) {
+    const b = calculateReturnBreakdown({ nominalReturn, taxRate: palTaxRate, inflRate, start, contrib, afkast });
+
+    let text = `1. Nominelt bruttoafkast (${percent.format(nominalReturn)}):\n`;
+    text += `   • Afkast af primosaldo (${currency.format(start)}): ${currency.format(b.grossPrimo)}\n`;
     if (contrib > 0) {
-      text += `\n5. Afkast af årets indbetaling (${currency.format(contrib)} indbetalt løbende/midt på året):\n   Halvårsfaktor: √(1 + r) − 1 = √(1 + ${percentPrecise.format(realRate)}) − 1 = ${percentPrecise.format(midyearFactor)}\n   ${currency.format(contrib)} × ${percentPrecise.format(midyearFactor)} = ${currency.format(contribReturn)}\n\n`;
-      text += `6. Samlet nettoafkast tilskrevet ${accountName}:\n   ${currency.format(primoReturn)} (på startformue) + ${currency.format(contribReturn)} (på indbetaling) = ${currency.format(afkast)}`;
-    } else {
-      text += `\n5. Samlet nettoafkast tilskrevet ${accountName}:\n   = ${currency.format(afkast)} (ingen nye indbetalinger dette år)`;
+      text += `   • Afkast af årets indbetaling (${currency.format(contrib)} løbende): ${currency.format(b.grossContrib)}\n`;
     }
+    text += `   = Samlet bruttoafkast før skat: ${currency.format(b.grossTotal)}\n\n`;
+
+    text += `2. PAL-skat (${percent.format(palTaxRate)} af bruttoafkast):\n`;
+    text += `   − ${currency.format(b.taxAmount)} (fratrækkes årligt i skat)\n`;
+    text += `   = Nominelt afkast efter PAL (${percentPrecise.format(b.netNominalRate)}): ${currency.format(b.grossTotal - b.taxAmount)}\n\n`;
+
+    text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n`;
+    text += `   − ${currency.format(b.inflationAmount)} (købekraftstab af formue & afkast)\n`;
+    text += `   = Reelt købekraftsafkast (${percentPrecise.format(b.realRate)}): ${currency.format(afkast)}\n\n`;
+
+    text += `4. Samlet nettoafkast tilskrevet ${accountName}:\n`;
+    text += `   ${currency.format(b.grossTotal)} (brutto) − ${currency.format(b.taxAmount)} (PAL) − ${currency.format(b.inflationAmount)} (inflation) = ${currency.format(afkast)}`;
+
     return text;
   }
 
   function buildAskReturnExample({ nominalReturn, askTaxRate, inflRate, start, contrib, afkast }) {
-    const netNominal = nominalReturn * (1 - askTaxRate);
-    const realRate = (1 + netNominal) / (1 + inflRate) - 1;
-    const midyearFactor = Math.sqrt(1 + realRate) - 1;
-    const primoReturn = Math.round(start * realRate);
-    const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
+    const b = calculateReturnBreakdown({ nominalReturn, taxRate: askTaxRate, inflRate, start, contrib, afkast });
 
-    let text = `1. Nominelt afkast før skat:\n   ${percent.format(nominalReturn)}\n\n`;
-    text += `2. Flad lagerskat på ASK (${percent.format(askTaxRate)}):\n   ${percent.format(nominalReturn)} × (1 − ${percent.format(askTaxRate)}) = ${percentPrecise.format(netNominal)} efter skat\n\n`;
-    text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n   Formel: (1 + nominelt efter skat) / (1 + inflation) − 1\n   (1 + ${percentPrecise.format(netNominal)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(realRate)} realt købekraftsafkast (r)\n\n`;
-    text += `4. Afkast af primosaldo (${currency.format(start)} i et helt år):\n   ${currency.format(start)} × ${percentPrecise.format(realRate)} = ${currency.format(primoReturn)}\n`;
-
+    let text = `1. Nominelt bruttoafkast (${percent.format(nominalReturn)}):\n`;
+    text += `   • Afkast af primosaldo (${currency.format(start)}): ${currency.format(b.grossPrimo)}\n`;
     if (contrib > 0) {
-      text += `\n5. Afkast af årets indskud (${currency.format(contrib)} indbetalt løbende):\n   Halvårsfaktor: √(1 + r) − 1 = √(1 + ${percentPrecise.format(realRate)}) − 1 = ${percentPrecise.format(midyearFactor)}\n   ${currency.format(contrib)} × ${percentPrecise.format(midyearFactor)} = ${currency.format(contribReturn)}\n\n`;
-      text += `6. Samlet nettoafkast tilskrevet Aktiesparekontoen:\n   ${currency.format(primoReturn)} (på startformue) + ${currency.format(contribReturn)} (på indskud) = ${currency.format(afkast)}`;
-    } else {
-      text += `\n5. Samlet nettoafkast tilskrevet Aktiesparekontoen:\n   = ${currency.format(afkast)}`;
+      text += `   • Afkast af årets indskud (${currency.format(contrib)} løbende): ${currency.format(b.grossContrib)}\n`;
     }
+    text += `   = Samlet bruttoafkast før skat: ${currency.format(b.grossTotal)}\n\n`;
+
+    text += `2. Flad lagerskat på ASK (${percent.format(askTaxRate)}):\n`;
+    text += `   − ${currency.format(b.taxAmount)} (fratrækkes årligt i skat)\n`;
+    text += `   = Nominelt afkast efter skat (${percentPrecise.format(b.netNominalRate)}): ${currency.format(b.grossTotal - b.taxAmount)}\n\n`;
+
+    text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n`;
+    text += `   − ${currency.format(b.inflationAmount)} (købekraftstab af formue & afkast)\n`;
+    text += `   = Reelt købekraftsafkast (${percentPrecise.format(b.realRate)}): ${currency.format(afkast)}\n\n`;
+
+    text += `4. Samlet nettoafkast tilskrevet Aktiesparekontoen:\n`;
+    text += `   ${currency.format(b.grossTotal)} (brutto) − ${currency.format(b.taxAmount)} (skat) − ${currency.format(b.inflationAmount)} (inflation) = ${currency.format(afkast)}`;
+
     return text;
   }
 
   function buildFreeFundsReturnExample({ nominalReturn, inflRate, inventoryShare, start, contrib, afkast, annualTax }) {
+    const grossPrimo = Math.round(start * nominalReturn);
+    const midyearNominal = Math.sqrt(1 + nominalReturn) - 1;
+    const grossContrib = contrib > 0 ? Math.round(contrib * midyearNominal) : 0;
+    const grossTotal = grossPrimo + grossContrib;
+    const taxAmount = annualTax ?? 0;
+    const inflationAmount = Math.max(0, (grossTotal - taxAmount) - afkast);
     const grossRealRate = (1 + nominalReturn) / (1 + inflRate) - 1;
-    const midyearFactor = Math.sqrt(1 + grossRealRate) - 1;
-    const primoReturn = Math.round(start * grossRealRate);
-    const contribReturn = contrib > 0 ? (afkast + (annualTax ?? 0)) - primoReturn : 0;
 
-    let text = `1. Forventet nominelt afkast før skat:\n   ${percent.format(nominalReturn)}\n\n`;
-    text += `2. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n   Formel: (1 + nominelt afkast) / (1 + inflation) − 1\n   (1 + ${percent.format(nominalReturn)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(grossRealRate)} brutto realafkast (r)\n\n`;
-    text += `3. Afkast af primosaldo (${currency.format(start)}):\n   ${currency.format(start)} × ${percentPrecise.format(grossRealRate)} = ${currency.format(primoReturn)}\n`;
-
+    let text = `1. Nominelt bruttoafkast før skat (${percent.format(nominalReturn)}):\n`;
+    text += `   • Afkast af primosaldo (${currency.format(start)}): ${currency.format(grossPrimo)}\n`;
     if (contrib > 0) {
-      text += `\n4. Afkast af årets indbetaling (${currency.format(contrib)} indbetalt løbende):\n   Halvårsfaktor: √(1 + r) − 1 = √(1 + ${percentPrecise.format(grossRealRate)}) − 1 = ${percentPrecise.format(midyearFactor)}\n   ${currency.format(contrib)} × ${percentPrecise.format(midyearFactor)} = ${currency.format(contribReturn)}\n`;
+      text += `   • Afkast af årets indbetaling (${currency.format(contrib)}): ${currency.format(grossContrib)}\n`;
+    }
+    text += `   = Samlet bruttoafkast: ${currency.format(grossTotal)}\n\n`;
+
+    if (inventoryShare > 0) {
+      text += `2. Lagerskat (${percent.format(inventoryShare)} lagerbeskattet):\n`;
+      text += `   − ${currency.format(taxAmount)} (afregnes årligt direkte af afkastet)\n`;
+      text += `   = Nominelt afkast efter lagerskat: ${currency.format(grossTotal - taxAmount)}\n\n`;
+    } else {
+      text += `2. Beskatning (100 % realisationsbeskattet):\n`;
+      text += `   0 kr. i årlig skat (skatten udskydes til midlerne realiseres/hæves)\n\n`;
     }
 
-    text += `\n${contrib > 0 ? "5" : "4"}. Beskatning (${inventoryShare > 0 ? `${percent.format(inventoryShare)} lagerbeskattet` : "100 % realisationsbeskattet"}):\n`;
-    if (inventoryShare > 0) {
-      text += `   Lagerskat på ${currency.format(annualTax ?? 0)} afregnes årligt direkte af afkastet.\n   Nettoafkast efter lagerskat og inflation = ${currency.format(afkast)}`;
-    } else {
-      text += `   Realisationsbeskattet: Skat (27 % / 42 %) betales ikke årligt, men udskydes til midlerne realiseres/hæves i FIRE. Formuen vokser derfor med det fulde ubeskattede realafkast på ${currency.format(afkast)}.`;
-    }
+    text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n`;
+    text += `   − ${currency.format(inflationAmount)} (købekraftstab af formue & afkast)\n`;
+    text += `   = Reelt købekraftsafkast (${percentPrecise.format(grossRealRate)}): ${currency.format(afkast)}\n\n`;
+
+    text += `4. Nettoafkast tilskrevet frie midler i faste priser:\n`;
+    text += `   ${currency.format(grossTotal)} (brutto) ${taxAmount > 0 ? `− ${currency.format(taxAmount)} (skat) ` : ""}− ${currency.format(inflationAmount)} (inflation) = ${currency.format(afkast)}`;
+
     return text;
   }
 
   function buildReturnRateExample({ nominalReturn, palTaxRate, inflRate }) {
+    const palTaxShare = nominalReturn * palTaxRate;
     const netPal = nominalReturn * (1 - palTaxRate);
     const realPension = (1 + netPal) / (1 + inflRate) - 1;
-    const realGross = (1 + nominalReturn) / (1 + inflRate) - 1;
+    const inflPensionShare = netPal - realPension;
+
+    const askTaxShare = nominalReturn * 0.17;
     const netAsk = nominalReturn * (1 - 0.17);
     const realAsk = (1 + netAsk) / (1 + inflRate) - 1;
+    const inflAskShare = netAsk - realAsk;
+
+    const realGross = (1 + nominalReturn) / (1 + inflRate) - 1;
+    const inflGrossShare = nominalReturn - realGross;
 
     let text = `1. Nominelt formuevægtet afkast før skat:\n   ${percent.format(nominalReturn)}\n\n`;
-    text += `2. Pensionsmidler (Ratepension & Aldersopsparing m. 15,3 % PAL-skat):\n   • Efter PAL: ${percent.format(nominalReturn)} × (1 − 15,3 %) = ${percentPrecise.format(netPal)}\n   • Reelt købekraftsafkast: (1 + ${percentPrecise.format(netPal)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(realPension)}\n\n`;
-    text += `3. Aktiesparekonto (17,0 % flad lagerskat):\n   • Efter ASK-skat: ${percent.format(nominalReturn)} × (1 − 17,0 %) = ${percentPrecise.format(netAsk)}\n   • Reelt købekraftsafkast: (1 + ${percentPrecise.format(netAsk)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(realAsk)}\n\n`;
-    text += `4. Frie midler (Realisationsbeskattet):\n   • Brutto realafkast før skat: (1 + ${percent.format(nominalReturn)}) / (1 + ${percent.format(inflRate)}) − 1 = ${percentPrecise.format(realGross)}\n   • Skat udskydes til realisation/hævning (27 % / 42 %).`;
+    text += `2. Pensionsmidler (Ratepension & Aldersopsparing m. 15,3 % PAL-skat):\n   • PAL-skat (15,3 %): − ${percentPrecise.format(palTaxShare)}\n   • Efter PAL: ${percentPrecise.format(netPal)}\n   • Inflationskorrektion (2,0 %): − ${percentPrecise.format(inflPensionShare)}\n   = Reelt købekraftsafkast: ${percentPrecise.format(realPension)}\n\n`;
+    text += `3. Aktiesparekonto (17,0 % flad lagerskat):\n   • ASK-skat (17,0 %): − ${percentPrecise.format(askTaxShare)}\n   • Efter ASK-skat: ${percentPrecise.format(netAsk)}\n   • Inflationskorrektion (2,0 %): − ${percentPrecise.format(inflAskShare)}\n   = Reelt købekraftsafkast: ${percentPrecise.format(realAsk)}\n\n`;
+    text += `4. Frie midler (Realisationsbeskattet):\n   • Årlig skat: 0 kr. (udskydes til realisation)\n   • Inflationskorrektion (2,0 %): − ${percentPrecise.format(inflGrossShare)}\n   = Brutto realafkast før skat: ${percentPrecise.format(realGross)}\n   • Skat udskydes til realisation/hævning (27 % / 42 %).`;
     return text;
   }
 
@@ -137,8 +192,9 @@
           returnExampleNote: "Ovenstående viser hvordan afkastet efter skat og inflation omsættes til reel købekraft på tværs af kontotyper.",
           steps: [
             { label: "Forventet nominelt afkast før skat", value: percent.format(nominalReturn) },
-            { label: `Pensionsafkast efter PAL-skat (${percent.format(palTaxRate)})`, value: percentPrecise.format(netNominal) },
-            { label: `Forventet årlig inflation`, value: percent.format(inflRate) },
+            { label: `Heraf PAL-skat (${percent.format(palTaxRate)})`, value: `− ${percentPrecise.format(nominalReturn * palTaxRate)}`, isSub: true },
+            { label: "Pensionsafkast efter PAL-skat", value: percentPrecise.format(netNominal) },
+            { label: `Heraf forventet inflation (${percent.format(inflRate)} købekraftstab)`, value: `− ${percentPrecise.format(netNominal - real)}`, isSub: true },
             { label: "Beregnet realafkast på pension", value: percentPrecise.format(real), isResult: true }
           ],
           assumptions: [
@@ -174,28 +230,41 @@
         const withdrawal = (row.taxableRatePensionWithdrawal ?? 0) + (row.taxFreeRatePensionWithdrawal ?? 0);
         const afkast = end - start - contrib + withdrawal;
         const pensionNominal = row.pensionReturnRate ?? nominalReturn;
-        const netNominal = pensionNominal * (1 - palTaxRate);
-        const realRate = (1 + netNominal) / (1 + inflRate) - 1;
-        const midyearFactor = Math.sqrt(1 + realRate) - 1;
-        const primoReturn = Math.round(start * realRate);
-        const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
-        const returnExample = buildPensionReturnExample({ nominalReturn: pensionNominal, palTaxRate, inflRate, start, contrib, afkast, accountName: "ratepensionen" });
+        const b = calculateReturnBreakdown({
+          nominalReturn: pensionNominal,
+          taxRate: palTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast
+        });
+        const returnExample = buildPensionReturnExample({
+          nominalReturn: pensionNominal,
+          palTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast,
+          accountName: "ratepensionen"
+        });
 
         const quickMathParts = [`${currency.format(start)} (start)`];
         if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indb.)`);
-        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
+        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(b.realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
         if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (udb.)`);
         quickMathParts.push(`= ${currency.format(end)}`);
 
         const steps = [
           { label: "Startsaldo (primo)", value: currency.format(start) },
-          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Fradragsberettiget indbetaling" : (isPensionActive ? "Ingen indbetaling" : "Pensionsindbetaling stoppet") }
+          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Fradragsberettiget indbetaling" : (isPensionActive ? "Ingen indbetaling" : "Pensionsindbetaling stoppet") },
+          { label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
+          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(realRate)} realrente)`, value: `+ ${currency.format(primoReturn)}` });
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}` });
+          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
         }
-        steps.push({ label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
+        steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
+        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
         if (withdrawal > 0) {
           steps.push({ label: "Årets ratepensionsudbetaling", value: `− ${currency.format(withdrawal)}` });
         }
@@ -207,7 +276,7 @@
           quickMath: quickMathParts.join(" "),
           description: "Ratepensionen investeres med lempelig PAL-beskatning (15,3 % af årligt afkast). Indbetalinger er fradragsberettigede op til det årlige loft, og udbetalinger beskattes som personlig indkomst.",
           formula: "Ultimo = Primo + Indbetaling + Nettoafkast (e. PAL & inflation) − Udbetaling",
-          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(realRate)}.`,
+          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
           returnExampleNote: "Regneeksemplet viser nøjagtigt hvordan afkastet på hhv. startformue og den løbende indbetaling er fremkommet.",
           steps,
@@ -242,12 +311,15 @@
         const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const contrib = isPensionActive ? (calculation.annualLifeAnnuityContribution ?? inputs.annualLifeAnnuityContribution ?? 0) : 0;
         const pensionNominal = row.pensionReturnRate ?? nominalReturn;
-        const netNominal = pensionNominal * (1 - palTaxRate);
-        const realRate = (1 + netNominal) / (1 + inflRate) - 1;
-        const midyearFactor = Math.sqrt(1 + realRate) - 1;
-        const primoReturn = Math.round(start * realRate);
         const afkast = depot - start - contrib + income;
-        const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
+        const b = calculateReturnBreakdown({
+          nominalReturn: pensionNominal,
+          taxRate: palTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast
+        });
 
         let returnExample = null;
         if (row.phase === "Opsparing") {
@@ -267,11 +339,15 @@
         ];
         if (contrib > 0) {
           steps.push({ label: "Årets indbetaling", value: `+ ${currency.format(contrib)}`, note: "Indskud på livrente" });
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(realRate)} realrente)`, value: `+ ${currency.format(primoReturn)}` });
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}` });
         }
         if (row.phase === "Opsparing") {
-          steps.push({ label: "Nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
+          steps.push({ label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
+          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true });
+          if (contrib > 0) {
+            steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
+          }
+          steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
+          steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
         } else {
           steps.push({ label: "Årlig livrenteudbetaling", value: income > 0 ? `− ${currency.format(income)}` : "0 kr." });
           steps.push({ label: "Aktuarmæssig regulering (afkast & restlevetid)", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}` });
@@ -281,10 +357,10 @@
         return {
           title: `Livrentedepot (${yearDate} · ${age} år)`,
           badge: "Livsvarig pension",
-          quickMath: income > 0 ? `Beregnet depotværdi: ${currency.format(depot)} · Giver ${currency.format(income)}/år livsvarigt` : `${currency.format(start)} + ${currency.format(contrib)} (indb.) + ${currency.format(afkast)} (${percent.format(realRate)} realafkast) = ${currency.format(depot)}`,
+          quickMath: income > 0 ? `Beregnet depotværdi: ${currency.format(depot)} · Giver ${currency.format(income)}/år livsvarigt` : `${currency.format(start)} + ${currency.format(contrib)} (indb.) + ${currency.format(afkast)} (${percent.format(b.realRate)} realafkast) = ${currency.format(depot)}`,
           description: "Livrenten udbetales livsvarigt fra pensionsalderen uanset alder. I opsparingsfasen forrentes opsparingen med PAL-skat og inflation, og ved pension konverteres depotet til en garanteret livsvarig indtægt ud fra Finanstilsynets levetidsmodel.",
           formula: row.phase === "Pension" ? "Nutidsværdi = Årlig udbetaling × Aktuarmæssig annuitetsfaktor for restlevetid" : "Ultimo = Primo + Indskud + Nettoafkast (e. PAL & inflation)",
-          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(realRate)}.`,
+          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
           returnExampleNote: row.phase === "Opsparing" ? "Regneeksemplet viser nøjagtigt hvordan afkastet er tilskrevet i opsparingsfasen." : "I udbetalingsfasen opgøres depotet ud fra levetidsmodellen.",
           steps,
@@ -342,28 +418,41 @@
         const withdrawal = (row.phase === "Pension" && end < start) ? Math.max(0, start - end) : 0;
         const afkast = end - start - contrib + withdrawal;
         const pensionNominal = row.pensionReturnRate ?? nominalReturn;
-        const netNominal = pensionNominal * (1 - palTaxRate);
-        const realRate = (1 + netNominal) / (1 + inflRate) - 1;
-        const midyearFactor = Math.sqrt(1 + realRate) - 1;
-        const primoReturn = Math.round(start * realRate);
-        const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
-        const returnExample = buildPensionReturnExample({ nominalReturn: pensionNominal, palTaxRate, inflRate, start, contrib, afkast, accountName: "aldersopsparingen" });
+        const b = calculateReturnBreakdown({
+          nominalReturn: pensionNominal,
+          taxRate: palTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast
+        });
+        const returnExample = buildPensionReturnExample({
+          nominalReturn: pensionNominal,
+          palTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast,
+          accountName: "aldersopsparingen"
+        });
 
         const quickMathParts = [`${currency.format(start)} (start)`];
         if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indb.)`);
-        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
+        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(b.realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
         if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (udb.)`);
         quickMathParts.push(`= ${currency.format(end)}`);
 
         const steps = [
           { label: "Startsaldo (primo)", value: currency.format(start) },
-          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud på aldersopsparing" : "Ingen indbetaling" }
+          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud på aldersopsparing" : "Ingen indbetaling" },
+          { label: "Samlet nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
+          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(realRate)} realrente)`, value: `+ ${currency.format(primoReturn)}` });
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}` });
+          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
         }
-        steps.push({ label: "Nettoafkast e. PAL & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
+        steps.push({ label: `Heraf PAL-skat (${percent.format(palTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
+        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
         if (withdrawal > 0) {
           steps.push({ label: "Årets udbetaling", value: `− ${currency.format(withdrawal)}` });
         }
@@ -375,7 +464,7 @@
           quickMath: quickMathParts.join(" "),
           description: "Aldersopsparing er skattefri ved udbetaling og modregnes IKKE i folkepensionens tillægsbeløb. Afkast beskattes med den lave PAL-skat på 15,3 %.",
           formula: "Ultimo = Primo + Indskud + Nettoafkast (e. PAL & inflation) − Udbetaling",
-          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(realRate)}.`,
+          formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
           returnExampleNote: "Regneeksemplet viser nøjagtigt hvordan afkastet på hhv. startformue og indbetaling er fremkommet.",
           steps,
@@ -420,8 +509,17 @@
         const grossRealRate = (1 + freeNominal) / (1 + inflRate) - 1;
         const midyearFactor = Math.sqrt(1 + grossRealRate) - 1;
         const primoReturn = Math.round(start * grossRealRate);
-        const contribReturn = contrib > 0 ? (afkast + (row.annualFreeFundsTax ?? 0)) - primoReturn : 0;
+        const annualTax = row.annualFreeFundsTax ?? 0;
+        const contribReturn = contrib > 0 ? (afkast + annualTax) - primoReturn : 0;
         const inventoryShare = inputs.freeFundsInventoryShare ?? 0;
+
+        const grossPrimo = Math.round(start * freeNominal);
+        const midyearNominal = Math.sqrt(1 + freeNominal) - 1;
+        const grossContrib = contrib > 0 ? Math.round(contrib * midyearNominal) : 0;
+        const grossTotal = grossPrimo + grossContrib;
+        const taxAmount = annualTax;
+        const inflationAmount = Math.max(0, (grossTotal - taxAmount) - afkast);
+
         const returnExample = buildFreeFundsReturnExample({
           nominalReturn: freeNominal,
           inflRate,
@@ -429,7 +527,7 @@
           start,
           contrib,
           afkast,
-          annualTax: row.annualFreeFundsTax ?? 0
+          annualTax
         });
 
         const quickMathParts = [`${currency.format(start)} (start)`];
@@ -440,16 +538,19 @@
 
         const steps = [
           { label: "Startsaldo (primo)", value: currency.format(start) },
-          { label: "Nettobidrag til frie midler", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Inkl. evt. omdirigerede pensionsmidler" : "Ingen nye indbetalinger" }
+          { label: "Nettobidrag til frie midler", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Inkl. evt. omdirigerede pensionsmidler" : "Ingen nye indbetalinger" },
+          { label: "Nettoafkast tilskrevet formuen", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "I faste købekraftspriser" },
+          { label: `Afkast af primosaldo (${percentPrecise.format(grossRealRate)} brutto realrente)`, value: `+ ${currency.format(primoReturn)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(grossRealRate)} brutto realrente)`, value: `+ ${currency.format(primoReturn)}` });
-          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}` });
+          steps.push({ label: `Afkast af indbetaling (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}`, isSub: true });
         }
-        if ((row.annualFreeFundsTax ?? 0) > 0) {
-          steps.push({ label: `Lagerskat af årets afkast (${percent.format(inventoryShare)} lagerbeskattet)`, value: `− ${currency.format(row.annualFreeFundsTax)}` });
+        if (taxAmount > 0) {
+          steps.push({ label: `Heraf lagerskat (${percent.format(inventoryShare)} lagerbeskattet)`, value: `− ${currency.format(taxAmount)}`, isSub: true });
+        } else if (inventoryShare === 0) {
+          steps.push({ label: "Heraf skat (100 % realisationsbeskattet)", value: "0 kr.", note: "Udskydes til realisation", isSub: true });
         }
-        steps.push({ label: "Nettoafkast tilskrevet formuen", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "I faste købekraftspriser" });
+        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(inflationAmount)}`, isSub: true });
         if (withdrawal > 0) {
           steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}` });
         }
@@ -498,11 +599,14 @@
         const withdrawal = (row.phase !== "Opsparing" && end < start) ? Math.max(0, start - end) : 0;
         const afkast = end - start - contrib + withdrawal;
         const freeNominal = row.freeFundsReturnRate ?? nominalReturn;
-        const netNominal = freeNominal * (1 - askTaxRate);
-        const realRate = (1 + netNominal) / (1 + inflRate) - 1;
-        const midyearFactor = Math.sqrt(1 + realRate) - 1;
-        const primoReturn = Math.round(start * realRate);
-        const contribReturn = contrib > 0 ? afkast - primoReturn : 0;
+        const b = calculateReturnBreakdown({
+          nominalReturn: freeNominal,
+          taxRate: askTaxRate,
+          inflRate,
+          start,
+          contrib,
+          afkast
+        });
         const returnExample = buildAskReturnExample({
           nominalReturn: freeNominal,
           askTaxRate,
@@ -514,19 +618,21 @@
 
         const quickMathParts = [`${currency.format(start)} (start)`];
         if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indb.)`);
-        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
+        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(b.realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
         if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (hævning)`);
         quickMathParts.push(`= ${currency.format(end)}`);
 
         const steps = [
           { label: "Startsaldo (primo)", value: currency.format(start) },
-          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud op til indskudsloft" : (start >= askCap ? "Indskudsloft nået" : "Ingen indbetaling") }
+          { label: "Årets indbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Indskud op til indskudsloft" : (start >= askCap ? "Indskudsloft nået" : "Ingen indbetaling") },
+          { label: "Nettoafkast e. 17 % skat & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" },
+          { label: `Afkast af primosaldo (${percentPrecise.format(b.realRate)} realrente e. 17 % skat)`, value: `+ ${currency.format(b.primoReturn)}`, isSub: true }
         ];
         if (contrib > 0) {
-          steps.push({ label: `Afkast af primosaldo (${percentPrecise.format(realRate)} realrente e. 17% skat)`, value: `+ ${currency.format(primoReturn)}` });
-          steps.push({ label: `Afkast af indskud (midtårsfaktor ${percentPrecise.format(midyearFactor)})`, value: `+ ${currency.format(contribReturn)}` });
+          steps.push({ label: `Afkast af indskud (midtårsfaktor ${percentPrecise.format(b.midyearFactor)})`, value: `+ ${currency.format(b.contribReturn)}`, isSub: true });
         }
-        steps.push({ label: "Nettoafkast e. 17 % skat & inflation", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "Krediteret saldoen" });
+        steps.push({ label: `Heraf ASK-lagerskat (${percent.format(askTaxRate)} af bruttoafkast)`, value: `− ${currency.format(b.taxAmount)}`, isSub: true });
+        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(b.inflationAmount)}`, isSub: true });
         if (withdrawal > 0) {
           steps.push({ label: "Hævet til forbrug", value: `− ${currency.format(withdrawal)}` });
         }
@@ -538,7 +644,7 @@
           quickMath: quickMathParts.join(" "),
           description: "Aktiesparekontoen beskattes efter lagerprincippet med en attraktiv flad skat på kun 17 %. Midlerne kan frit hæves til forbrug i FIRE.",
           formula: "Ultimo = Primo + Indskud + Nettoafkast (e. 17 % skat & inflation) − Hævning",
-          formulaDetails: `Hvor realafkastet er (${percent.format(freeNominal)} × (1 − 17,0 %) efter skat) korrigeret for 2,0 % inflation = ${percentPrecise.format(realRate)}.`,
+          formulaDetails: `Hvor realafkastet er (${percent.format(freeNominal)} × (1 − 17,0 %) efter skat) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
           returnExampleNote: "Regneeksemplet viser nøjagtigt hvordan afkastet efter 17 % flad lagerskat og inflation er fremkommet.",
           steps,

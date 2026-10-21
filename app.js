@@ -2579,7 +2579,7 @@
       mathInspectorSteps.innerHTML = (exp.steps || [])
         .map(
           (step) => `
-          <tr class="${step.isResult ? "math-step-result" : ""}">
+          <tr class="${step.isResult ? "math-step-result" : ""} ${step.isSub ? "math-step-sub" : ""}">
             <td class="math-step-label">
               ${step.label}
               ${step.note ? `<small class="math-step-note">${step.note}</small>` : ""}

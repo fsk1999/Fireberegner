@@ -2825,6 +2825,31 @@ th.housing-col {
   font-weight: var(--weight-bold);
 }
 
+.math-step-sub td {
+  border-bottom: 1px dashed var(--line);
+  font-size: 11.5px;
+  padding: 3px 4px;
+}
+
+.math-step-sub .math-step-label {
+  color: var(--muted);
+  padding-left: 18px;
+  position: relative;
+}
+
+.math-step-sub .math-step-label::before {
+  color: var(--muted);
+  content: "↳ ";
+  left: 4px;
+  position: absolute;
+}
+
+.math-step-sub .math-step-value {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+}
+
 .math-step-note {
   color: var(--muted);
   display: block;
