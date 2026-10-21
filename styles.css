@@ -1983,17 +1983,9 @@ td:nth-child(17) {
   color: var(--muted);
 }
 
-.source-link {
-  margin-top: var(--space-3);
-}
-
 .calculator-notes a {
   color: inherit;
   text-underline-offset: 3px;
-}
-
-.source-link a + a {
-  margin-left: var(--space-3);
 }
 
 .calculator-notes a:hover {
