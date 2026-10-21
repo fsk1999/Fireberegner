@@ -108,6 +108,15 @@
     "#math-inspector-formula-details",
   );
   const mathInspectorSteps = document.querySelector("#math-inspector-steps");
+  const mathInspectorCalcCard = document.querySelector(
+    "#math-inspector-calc-card",
+  );
+  const mathInspectorCalcExample = document.querySelector(
+    "#math-inspector-calc-example",
+  );
+  const mathInspectorCalcNote = document.querySelector(
+    "#math-inspector-calc-note",
+  );
   const mathInspectorAssumptions = document.querySelector(
     "#math-inspector-assumptions",
   );
@@ -2552,6 +2561,19 @@
     if (mathInspectorFormula) mathInspectorFormula.textContent = exp.formula;
     if (mathInspectorFormulaDetails)
       mathInspectorFormulaDetails.textContent = exp.formulaDetails || "";
+
+    if (mathInspectorCalcCard && mathInspectorCalcExample) {
+      if (exp.returnExample) {
+        mathInspectorCalcExample.textContent = exp.returnExample;
+        if (mathInspectorCalcNote) {
+          mathInspectorCalcNote.textContent = exp.returnExampleNote || "";
+          mathInspectorCalcNote.hidden = !exp.returnExampleNote;
+        }
+        mathInspectorCalcCard.hidden = false;
+      } else {
+        mathInspectorCalcCard.hidden = true;
+      }
+    }
 
     if (mathInspectorSteps) {
       mathInspectorSteps.innerHTML = (exp.steps || [])
