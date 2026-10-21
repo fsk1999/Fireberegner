@@ -91,6 +91,29 @@
   const applyPlanCodeButton = document.querySelector("#apply-plan-code");
   const planCodeError = document.querySelector("#plan-code-error");
   const planCodeStatus = document.querySelector("#plan-code-status");
+  const mathHoverTooltip = document.querySelector("#math-hover-tooltip");
+  const mathTooltipBadge = document.querySelector("#math-tooltip-badge");
+  const mathTooltipTitle = document.querySelector("#math-tooltip-title");
+  const mathTooltipMath = document.querySelector("#math-tooltip-math");
+  const mathInspectorDialog = document.querySelector("#math-inspector-dialog");
+  const mathInspectorBadge = document.querySelector("#math-inspector-badge");
+  const mathInspectorTitle = document.querySelector("#math-inspector-title");
+  const mathInspectorDescription = document.querySelector(
+    "#math-inspector-description",
+  );
+  const mathInspectorFormula = document.querySelector(
+    "#math-inspector-formula",
+  );
+  const mathInspectorFormulaDetails = document.querySelector(
+    "#math-inspector-formula-details",
+  );
+  const mathInspectorSteps = document.querySelector("#math-inspector-steps");
+  const mathInspectorAssumptions = document.querySelector(
+    "#math-inspector-assumptions",
+  );
+  const mathInspectorClose = document.querySelector("#math-inspector-close");
+  const mathInspectorOk = document.querySelector("#math-inspector-ok");
+
   const { calculateFire, optimizeAnnualContributions } =
     window.FireCalculations;
   const { encodePlan, decodePlan } = window.FirePlanCode;
@@ -99,6 +122,9 @@
   let nextOptimizationJobId = 1;
   let planCodeReturnFocus = null;
   let latestMonteCarlo = null;
+  let latestInputs = null;
+  let latestCalculation = null;
+  let latestActiveTableCalc = null;
   let mcChartMode = "without";
   let mcTableScenario = "baseline";
   let mcSeedCounter = 20260419;
@@ -1413,11 +1439,11 @@
       const diffClass =
         diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : "";
       comparisonCells = `
-        <td class="mc-comp-col mc-comp-col-base">${currency.format(band.baselineTotal)}</td>
-        <td class="mc-comp-col mc-comp-col-mc">${currency.format(band.p10)}</td>
-        <td class="mc-comp-col mc-comp-col-mc mc-comp-col-p50">${currency.format(band.p50)}</td>
-        <td class="mc-comp-col mc-comp-col-mc">${currency.format(band.p90)}</td>
-        <td class="mc-comp-col mc-comp-col-diff ${diffClass}">${formatDiffCurrency(diff)}</td>`;
+        <td class="mc-comp-col mc-comp-col-base"><span class="explainable-val" data-col-key="baseTotal" data-row-age="${row.age}" tabindex="0">${currency.format(band.baselineTotal)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc"><span class="explainable-val" data-col-key="p10" data-row-age="${row.age}" tabindex="0">${currency.format(band.p10)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc mc-comp-col-p50"><span class="explainable-val" data-col-key="p50" data-row-age="${row.age}" tabindex="0">${currency.format(band.p50)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc"><span class="explainable-val" data-col-key="p90" data-row-age="${row.age}" tabindex="0">${currency.format(band.p90)}</span></td>
+        <td class="mc-comp-col mc-comp-col-diff ${diffClass}"><span class="explainable-val" data-col-key="diff" data-row-age="${row.age}" tabindex="0">${formatDiffCurrency(diff)}</span></td>`;
     }
 
     return `
@@ -1425,21 +1451,21 @@
         <td>${dateFormat.format(row.date)}</td>
         <td>${ages.format(row.age)}</td>
         <td>${row.phase}</td>
-        <td class="projection-return">${returnRate}</td>
-        <td>${currency.format(row.ratePension)}</td>
-        <td>${currency.format(row.lifeAnnuityDepotValue)}</td>
-        <td>${row.lifeAnnuityWithdrawal ? currency.format(row.lifeAnnuityWithdrawal) : "—"}</td>
-        <td>${currency.format(row.ageSavings)}</td>
-        <td>${currency.format(row.freeFunds)}</td>
-        <td>${currency.format(row.ask)}</td>
-        <td>${currency.format(row.totalDepotValue)}</td>
-        <td class="housing-col"${includeHousing ? "" : " hidden"}>${row.housingEquity ? currency.format(row.housingEquity) : "—"}</td>
-        <td class="housing-col"${includeHousing ? "" : " hidden"}>${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</td>
-        <td>${row.contribution ? currency.format(row.contribution) : "—"}</td>
-        <td>${row.withdrawal ? currency.format(row.withdrawal) : "—"}</td>
-        <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
-        <td>${inventoryTax}</td>
-        <td>${effectiveTax}</td>
+        <td class="projection-return"><span class="explainable-val" data-col-key="returnRate" data-row-age="${row.age}" tabindex="0">${returnRate}</span></td>
+        <td><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
+        <td><span class="explainable-val" data-col-key="lifeAnnuityDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityDepotValue)}</span></td>
+        <td>${row.lifeAnnuityWithdrawal ? `<span class="explainable-val" data-col-key="lifeAnnuityWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityWithdrawal)}</span>` : "—"}</td>
+        <td><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
+        <td><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
+        <td><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
+        <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
+        <td class="housing-col"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
+        <td class="housing-col"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
+        <td>${row.contribution ? `<span class="explainable-val" data-col-key="contribution" data-row-age="${row.age}" tabindex="0">${currency.format(row.contribution)}</span>` : "—"}</td>
+        <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="withdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.withdrawal)}</span>` : "—"}</td>
+        <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="netWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.netWithdrawal)}</span>` : "—"}</td>
+        <td>${inventoryTax !== "—" ? `<span class="explainable-val" data-col-key="lagerskat" data-row-age="${row.age}" tabindex="0">${inventoryTax}</span>` : "—"}</td>
+        <td>${effectiveTax !== "—" ? `<span class="explainable-val" data-col-key="effectiveWithdrawalTaxRate" data-row-age="${row.age}" tabindex="0">${effectiveTax}</span>` : "—"}</td>
         <td>${source}</td>${comparisonCells}
       </tr>`;
   }
@@ -2227,6 +2253,7 @@
       mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]
         ? mc.scenarios[mcTableScenario].calculation
         : calculation;
+    latestActiveTableCalc = activeTableCalc;
     const showCompCols =
       Boolean(mc) && Boolean(mcTableShowComparisonInput?.checked);
     const bandsByAge = new Map(
@@ -2323,6 +2350,8 @@
     try {
       const inputs = readInputs();
       const calculation = calculateFire(inputs);
+      latestInputs = inputs;
+      latestCalculation = calculation;
       render(calculation, inputs);
       if (!latestOptimization) {
         renderOptimizationPreview(inputs, calculation);
@@ -2434,6 +2463,216 @@
       closePlanCodeDialog();
     }
   });
+
+  function resolveExplanation(targetEl) {
+    if (!window.FireMathExplainer) return null;
+    const colKey = targetEl.dataset.colKey;
+    if (colKey && latestActiveTableCalc) {
+      const targetAge = Number(targetEl.dataset.rowAge);
+      const rows = latestActiveTableCalc.planRows;
+      const rowIndex = rows.findIndex((r) => r.age === targetAge);
+      if (rowIndex !== -1) {
+        const row = rows[rowIndex];
+        const prevRow = rowIndex > 0 ? rows[rowIndex - 1] : null;
+        return window.FireMathExplainer.explainTableCell({
+          colKey,
+          row,
+          prevRow,
+          calculation: latestActiveTableCalc,
+          inputs: latestInputs,
+          scenario: mcTableScenario,
+        });
+      }
+    }
+    const metricKey = targetEl.dataset.metricKey;
+    if (metricKey && latestCalculation && latestInputs) {
+      return window.FireMathExplainer.explainKeyMetric({
+        metricKey,
+        calculation: latestCalculation,
+        inputs: latestInputs,
+      });
+    }
+    return null;
+  }
+
+  let activeTooltipTarget = null;
+
+  function showMathTooltip(targetEl, clientX, clientY) {
+    if (!mathHoverTooltip) return;
+    const exp = resolveExplanation(targetEl);
+    if (!exp) {
+      hideMathTooltip();
+      return;
+    }
+    activeTooltipTarget = targetEl;
+    if (mathTooltipBadge) mathTooltipBadge.textContent = exp.badge;
+    if (mathTooltipTitle) mathTooltipTitle.textContent = exp.title;
+    if (mathTooltipMath) mathTooltipMath.textContent = exp.quickMath;
+    mathHoverTooltip.hidden = false;
+    mathHoverTooltip.classList.add("is-visible");
+    positionMathTooltip(clientX, clientY);
+  }
+
+  function positionMathTooltip(clientX, clientY) {
+    if (!mathHoverTooltip || mathHoverTooltip.hidden) return;
+    const padding = 14;
+    const rect = mathHoverTooltip.getBoundingClientRect();
+    let left = clientX + padding;
+    let top = clientY + padding;
+
+    if (left + rect.width > window.innerWidth - 12) {
+      left = Math.max(12, clientX - rect.width - padding);
+    }
+    if (top + rect.height > window.innerHeight - 12) {
+      top = Math.max(12, clientY - rect.height - padding);
+    }
+
+    mathHoverTooltip.style.left = `${left}px`;
+    mathHoverTooltip.style.top = `${top}px`;
+  }
+
+  function hideMathTooltip() {
+    activeTooltipTarget = null;
+    if (mathHoverTooltip) {
+      mathHoverTooltip.classList.remove("is-visible");
+      mathHoverTooltip.hidden = true;
+    }
+  }
+
+  function openMathInspector(targetEl) {
+    if (!mathInspectorDialog) return;
+    hideMathTooltip();
+    const exp = resolveExplanation(targetEl);
+    if (!exp) return;
+
+    if (mathInspectorBadge) mathInspectorBadge.textContent = exp.badge;
+    if (mathInspectorTitle) mathInspectorTitle.textContent = exp.title;
+    if (mathInspectorDescription)
+      mathInspectorDescription.textContent = exp.description;
+    if (mathInspectorFormula) mathInspectorFormula.textContent = exp.formula;
+    if (mathInspectorFormulaDetails)
+      mathInspectorFormulaDetails.textContent = exp.formulaDetails || "";
+
+    if (mathInspectorSteps) {
+      mathInspectorSteps.innerHTML = (exp.steps || [])
+        .map(
+          (step) => `
+          <tr class="${step.isResult ? "math-step-result" : ""}">
+            <td class="math-step-label">
+              ${step.label}
+              ${step.note ? `<small class="math-step-note">${step.note}</small>` : ""}
+            </td>
+            <td class="math-step-value">${step.value}</td>
+          </tr>`,
+        )
+        .join("");
+    }
+
+    if (mathInspectorAssumptions) {
+      mathInspectorAssumptions.innerHTML = (exp.assumptions || [])
+        .map(
+          (item) => `
+          <div class="math-assumption-item">
+            <small>${item.label}</small>
+            <strong>${item.value}</strong>
+          </div>`,
+        )
+        .join("");
+    }
+
+    mathInspectorDialog.showModal();
+  }
+
+  function closeMathInspector() {
+    if (mathInspectorDialog && mathInspectorDialog.open) {
+      mathInspectorDialog.close();
+    }
+  }
+
+  document.addEventListener("pointermove", (event) => {
+    const el = event.target.closest(".explainable-val");
+    if (el) {
+      if (activeTooltipTarget !== el) {
+        showMathTooltip(el, event.clientX, event.clientY);
+      } else {
+        positionMathTooltip(event.clientX, event.clientY);
+      }
+    } else if (activeTooltipTarget) {
+      hideMathTooltip();
+    }
+  });
+
+  document.addEventListener("pointerleave", () => hideMathTooltip());
+  window.addEventListener("scroll", () => hideMathTooltip(), { passive: true });
+
+  document.addEventListener("contextmenu", (event) => {
+    const el = event.target.closest(".explainable-val");
+    if (el) {
+      event.preventDefault();
+      openMathInspector(el);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      (event.key === "Enter" || event.key === " ") &&
+      event.target.matches?.(".explainable-val")
+    ) {
+      event.preventDefault();
+      openMathInspector(event.target);
+    }
+  });
+
+  let touchTimer = null;
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      const el = event.target.closest(".explainable-val");
+      if (el) {
+        touchTimer = setTimeout(() => {
+          openMathInspector(el);
+          touchTimer = null;
+        }, 450);
+      }
+    },
+    { passive: true },
+  );
+
+  document.addEventListener(
+    "touchend",
+    () => {
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+    },
+    { passive: true },
+  );
+
+  document.addEventListener(
+    "touchmove",
+    () => {
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+    },
+    { passive: true },
+  );
+
+  if (mathInspectorClose) {
+    mathInspectorClose.addEventListener("click", closeMathInspector);
+  }
+  if (mathInspectorOk) {
+    mathInspectorOk.addEventListener("click", closeMathInspector);
+  }
+  if (mathInspectorDialog) {
+    mathInspectorDialog.addEventListener("click", (event) => {
+      if (event.target === mathInspectorDialog) {
+        closeMathInspector();
+      }
+    });
+  }
 
   formattedNumberInputs.forEach((input) => {
     formatNumberInput(input);

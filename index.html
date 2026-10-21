@@ -1088,7 +1088,7 @@
           <aside class="result-card" aria-labelledby="result-heading">
             <header>
               <p>Din plan</p>
-              <h2 id="result-heading">
+              <h2 id="result-heading" class="explainable-val" data-metric-key="result-heading" tabindex="0">
                 FIRE fra <span id="result-fire-age"></span>
               </h2>
               <strong id="result-withdrawal"></strong>
@@ -1096,7 +1096,7 @@
 
             <div class="result-milestones" aria-label="Planens milepæle">
               <div class="result-milestone">
-                <strong id="result-pension-stop-age"></strong>
+                <strong id="result-pension-stop-age" class="explainable-val" data-metric-key="result-pension-stop-age" tabindex="0"></strong>
                 <span class="result-milestone-rail" aria-hidden="true"
                   ><i></i
                 ></span>
@@ -1106,7 +1106,7 @@
                 </span>
               </div>
               <div class="result-milestone result-milestone-fire">
-                <strong id="result-fire-milestone-age"></strong>
+                <strong id="result-fire-milestone-age" class="explainable-val" data-metric-key="result-fire-milestone-age" tabindex="0"></strong>
                 <span class="result-milestone-rail" aria-hidden="true"
                   ><i></i
                 ></span>
@@ -1135,7 +1135,7 @@
                   >i</i
                 >
               </p>
-              <strong id="result-final-balance"></strong>
+              <strong id="result-final-balance" class="explainable-val" data-metric-key="result-final-balance" tabindex="0"></strong>
             </footer>
           </aside>
 
@@ -1896,9 +1896,57 @@
       </div>
     </dialog>
 
+    <dialog id="math-inspector-dialog" class="math-inspector-dialog" aria-labelledby="math-inspector-title">
+      <div class="math-inspector-header">
+        <div class="math-inspector-title-area">
+          <span id="math-inspector-badge" class="math-inspector-badge">Beregning</span>
+          <h2 id="math-inspector-title">Formel og beregningsdetaljer</h2>
+        </div>
+        <button id="math-inspector-close" class="math-inspector-close" type="button" aria-label="Luk beregningsdetaljer">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M3 3l10 10M13 3L3 13" />
+          </svg>
+        </button>
+      </div>
+      <div class="math-inspector-body">
+        <div class="math-inspector-card">
+          <h3>Hvad er dette tal?</h3>
+          <p id="math-inspector-description"></p>
+        </div>
+        <div class="math-inspector-card">
+          <h3>Matematisk formel</h3>
+          <pre class="math-formula-box"><code id="math-inspector-formula"></code></pre>
+          <p id="math-inspector-formula-details" class="math-formula-detail"></p>
+        </div>
+        <div class="math-inspector-card">
+          <h3>Konkret regnestykke</h3>
+          <table class="math-steps-table">
+            <tbody id="math-inspector-steps"></tbody>
+          </table>
+        </div>
+        <div class="math-inspector-card">
+          <h3>Gældende satser og forudsætninger</h3>
+          <div id="math-inspector-assumptions" class="math-assumptions-list"></div>
+        </div>
+      </div>
+      <div class="math-inspector-footer">
+        <button id="math-inspector-ok" class="plan-code-primary-action" type="button">Luk</button>
+      </div>
+    </dialog>
+
+    <div id="math-hover-tooltip" class="math-hover-tooltip" hidden aria-hidden="true">
+      <div class="math-tooltip-header">
+        <span id="math-tooltip-badge" class="math-tooltip-badge">Beregning</span>
+      </div>
+      <p id="math-tooltip-title" class="math-tooltip-title"></p>
+      <div id="math-tooltip-math" class="math-tooltip-math"></div>
+      <p class="math-tooltip-hint">💡 Højreklik for fuld formel og forklaring</p>
+    </div>
+
     <script src="./life-annuity.js?v=20260905-2"></script>
     <script src="./calculations.js?v=20260905-3"></script>
     <script src="./monte-carlo.js"></script>
+    <script src="./math-explainer.js"></script>
     <script src="./plan-code.js?v=20260905-1"></script>
     <script src="./app.js?v=20260905-3"></script>
   </body>

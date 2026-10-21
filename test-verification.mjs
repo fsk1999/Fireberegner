@@ -1,13 +1,15 @@
 import "./life-annuity.js";
 import "./calculations.js";
 import "./monte-carlo.js";
+import "./math-explainer.js";
 import "./plan-code.js";
 
-const { FireCalculations, FireMonteCarlo, FirePlanCode } = globalThis;
+const { FireCalculations, FireMonteCarlo, FireMathExplainer, FirePlanCode } = globalThis;
 
 console.log("=== 1. Checking Module Exports ===");
 console.assert(FireCalculations, "FireCalculations must exist");
 console.assert(FireMonteCarlo, "FireMonteCarlo must exist");
+console.assert(FireMathExplainer, "FireMathExplainer must exist");
 console.assert(FirePlanCode, "FirePlanCode must exist");
 console.log("✓ All modules loaded successfully.");
 
@@ -235,6 +237,50 @@ console.assert(mcHousing.scenarios.p50.calculation.includeHousing === true, "P50
 console.assert(mcHousing.scenarios.p50.calculation.planRows[0].housingEquity === housingCalc.planRows[0].housingEquity, "P50 scenario should include housing equity");
 console.log("✓ Monte Carlo simulation correctly reflects housing equity in bands, scenarios, and reserves.");
 
+console.log("\n=== 11. Interactive Math Explanations & Inspection ===");
+const rowToTest = housingCalc.planRows[1];
+const prevRowToTest = housingCalc.planRows[0];
+
+const testColumns = [
+  "returnRate", "ratePension", "lifeAnnuityDepotValue", "lifeAnnuityWithdrawal",
+  "ageSavings", "freeFunds", "ask", "totalDepotValue", "housingEquity",
+  "totalWealthWithHousing", "contribution", "withdrawal", "netWithdrawal",
+  "lagerskat", "effectiveWithdrawalTaxRate", "baseTotal", "p50", "p10", "p90", "diff"
+];
+
+for (const colKey of testColumns) {
+  const exp = FireMathExplainer.explainTableCell({
+    colKey,
+    row: rowToTest,
+    prevRow: prevRowToTest,
+    calculation: housingCalc,
+    inputs: housingInputs,
+    scenario: "baseline"
+  });
+  console.assert(exp !== null, `Explanation for column ${colKey} should not be null`);
+  console.assert(typeof exp.title === "string" && exp.title.length > 0, `Title for ${colKey} must be a non-empty string`);
+  console.assert(typeof exp.quickMath === "string" && exp.quickMath.length > 0, `quickMath for ${colKey} must be present`);
+  console.assert(typeof exp.formula === "string" && exp.formula.length > 0, `formula for ${colKey} must be present`);
+  console.assert(Array.isArray(exp.steps) && exp.steps.length > 0, `steps for ${colKey} must be non-empty array`);
+}
+
+const testMetrics = [
+  "result-heading", "result-pension-stop-age", "result-fire-milestone-age",
+  "result-final-balance", "life-annuity-conversion-rate"
+];
+
+for (const metricKey of testMetrics) {
+  const exp = FireMathExplainer.explainKeyMetric({
+    metricKey,
+    calculation: housingCalc,
+    inputs: housingInputs
+  });
+  console.assert(exp !== null, `Explanation for metric ${metricKey} should not be null`);
+  console.assert(typeof exp.title === "string" && exp.title.length > 0, `Title for ${metricKey} must be a non-empty string`);
+  console.assert(typeof exp.formula === "string", `Formula for ${metricKey} must be a string`);
+}
+console.log("✓ All interactive math explanations (hover breakdowns & full inspector) validated.");
+
 console.log("\n==================================");
-console.log("ALL 10 VERIFICATION SUITES PASSED!");
+console.log("ALL 11 VERIFICATION SUITES PASSED!");
 console.log("==================================");
