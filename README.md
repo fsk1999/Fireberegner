@@ -59,7 +59,42 @@ For en dybdegående gennemgang af den underliggende matematik, skatteregler og f
     - For udbetalinger: Forklarer præcist, hvorfor bruttobeløbet skal hæves for at give det ønskede nettobeløb efter skat, hvilke konti pengene hæves fra (frie midler, pensioner), ubeskattet anskaffelsessum vs. aktiegevinst, samt den trinvise beregning af aktieskat (27 % / 42 %) og pensionsskat (37 %).
   - **Gældende satser og forudsætninger:** Oversigt over skattesatser, modregningslofter og civilstand.
 
-### 9. Deling via Plankoder
+### 9. Udvidede Visualiseringer & Grafvisninger
+* **1. Formueudvikling:** Interaktiv linje- og arealgraf med lineær eller symlog-skalering (0–50+ mio. kr.), Monte Carlo-konfidensbånd (P10, P25, P50, P75, P90) og sorterede hover-tooltips.
+* **2. Årligt Cashflow & Hævningskilder:** Stacket søjlediagram over likviditet år for år – skelner klart mellem opsparingsfasen (blå indbetalinger) og nedsparingsfasen (frie midler, ASK, aldersopsparing, ratepension, livrente, folkepension, ATP og boligfriværdi) med en stiplet rød mållinje for ønsket forbrug.
+* **3. Skat & Afgifter over tid:** Årlig opgørelse over hvad der afleveres til Skat: PAL-skat (15,3 %), aktieavancebeskatning (27/42 %), ASK lagerskat (17 %), pensionsudbetalingsskat samt modregningstab i folkepension.
+* **4. Solvens over tid (Overlevelseskurve):** Viser sandsynligheden for at formuen er intakt for hvert enkelt leveår, inddelt i grøn sikkerhedszone (90–100 %), gul opmærksomhedszone (75–90 %) og rød udtømningsrisiko (<75 %).
+
+### 10. Scenarie-sammenligning (Plan A vs. Plan B) & PDF-Eksport
+* **Side-om-side analyse:** Fastfrys dit aktuelle input som enten Plan A eller Plan B, justér derefter dine forudsætninger og få en komplet forskelstabel (FIRE-alder, forbrug, slutreserve, skattebetalinger, folkepension og solvens) med farvekodede forbedringsbadges.
+* **Hurtig aktivering:** Skift og indlæs Plan A eller Plan B direkte i beregneren med ét klik.
+* **Professionel PDF-rapport:** Udskriftsvisning optimeret til A4 med `@media print` – fjerner inputfelter og kontroller og præsenterer en ren to-siders rådgivningsrapport.
+
+### 11. Folkepension Modregnings-Assistent
+* Viser det præcise samlede kronetab i pensionstillæg pga. modregning fra ratepension og livrente.
+* Giver 3 konkrete optimeringsstrategier:
+  1. Hæv Aktiesparekonto og aldersopsparing først (modregnes 0 kr.).
+  2. Stræk ratepension over 15–20 år fremfor 10 år for at forblive under modregningsbundgrænsen.
+  3. Udnyt progressionsgrænsen på frie midler (27 % aktieskat).
+
+### 12. Historisk Stress-test på Store Finanskriser
+* **Sequence-of-Returns Stress Test:** Simulerer hvad der sker med din plan, hvis du ramler ind i historiens 4 værste kriser på din første dag som pensionist:
+  - **1929 Wall Street Krakket & Depressionen:** -80 % nominelt fald over 3 år og langvarig genrejsning.
+  - **1973 Oliekrisen & Stagflation:** To brutale tabsår (-15 %, -26 %) og tocifret inflation.
+  - **2000 Dot-Com Boblen:** Tre på hinanden følgende tabsår for globale aktier (-9 %, -12 %, -22 %).
+  - **2008 Den Globale Finanskrise:** -37 % chokfald efterfulgt af stærkt V-formet opsving.
+* Viser øjeblikkeligt om planen overlever, den laveste formue undervejs og slutreserven ved 90 år.
+
+### 13. Sensitivitets-analyse (Tornado-diagram)
+* Rangerer automatisk hvilke faktorer der flytter din FIRE-alder mest:
+  - Forbrugsbehov (±20 %)
+  - Investeringsafkast (±1 %-point)
+  - Inflation (±1 %-point)
+  - Årlig opsparing (±20 %)
+* Illustreres med et elegant visuelt Tornado-diagram, der viser svinget i år for hver faktor.
+
+
+### 14. Deling via Plankoder
 * Gem og del din plan via URL-venlige Base64URL-koder med fuld fremad- og bagudkompatibilitet til ældre plankoder.
 
 ---
