@@ -281,6 +281,29 @@ for (const metricKey of testMetrics) {
 }
 console.log("✓ All interactive math explanations (hover breakdowns & full inspector) validated.");
 
+console.log("\n=== 12. Historical Crisis Stress Testing ===");
+const stressResults = FireMonteCarlo.runHistoricalStressTests(baseInputs);
+console.assert(Array.isArray(stressResults) && stressResults.length === 4, "Must evaluate all 4 historical crises");
+stressResults.forEach((res) => {
+  console.assert(typeof res.name === "string", "Crisis must have name");
+  console.assert(typeof res.isSolvent === "boolean", "Crisis must produce boolean isSolvent");
+  console.assert(Number.isFinite(res.finalReserve), "Crisis must produce numeric finalReserve");
+  console.log(`Crisis ${res.name}: Solvent=${res.isSolvent}, MinBalance=${res.minBalance}, FinalReserve=${res.finalReserve}`);
+});
+console.log("✓ Historical crisis stress tests verified.");
+
+console.log("\n=== 13. Sensitivity & Tornado Analysis ===");
+const sensitivityResults = FireMonteCarlo.calculateSensitivityAnalysis(baseInputs);
+console.assert(Array.isArray(sensitivityResults) && sensitivityResults.length === 4, "Must analyze all 4 key factors");
+sensitivityResults.forEach((factor) => {
+  console.assert(typeof factor.name === "string", "Factor must have name");
+  console.assert(Number.isFinite(factor.swing), "Swing must be numeric");
+  console.log(`Factor '${factor.name}': Best=${factor.bestAge}y, Worst=${factor.worstAge}y, Swing=${factor.swing} years`);
+});
+console.assert(sensitivityResults[0].swing >= sensitivityResults[sensitivityResults.length - 1].swing, "Factors must be sorted by swing descending");
+console.log("✓ Sensitivity analysis and factor ranking verified.");
+
 console.log("\n==================================");
-console.log("ALL 11 VERIFICATION SUITES PASSED!");
+console.log("ALL 13 VERIFICATION SUITES PASSED!");
 console.log("==================================");
+

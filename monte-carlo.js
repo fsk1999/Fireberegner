@@ -326,7 +326,209 @@
     };
   }
 
+  const HISTORICAL_CRISES = [
+    {
+      id: "crisis-1929",
+      year: 1929,
+      name: "1929 Wall Street Krakket & Depressionen",
+      badge: "Værste krak i historien",
+      desc: "Tre på hinanden følgende katastrofeår (-8 %, -25 %, -43 %) med langvarig deflation.",
+      returns: [
+        -0.08, -0.25, -0.43, -0.08, 0.54, -0.01, 0.48, 0.34, -0.35, 0.31,
+        -0.01, -0.12, 0.20, 0.26, 0.20, 0.36, -0.08, 0.06, 0.05, 0.18,
+        0.31, 0.24, 0.18, -0.01, 0.53, 0.32, 0.07, -0.11, 0.43, 0.12,
+      ],
+    },
+    {
+      id: "crisis-1973",
+      year: 1973,
+      name: "1973 Oliekrisen (Stagflation)",
+      badge: "Høj inflation & fald",
+      desc: "To års brutalt fald (-15 %, -26 %) kombineret med tocifret inflation der udhulede købekraften.",
+      returns: [
+        -0.15, -0.26, 0.37, 0.24, -0.07, 0.07, 0.19, 0.32, -0.05, 0.21,
+        0.22, 0.06, 0.32, 0.19, 0.05, 0.17, 0.32, -0.03, 0.30, 0.08,
+        0.10, 0.01, 0.38, 0.23, 0.33, 0.29, 0.21, -0.09, -0.12, -0.22,
+      ],
+    },
+    {
+      id: "crisis-2000",
+      year: 2000,
+      name: "2000 Dot-Com Boblen",
+      badge: "3 år med negativt afkast",
+      desc: "Teknologikrakket medførte tre sammenhængende tabsår (-9 %, -12 %, -22 %) før markedet vendte.",
+      returns: [
+        -0.09, -0.12, -0.22, 0.29, 0.11, 0.05, 0.16, 0.05, -0.37, 0.26,
+        0.15, 0.02, 0.16, 0.32, 0.14, 0.01, 0.12, 0.22, -0.04, 0.31,
+        0.18, 0.29, -0.18, 0.26, 0.24,
+      ],
+    },
+    {
+      id: "crisis-2008",
+      year: 2008,
+      name: "2008 Den Globale Finanskrise",
+      badge: "Chokfald & hurtigt opsving",
+      desc: "Massivt chokfald på -37 % i 2008 efterfulgt af et kraftigt opsving på +26 % i 2009 og fortsat vækst.",
+      returns: [
+        -0.37, 0.26, 0.15, 0.02, 0.16, 0.32, 0.14, 0.01, 0.12, 0.22,
+        -0.04, 0.31, 0.18, 0.29, -0.18, 0.26, 0.24, 0.18, 0.31, 0.12,
+        0.15, 0.22,
+      ],
+    },
+  ];
+
+  function runHistoricalStressTests(inputs) {
+    const baseline = FireCalculations.calculateFire(inputs);
+    const fireAge = baseline.fireRow
+      ? baseline.fireRow.age
+      : inputs.retirementAge;
+    const fireYear = Math.max(0, fireAge - inputs.currentAge);
+    const totalYears =
+      inputs.currentAge && baseline.finalRow
+        ? baseline.finalRow.age - inputs.currentAge
+        : 55;
+    const baseReturn = inputs.returnRate ?? 0.07;
+
+    return HISTORICAL_CRISES.map((crisis) => {
+      const annualReturnMultipliers = [];
+      for (let y = 0; y <= totalYears + 5; y += 1) {
+        if (y < fireYear) {
+          annualReturnMultipliers.push(1.0);
+        } else {
+          const crisisIdx = (y - fireYear) % crisis.returns.length;
+          const r = crisis.returns[crisisIdx];
+          annualReturnMultipliers.push(
+            Math.max(0.1, (1 + r) / (1 + baseReturn)),
+          );
+        }
+      }
+
+      const sim = FireCalculations.calculateFire({
+        ...inputs,
+        annualReturnMultipliers,
+        lockedFireYear: fireYear,
+        lockedPensionStopYear: fireYear,
+      });
+
+      const isSolvent = Boolean(sim.isFullyFunded);
+      const finalReserve = sim.finalRow ? sim.finalRow.totalBalance : 0;
+      const minBalance = Math.min(
+        ...(sim.planRows || []).map((r) => r.totalBalance),
+        finalReserve,
+      );
+      const depletionRow = sim.planRows?.find(
+        (r) => r.age >= fireAge && r.totalBalance <= 0,
+      );
+
+      return {
+        ...crisis,
+        isSolvent,
+        finalReserve,
+        minBalance: Math.max(0, minBalance),
+        depletionAge: depletionRow ? depletionRow.age : null,
+      };
+    });
+  }
+
+  function calculateSensitivityAnalysis(inputs) {
+    const base = FireCalculations.calculateFire(inputs);
+    const baseAge = base.fireRow ? base.fireRow.age : inputs.retirementAge;
+
+    function getAge(modInputs) {
+      const res = FireCalculations.calculateFire({ ...inputs, ...modInputs });
+      return res.fireRow ? res.fireRow.age : inputs.retirementAge;
+    }
+
+    const factors = [
+      {
+        name: "Forbrugsbehov (Netto)",
+        desc: "Hvor meget du ønsker udbetalt til forbrug",
+        lowLabel: "-20 % forbrug",
+        lowAge: getAge({
+          desiredAnnualWithdrawal: Math.round(
+            inputs.desiredAnnualWithdrawal * 0.8,
+          ),
+        }),
+        highLabel: "+20 % forbrug",
+        highAge: getAge({
+          desiredAnnualWithdrawal: Math.round(
+            inputs.desiredAnnualWithdrawal * 1.2,
+          ),
+        }),
+      },
+      {
+        name: "Investeringsafkast",
+        desc: "Dit gennemsnitlige årlige afkast før skat",
+        lowLabel: "-1 %-point afkast",
+        lowAge: getAge({
+          returnRate: Math.max(0.01, (inputs.returnRate || 0.07) - 0.01),
+        }),
+        highLabel: "+1 %-point afkast",
+        highAge: getAge({ returnRate: (inputs.returnRate || 0.07) + 0.01 }),
+      },
+      {
+        name: "Årlig opsparing",
+        desc: "Dine årlige indbetalinger til depoter",
+        lowLabel: "+20 % opsparing",
+        lowAge: getAge({
+          annualFreeFundsContribution: Math.round(
+            (inputs.annualFreeFundsContribution || 0) * 1.2,
+          ),
+          annualRatePensionContribution: Math.round(
+            (inputs.annualRatePensionContribution || 0) * 1.2,
+          ),
+          annualAskContribution: Math.round(
+            (inputs.annualAskContribution || 0) * 1.2,
+          ),
+        }),
+        highLabel: "-20 % opsparing",
+        highAge: getAge({
+          annualFreeFundsContribution: Math.round(
+            (inputs.annualFreeFundsContribution || 0) * 0.8,
+          ),
+          annualRatePensionContribution: Math.round(
+            (inputs.annualRatePensionContribution || 0) * 0.8,
+          ),
+          annualAskContribution: Math.round(
+            (inputs.annualAskContribution || 0) * 0.8,
+          ),
+        }),
+      },
+      {
+        name: "Inflation",
+        desc: "Købekraftstab og inflationsrate",
+        lowLabel: "-1 %-point inflation",
+        lowAge: getAge({
+          inflationRate: Math.max(0, (inputs.inflationRate || 0.02) - 0.01),
+        }),
+        highLabel: "+1 %-point inflation",
+        highAge: getAge({
+          inflationRate: (inputs.inflationRate || 0.02) + 0.01,
+        }),
+      },
+    ];
+
+    return factors
+      .map((f) => {
+        const best = Math.min(f.lowAge, f.highAge);
+        const worst = Math.max(f.lowAge, f.highAge);
+        const swing = worst - best;
+        return {
+          ...f,
+          baseAge,
+          bestAge: best,
+          worstAge: worst,
+          swing,
+        };
+      })
+      .sort((a, b) => b.swing - a.swing);
+  }
+
   return {
     runMonteCarlo,
+    runHistoricalStressTests,
+    calculateSensitivityAnalysis,
+    HISTORICAL_CRISES,
   };
 });
+

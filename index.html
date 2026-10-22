@@ -1863,6 +1863,58 @@
                   </div>
                 </div>
               </div>
+          </section>
+
+          <section id="deep-dive-card" class="optimizer-card">
+            <div class="optimizer-header">
+              <div class="deep-dive-tab-selector" role="tablist" aria-label="Vælg dybdeanalyse">
+                <button
+                  type="button"
+                  class="deep-dive-tab is-active"
+                  data-deep-tab="stress"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="deep-dive-stress-pane"
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2v4M12 18v-4M4.93 4.93l2.83 2.83M16.24 16.24l-2.83-2.83M2 12h4M18 12h-4M4.93 19.07l2.83-2.83M16.24 7.76l-2.83 2.83" />
+                  </svg>
+                  <span>1. Historisk Stress-test (Kriser)</span>
+                </button>
+                <button
+                  type="button"
+                  class="deep-dive-tab"
+                  data-deep-tab="tornado"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="deep-dive-tornado-pane"
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 4h14M5 8h10M7 12h6M9 16h2" />
+                  </svg>
+                  <span>2. Sensitivitet (Hvad rykker mest?)</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="deep-dive-stress-pane" class="deep-dive-pane">
+              <div class="deep-dive-pane-header">
+                <h3>Historisk Stress-test på de største finanskriser</h3>
+                <p>Hvordan ville din FIRE-plan have klaret sig, hvis du ramte ind i historiens værste kriser på din første dag som pensionist (Sequence-of-Returns Risk)?</p>
+              </div>
+              <div id="stress-test-grid" class="stress-test-grid">
+                <!-- Dynamisk udfyldt via JS -->
+              </div>
+            </div>
+
+            <div id="deep-dive-tornado-pane" class="deep-dive-pane" hidden>
+              <div class="deep-dive-pane-header">
+                <h3>Sensitivitets-analyse (Tornado)</h3>
+                <p>Hvilke faktorer har størst indflydelse på din FIRE-alder? Se hvilke håndtag der flytter din tilbagetrækningsdato mest med få justeringer.</p>
+              </div>
+              <div id="sensitivity-tornado-container" class="tornado-container">
+                <!-- Dynamisk udfyldt via JS -->
+              </div>
             </div>
           </section>
 

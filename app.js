@@ -3001,6 +3001,92 @@
     }
   }
 
+  function renderStressTests(inputs) {
+    const grid = document.querySelector("#stress-test-grid");
+    if (!grid || !window.FireMonteCarlo?.runHistoricalStressTests) return;
+
+    const results = window.FireMonteCarlo.runHistoricalStressTests(inputs);
+    grid.innerHTML = results
+      .map((r) => {
+        const badgeClass = r.isSolvent
+          ? "scenario-delta-better"
+          : "scenario-delta-worse";
+        const badgeText = r.isSolvent
+          ? "Overlever krisen"
+          : `Udtømmes ved ${ages.format(r.depletionAge || 75)} år`;
+
+        return `
+          <div class="stress-card">
+            <div class="stress-card-header">
+              <span class="stress-card-title">${r.name}</span>
+              <span class="stress-card-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <p class="stress-card-desc">${r.desc}</p>
+            <div class="stress-card-metrics">
+              <div class="stress-metric-row">
+                <span>Laveste formue undervejs:</span>
+                <strong>${currency.format(r.minBalance)}</strong>
+              </div>
+              <div class="stress-metric-row">
+                <span>Slutreserve ved 90 år:</span>
+                <strong style="color:${r.finalReserve > 0 ? "#059669" : "#dc2626"}">
+                  ${currency.format(r.finalReserve)}
+                </strong>
+              </div>
+            </div>
+          </div>`;
+      })
+      .join("");
+  }
+
+  function renderTornadoAnalysis(inputs) {
+    const container = document.querySelector("#sensitivity-tornado-container");
+    if (!container || !window.FireMonteCarlo?.calculateSensitivityAnalysis)
+      return;
+
+    const factors = window.FireMonteCarlo.calculateSensitivityAnalysis(inputs);
+
+    container.innerHTML = factors
+      .map((f) => {
+        const leftShare = Math.max(
+          0.1,
+          (f.baseAge - f.bestAge) / Math.max(1, f.swing),
+        );
+        const rightShare = Math.max(
+          0.1,
+          (f.worstAge - f.baseAge) / Math.max(1, f.swing),
+        );
+        const total = leftShare + rightShare;
+        const leftPct = Math.round((leftShare / total) * 100);
+        const rightPct = 100 - leftPct;
+
+        return `
+          <div class="tornado-row">
+            <div class="tornado-factor-info">
+              <strong>${f.name}</strong>
+              <small>${f.desc}</small>
+            </div>
+            <div class="tornado-visual">
+              <span style="font-size:11px;color:var(--muted);width:70px;text-align:right;">${f.lowLabel}</span>
+              <div class="tornado-bar-wrap" title="${f.bestAge} år til ${f.worstAge} år">
+                <div class="tornado-bar-left" style="width:${leftPct}%;">
+                  <span>${f.bestAge} år</span>
+                </div>
+                <div class="tornado-bar-right" style="width:${rightPct}%;">
+                  <span>${f.worstAge} år</span>
+                </div>
+              </div>
+              <span style="font-size:11px;color:var(--muted);width:70px;">${f.highLabel}</span>
+            </div>
+            <div class="tornado-swing-badge">
+              <span>± ${f.swing} års forskel</span>
+            </div>
+          </div>`;
+      })
+      .join("");
+  }
+
+
   function updateScenarioButtons() {
     if (loadPlanABtn) loadPlanABtn.disabled = !scenarioPlanA;
     if (loadPlanBBtn) loadPlanBBtn.disabled = !scenarioPlanB;
@@ -3392,6 +3478,8 @@
     renderTaxChart(calculation, inputs);
     renderSolvencyChart(calculation, inputs, mc);
     renderFolkepensionOptimizer(calculation, inputs);
+    renderStressTests(inputs);
+    renderTornadoAnalysis(inputs);
 
     setText("current-age", `${calculation.currentAge} år`);
     const realReturn = (growthReturn, defensiveReturn) =>
@@ -3793,6 +3881,33 @@
   if (loadPlanBBtn) {
     loadPlanBBtn.addEventListener("click", loadPlanB);
   }
+
+  const deepDiveTabs = [...document.querySelectorAll("[data-deep-tab]")];
+  const deepDivePanes = {
+    stress: document.querySelector("#deep-dive-stress-pane"),
+    tornado: document.querySelector("#deep-dive-tornado-pane"),
+  };
+
+  deepDiveTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetTab = tab.dataset.deepTab;
+      deepDiveTabs.forEach((t) => {
+        const isActive = t.dataset.deepTab === targetTab;
+        t.classList.toggle("is-active", isActive);
+        t.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+      Object.entries(deepDivePanes).forEach(([name, pane]) => {
+        if (pane) {
+          if (name === targetTab) {
+            pane.removeAttribute("hidden");
+          } else {
+            pane.setAttribute("hidden", "");
+          }
+        }
+      });
+    });
+  });
+
 
 
   if (mcTableShowComparisonInput) {
