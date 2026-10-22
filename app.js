@@ -21,6 +21,9 @@
   const mcTableScenarioButtons = [
     ...document.querySelectorAll("[data-mc-table-scenario]"),
   ];
+  const chartScaleButtons = [
+    ...document.querySelectorAll("[data-chart-scale]"),
+  ];
   const mcTableShowComparisonInput = document.querySelector(
     "#mc-table-show-comparison",
   );
@@ -139,6 +142,7 @@
   let latestActiveTableCalc = null;
   let mcChartMode = "without";
   let mcTableScenario = "baseline";
+  let chartScaleMode = "linear";
   let mcSeedCounter = 20260419;
   const inputLocale =
     document.documentElement.lang || navigator.language || "da-DK";
@@ -724,6 +728,15 @@
     });
     mcTableScenarioButtons.forEach((button) => {
       const active = button.dataset.mcTableScenario === mcTableScenario;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    syncChartScaleButtons();
+  }
+
+  function syncChartScaleButtons() {
+    chartScaleButtons.forEach((button) => {
+      const active = button.dataset.chartScale === chartScaleMode;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", String(active));
     });
@@ -1657,11 +1670,84 @@
       ? Math.max(...mc.percentileBands.map((band) => band.p90), 1)
       : 1;
     const rawMax = Math.max(showWithoutOnChart ? baseMax : 1, mcMax);
-    const magnitude = 10 ** Math.floor(Math.log10(rawMax));
-    const yMax = Math.ceil(rawMax / magnitude) * magnitude;
     const xForAge = (age) =>
       margin.left + ((age - minAge) / Math.max(1, maxAge - minAge)) * plotWidth;
-    const yForValue = (value) => plotBottom - (value / yMax) * plotHeight;
+
+    let yMax;
+    let yForValue;
+    let yTicks;
+
+    if (chartScaleMode === "symlog") {
+      const linearThreshold = 2_000_000;
+      const linearFraction = 0.35; // 35 % af lodret plotplads til 0 - 2 mio. kr.
+
+      if (rawMax <= linearThreshold) {
+        const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(rawMax)));
+        yMax = Math.max(linearThreshold, Math.ceil(rawMax / magnitude) * magnitude);
+        yForValue = (value) =>
+          plotBottom - (Math.max(0, Number(value) || 0) / yMax) * plotHeight;
+        yTicks = [0, 500_000, 1_000_000, 1_500_000, 2_000_000].filter(
+          (t) => t <= yMax,
+        );
+      } else {
+        if (rawMax <= 5_000_000) {
+          yMax = 5_000_000;
+        } else if (rawMax <= 10_000_000) {
+          yMax = 10_000_000;
+        } else if (rawMax <= 20_000_000) {
+          yMax = 20_000_000;
+        } else if (rawMax <= 50_000_000) {
+          yMax = 50_000_000;
+        } else if (rawMax <= 100_000_000) {
+          yMax = 100_000_000;
+        } else {
+          const magnitude = 10 ** Math.floor(Math.log10(rawMax));
+          yMax = Math.ceil(rawMax / magnitude) * magnitude;
+        }
+
+        const logDenominator = Math.log(yMax / linearThreshold);
+
+        yForValue = (value) => {
+          const val = Number(value) || 0;
+          if (val <= 0) return plotBottom;
+          let norm;
+          if (val <= linearThreshold) {
+            norm = (val / linearThreshold) * linearFraction;
+          } else {
+            norm =
+              linearFraction +
+              (1 - linearFraction) *
+                (Math.log(val / linearThreshold) / logDenominator);
+          }
+          norm = Math.max(0, Math.min(1, norm));
+          return plotBottom - norm * plotHeight;
+        };
+
+        const candidateTicks = [
+          0,
+          1_000_000,
+          2_000_000,
+          5_000_000,
+          10_000_000,
+          20_000_000,
+          50_000_000,
+          100_000_000,
+          200_000_000,
+          500_000_000,
+        ];
+        yTicks = candidateTicks.filter((tick) => tick <= yMax);
+        if (!yTicks.includes(yMax)) {
+          yTicks.push(yMax);
+        }
+      }
+    } else {
+      const magnitude = 10 ** Math.floor(Math.log10(rawMax));
+      yMax = Math.ceil(rawMax / magnitude) * magnitude;
+      yForValue = (value) =>
+        plotBottom - (Math.max(0, Number(value) || 0) / yMax) * plotHeight;
+      yTicks = Array.from({ length: 5 }, (_, index) => (yMax / 4) * index);
+    }
+
     const pensionPoints = rows.map((row) => ({
       age: row.age,
       x: xForAge(row.age).toFixed(2),
@@ -1705,7 +1791,6 @@
     const mcP75Points = showMcOnChart ? mcPointsForKey("p75") : [];
     const mcP90Points = showMcOnChart ? mcPointsForKey("p90") : [];
 
-    const yTicks = Array.from({ length: 5 }, (_, index) => (yMax / 4) * index);
     const axisRows = rows.filter(
       (row, index) => index === 0 || row.age !== rows[index - 1].age,
     );
@@ -2388,6 +2473,13 @@
         mcChartMode = "compare";
       }
       syncMonteCarloButtons();
+      update();
+    });
+  });
+  chartScaleButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      chartScaleMode = button.dataset.chartScale || "linear";
+      syncChartScaleButtons();
       update();
     });
   });

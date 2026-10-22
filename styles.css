@@ -2262,6 +2262,58 @@ textarea:focus-visible {
   font-weight: var(--weight-semibold);
 }
 
+.mc-toolbar-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chart-scale-control {
+  align-items: center;
+  background: #eaeae5;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+}
+
+.chart-scale-label {
+  color: var(--muted);
+  font-size: var(--text-overline-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.05em;
+  padding: 0 4px 0 6px;
+  text-transform: uppercase;
+}
+
+.chart-scale-btn {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-semibold);
+  padding: 5px 10px;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.chart-scale-btn:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.chart-scale-btn.is-active {
+  background: var(--surface);
+  border-color: #d0d4d1;
+  box-shadow: 0 1px 3px rgba(29, 43, 39, 0.1);
+}
+
 .mc-segmented-control {
   background: #eaeae5;
   border: 1px solid var(--line);

@@ -1189,40 +1189,67 @@
                     <div class="mc-toolbar-row">
                       <div class="mc-toolbar-title">
                         <span class="mc-toolbar-kicker">Grafisk visning &amp; forløb</span>
-                        <strong>Vælg visning: Uden vs. Med Monte Carlo</strong>
+                        <strong>Vælg visning og akse-skala</strong>
                       </div>
-                      <div
-                        class="mc-segmented-control"
-                        role="group"
-                        aria-label="Vælg grafvisning for Monte Carlo"
-                      >
-                        <button
-                          type="button"
-                          class="mc-segment-btn is-active"
-                          data-mc-chart-mode="without"
-                          aria-pressed="true"
+                      <div class="mc-toolbar-controls">
+                        <div
+                          class="mc-segmented-control"
+                          role="group"
+                          aria-label="Vælg grafvisning for Monte Carlo"
                         >
-                          <span class="mc-badge mc-badge-without">Uden MC</span>
-                          <span>Fast afkast</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="mc-segment-btn"
-                          data-mc-chart-mode="compare"
-                          aria-pressed="false"
+                          <button
+                            type="button"
+                            class="mc-segment-btn is-active"
+                            data-mc-chart-mode="without"
+                            aria-pressed="true"
+                          >
+                            <span class="mc-badge mc-badge-without">Uden MC</span>
+                            <span>Fast afkast</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="mc-segment-btn"
+                            data-mc-chart-mode="compare"
+                            aria-pressed="false"
+                          >
+                            <span class="mc-badge mc-badge-compare">Sammenlign</span>
+                            <span>Uden vs. Med Monte Carlo</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="mc-segment-btn"
+                            data-mc-chart-mode="with"
+                            aria-pressed="false"
+                          >
+                            <span class="mc-badge mc-badge-with">Med MC</span>
+                            <span>Kun Monte Carlo-bånd</span>
+                          </button>
+                        </div>
+                        <div
+                          class="chart-scale-control"
+                          role="group"
+                          aria-label="Vælg skala for formueaksen"
                         >
-                          <span class="mc-badge mc-badge-compare">Sammenlign</span>
-                          <span>Uden vs. Med Monte Carlo</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="mc-segment-btn"
-                          data-mc-chart-mode="with"
-                          aria-pressed="false"
-                        >
-                          <span class="mc-badge mc-badge-with">Med MC</span>
-                          <span>Kun Monte Carlo-bånd</span>
-                        </button>
+                          <span class="chart-scale-label">Akse:</span>
+                          <button
+                            type="button"
+                            class="chart-scale-btn is-active"
+                            data-chart-scale="linear"
+                            aria-pressed="true"
+                            title="Lineær skala: Formuen vises med jævne intervaller (10 mio. kr. fylder dobbelt så meget som 5 mio. kr.)."
+                          >
+                            Lineær
+                          </button>
+                          <button
+                            type="button"
+                            class="chart-scale-btn"
+                            data-chart-scale="symlog"
+                            aria-pressed="false"
+                            title="Logaritmisk skala (Symlog): Komprimerer formuer over 2 mio. kr., så store formuer ved stærkt marked (P90) ikke maser de enkelte depoter og P10 i bunden."
+                          >
+                            Logaritmisk
+                          </button>
+                        </div>
                       </div>
                     </div>
 
