@@ -61,6 +61,29 @@
                 </svg>
                 Indlæs input
               </button>
+              <button
+                id="compare-scenarios-trigger"
+                class="plan-code-trigger"
+                type="button"
+                aria-haspopup="dialog"
+              >
+                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="6" height="12" rx="1.5" />
+                  <rect x="10" y="3" width="6" height="12" rx="1.5" />
+                </svg>
+                Sammenlign A/B
+              </button>
+              <button
+                id="export-pdf-trigger"
+                class="plan-code-trigger"
+                type="button"
+              >
+                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 2h7l3 3v11H4z" />
+                  <path d="M7 9h4M7 12h4" />
+                </svg>
+                PDF / Udskriv
+              </button>
             </div>
           </div>
         </div>
@@ -1787,6 +1810,62 @@
             </details>
           </section>
 
+          <section id="folkepension-optimizer-card" class="optimizer-card">
+            <div class="optimizer-header">
+              <div class="optimizer-badge">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
+                <span>Folkepension &amp; Modregnings-Assistent</span>
+              </div>
+              <div class="optimizer-header-title">
+                <h3>Optimer dine udbetalinger mod modregning i pensionstillæg</h3>
+                <p>Når du modtager ratepension og livrente, modregnes der op til 30,9 % (enlig) eller 16 % (par) i dit pensionstillæg over bundgrænsen. Se dit tab og konkrete råd til optimering.</p>
+              </div>
+            </div>
+            <div class="optimizer-body">
+              <div class="optimizer-metrics-row">
+                <div class="optimizer-metric-box">
+                  <span class="optimizer-metric-label">Samlet tabt folkepension</span>
+                  <strong id="optimizer-lost-total" class="optimizer-metric-value text-danger">0 kr.</strong>
+                  <small id="optimizer-lost-desc">Modregnet i pensionstillæg over hele perioden</small>
+                </div>
+                <div class="optimizer-metric-box">
+                  <span class="optimizer-metric-label">Gns. modregning pr. år</span>
+                  <strong id="optimizer-lost-annual" class="optimizer-metric-value">0 kr.</strong>
+                  <small>I dine år som folkepensionist</small>
+                </div>
+                <div class="optimizer-metric-box">
+                  <span class="optimizer-metric-label">Udbetalt folkepension</span>
+                  <strong id="optimizer-received-total" class="optimizer-metric-value text-success">0 kr.</strong>
+                  <small id="optimizer-received-desc">Samlet udbetalt til dig efter modregning</small>
+                </div>
+              </div>
+
+              <div class="optimizer-advice-grid">
+                <div class="advice-card">
+                  <div class="advice-icon">💡</div>
+                  <div class="advice-content">
+                    <strong>1. Hæv ASK &amp; Aldersopsparing først</strong>
+                    <p>Udbetalinger fra <strong>Aktiesparekonto</strong> og <strong>Aldersopsparing</strong> tæller <strong>0 kr.</strong> i modregningen! Hæver du disse før din ratepension påbegyndes, bevarer du dit fulde pensionstillæg i de første pensionsår.</p>
+                  </div>
+                </div>
+                <div class="advice-card">
+                  <div class="advice-icon">⏳</div>
+                  <div class="advice-content">
+                    <strong>2. Stræk Ratepensionen over 15–20 år</strong>
+                    <p>En ratepension udbetalt over 20–25 år i stedet for 10 år holder den årlige skattepligtige udbetaling lavere, så mere af beløbet holdes under bundgrænsen (ca. 95.800 kr. for enlige / 191.900 kr. for par i 2026).</p>
+                  </div>
+                </div>
+                <div class="advice-card">
+                  <div class="advice-icon">📈</div>
+                  <div class="advice-content">
+                    <strong>3. Udnyt progressionsgrænsen på frie midler</strong>
+                    <p>Realiserede aktieavancer på frie midler under progressionsgrænsen (79.400 kr. enlig / 158.800 kr. par) modregnes ikke på samme måde som almindelig personlig pensionsindkomst.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <details class="key-figures">
             <summary>Se alle nøgletal og forudsætninger</summary>
             <dl>
@@ -2156,6 +2235,55 @@
       </div>
       <div class="math-inspector-footer">
         <button id="math-inspector-ok" class="plan-code-primary-action" type="button">Luk</button>
+      </div>
+    </dialog>
+
+    <dialog
+      id="scenario-comparison-dialog"
+      class="scenario-dialog"
+      aria-labelledby="scenario-dialog-heading"
+    >
+      <div class="scenario-dialog-shell">
+        <header class="scenario-dialog-header">
+          <div>
+            <span class="mc-toolbar-kicker">Scenarie-analyse</span>
+            <h2 id="scenario-dialog-heading">Sammenlign Plan A &amp; Plan B</h2>
+            <p>Gem dit nuværende input som Plan A eller Plan B for at se den direkte forskel i FIRE-alder, skattebesparelser, modtaget folkepension og slutformue.</p>
+          </div>
+          <button
+            id="close-scenario-dialog"
+            class="plan-code-dialog-close"
+            type="button"
+            aria-label="Luk sammenligning"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <path d="m4 4 10 10M14 4 4 14" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="scenario-dialog-actions-bar">
+          <div class="scenario-action-group">
+            <button type="button" class="scenario-action-btn scenario-btn-a" id="save-as-plan-a-btn">
+              💾 Gem aktuelt input som <strong>Plan A</strong>
+            </button>
+            <button type="button" class="scenario-action-btn scenario-btn-b" id="save-as-plan-b-btn">
+              💾 Gem aktuelt input som <strong>Plan B</strong>
+            </button>
+          </div>
+          <div class="scenario-action-group">
+            <button type="button" class="scenario-action-btn scenario-btn-ghost" id="load-plan-a-btn" disabled>
+              Indlæs Plan A i beregneren
+            </button>
+            <button type="button" class="scenario-action-btn scenario-btn-ghost" id="load-plan-b-btn" disabled>
+              Indlæs Plan B i beregneren
+            </button>
+          </div>
+        </div>
+
+        <div id="scenario-comparison-content" class="scenario-comparison-content">
+          <!-- Dynamisk genereret indhold -->
+        </div>
       </div>
     </dialog>
 

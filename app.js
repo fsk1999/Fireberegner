@@ -37,6 +37,33 @@
   const runSolvencyMcBtn = document.querySelector("#run-solvency-mc-btn");
   let currentChartView = "wealth";
 
+  const compareScenariosTrigger = document.querySelector(
+    "#compare-scenarios-trigger",
+  );
+  const exportPdfTrigger = document.querySelector("#export-pdf-trigger");
+  const scenarioDialog = document.querySelector("#scenario-comparison-dialog");
+  const closeScenarioDialogBtn = document.querySelector(
+    "#close-scenario-dialog",
+  );
+  const saveAsPlanABtn = document.querySelector("#save-as-plan-a-btn");
+  const saveAsPlanBBtn = document.querySelector("#save-as-plan-b-btn");
+  const loadPlanABtn = document.querySelector("#load-plan-a-btn");
+  const loadPlanBBtn = document.querySelector("#load-plan-b-btn");
+  const scenarioContent = document.querySelector(
+    "#scenario-comparison-content",
+  );
+
+  let scenarioPlanA = null;
+  let scenarioPlanB = null;
+
+  try {
+    const savedA = localStorage.getItem("fire_scenario_plan_a");
+    if (savedA) scenarioPlanA = JSON.parse(savedA);
+    const savedB = localStorage.getItem("fire_scenario_plan_b");
+    if (savedB) scenarioPlanB = JSON.parse(savedB);
+  } catch (_e) {}
+
+
   const mcTableShowComparisonInput = document.querySelector(
     "#mc-table-show-comparison",
   );
@@ -2922,7 +2949,378 @@
     hoverLayer.style.display = "none";
   }
 
+  function renderFolkepensionOptimizer(calculation, inputs) {
+    const optimizerCard = document.querySelector("#folkepension-optimizer-card");
+    const lostTotalEl = document.querySelector("#optimizer-lost-total");
+    const lostAnnualEl = document.querySelector("#optimizer-lost-annual");
+    const receivedTotalEl = document.querySelector("#optimizer-received-total");
+    const lostDescEl = document.querySelector("#optimizer-lost-desc");
+    if (!optimizerCard || !lostTotalEl) return;
+
+    if (!inputs.includeFolkepension) {
+      lostTotalEl.textContent = "Udeladt";
+      lostTotalEl.className = "optimizer-metric-value";
+      lostAnnualEl.textContent = "0 kr.";
+      receivedTotalEl.textContent = "0 kr.";
+      if (lostDescEl) {
+        lostDescEl.textContent =
+          "Folkepension er slået fra under antagelser. Slå den til for at se modregning.";
+      }
+      return;
+    }
+
+    const pensionAge = inputs.folkepensionAge || 69;
+    const retirementRows = (calculation.planRows || []).filter(
+      (r) => r.age >= pensionAge,
+    );
+    // Lovfastsat fuld folkepension pr. person/år (2026-niveau: grundbeløb + fuldt pensionstillæg)
+    const fullAnnual = inputs.isCouple ? 144_144 : 195_300;
+    const totalFullPotential = retirementRows.length * fullAnnual;
+    const totalReceivedGross = retirementRows.reduce(
+      (sum, r) => sum + (r.publicPensionGross || 0),
+      0,
+    );
+    const totalLost = Math.max(0, totalFullPotential - totalReceivedGross);
+    const avgLost =
+      retirementRows.length > 0
+        ? Math.round(totalLost / retirementRows.length)
+        : 0;
+
+    lostTotalEl.textContent = currency.format(totalLost);
+    lostTotalEl.className =
+      totalLost > 0
+        ? "optimizer-metric-value text-danger"
+        : "optimizer-metric-value text-success";
+    lostAnnualEl.textContent = currency.format(avgLost) + " / år";
+    receivedTotalEl.textContent = currency.format(totalReceivedGross);
+    if (lostDescEl) {
+      lostDescEl.textContent =
+        totalLost > 0
+          ? "Modregnet i pensionstillæg pga. ratepension og livrente over bundgrænsen."
+          : "Du bevarer dit fulde pensionstillæg uden modregning!";
+    }
+  }
+
+  function updateScenarioButtons() {
+    if (loadPlanABtn) loadPlanABtn.disabled = !scenarioPlanA;
+    if (loadPlanBBtn) loadPlanBBtn.disabled = !scenarioPlanB;
+  }
+
+  function saveAsPlanA() {
+    const inputs = readInputs();
+    scenarioPlanA = {
+      name: "Plan A",
+      savedAt: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      inputs,
+    };
+    try {
+      localStorage.setItem("fire_scenario_plan_a", JSON.stringify(scenarioPlanA));
+    } catch (_e) {}
+    updateScenarioButtons();
+    renderScenarioComparison();
+  }
+
+  function saveAsPlanB() {
+    const inputs = readInputs();
+    scenarioPlanB = {
+      name: "Plan B",
+      savedAt: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      inputs,
+    };
+    try {
+      localStorage.setItem("fire_scenario_plan_b", JSON.stringify(scenarioPlanB));
+    } catch (_e) {}
+    updateScenarioButtons();
+    renderScenarioComparison();
+  }
+
+  function loadPlanA() {
+    if (!scenarioPlanA) return;
+    applyPlanInputs(scenarioPlanA.inputs);
+    if (scenarioDialog) scenarioDialog.close();
+  }
+
+  function loadPlanB() {
+    if (!scenarioPlanB) return;
+    applyPlanInputs(scenarioPlanB.inputs);
+    if (scenarioDialog) scenarioDialog.close();
+  }
+
+  function renderScenarioComparison() {
+    if (!scenarioContent) return;
+
+    if (!scenarioPlanA && !scenarioPlanB) {
+      scenarioContent.innerHTML = `
+        <div style="text-align:center;padding:32px 16px;color:var(--muted);">
+          <p style="font-size:15px;margin-bottom:8px;color:var(--ink);font-weight:600;">Ingen planer er gemt endnu</p>
+          <p style="max-width:480px;margin:0 auto 16px;line-height:1.5;">
+            Klik på knappen <strong>"Gem aktuelt input som Plan A"</strong> ovenfor for at fastfryse dine nuværende tal. Justér derefter parametrene (f.eks. pensionsalder, indbetaling eller bolig) og gem som <strong>Plan B</strong>.
+          </p>
+        </div>`;
+      return;
+    }
+
+    const calcA = scenarioPlanA ? calculateFire(scenarioPlanA.inputs) : null;
+    const calcB = scenarioPlanB ? calculateFire(scenarioPlanB.inputs) : null;
+    const mcA = scenarioPlanA
+      ? computeMonteCarlo(scenarioPlanA.inputs, false)
+      : null;
+    const mcB = scenarioPlanB
+      ? computeMonteCarlo(scenarioPlanB.inputs, false)
+      : null;
+
+    function getAnnualSavings(inp) {
+      return (
+        (inp.annualRatePensionContribution || 0) +
+        (inp.annualLifeAnnuityContribution || 0) +
+        (inp.annualAgeSavingsContribution || 0) +
+        (inp.annualFreeFundsContribution || 0) +
+        (inp.annualAskContribution || 0)
+      );
+    }
+
+    function getTotalTax(calc) {
+      if (!calc?.planRows) return 0;
+      return calc.planRows.reduce(
+        (sum, r) =>
+          sum +
+          (r.withdrawalTax || 0) +
+          (r.annualFreeFundsTax || 0) +
+          (r.pensionWithdrawalTax || 0),
+        0,
+      );
+    }
+
+    function getTotalPublicPension(calc) {
+      if (!calc?.planRows) return 0;
+      return calc.planRows.reduce(
+        (sum, r) => sum + (r.publicPensionGross || 0),
+        0,
+      );
+    }
+
+    const rows = [
+      {
+        metric: "Tidligste FIRE-alder",
+        valA: calcA?.fireRow
+          ? `${ages.format(calcA.fireRow.age)} år`
+          : calcA
+            ? "Ikke nået"
+            : "—",
+        valB: calcB?.fireRow
+          ? `${ages.format(calcB.fireRow.age)} år`
+          : calcB
+            ? "Ikke nået"
+            : "—",
+        delta: () => {
+          if (!calcA?.fireRow || !calcB?.fireRow) return null;
+          const diff = calcB.fireRow.age - calcA.fireRow.age;
+          if (diff === 0)
+            return { text: "Samme alder", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `Plan A er ${diff} år hurtigere`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `Plan B er ${Math.abs(diff)} år hurtigere`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+      {
+        metric: "Ønsket årligt forbrug (netto)",
+        valA: scenarioPlanA
+          ? currency.format(scenarioPlanA.inputs.desiredAnnualWithdrawal)
+          : "—",
+        valB: scenarioPlanB
+          ? currency.format(scenarioPlanB.inputs.desiredAnnualWithdrawal)
+          : "—",
+        delta: () => {
+          if (!scenarioPlanA || !scenarioPlanB) return null;
+          const diff =
+            scenarioPlanB.inputs.desiredAnnualWithdrawal -
+            scenarioPlanA.inputs.desiredAnnualWithdrawal;
+          if (diff === 0)
+            return { text: "Ens forbrug", cls: "scenario-delta-neutral" };
+          return {
+            text: `${diff > 0 ? "+" : ""}${currency.format(diff)}`,
+            cls: "scenario-delta-neutral",
+          };
+        },
+      },
+      {
+        metric: "Årlig samlet opsparing",
+        valA: scenarioPlanA
+          ? currency.format(getAnnualSavings(scenarioPlanA.inputs))
+          : "—",
+        valB: scenarioPlanB
+          ? currency.format(getAnnualSavings(scenarioPlanB.inputs))
+          : "—",
+        delta: () => {
+          if (!scenarioPlanA || !scenarioPlanB) return null;
+          const diff =
+            getAnnualSavings(scenarioPlanB.inputs) -
+            getAnnualSavings(scenarioPlanA.inputs);
+          if (diff === 0)
+            return { text: "Ens indbetaling", cls: "scenario-delta-neutral" };
+          return {
+            text: `${diff > 0 ? "+" : ""}${currency.format(diff)}`,
+            cls: "scenario-delta-neutral",
+          };
+        },
+      },
+      {
+        metric: "Slutreserve ved 90 år",
+        valA: calcA ? currency.format(calcA.finalRow.totalBalance) : "—",
+        valB: calcB ? currency.format(calcB.finalRow.totalBalance) : "—",
+        delta: () => {
+          if (!calcA || !calcB) return null;
+          const diff = calcB.finalRow.totalBalance - calcA.finalRow.totalBalance;
+          if (diff === 0)
+            return { text: "Ens reserve", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `+${currency.format(diff)} i Plan B`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `+${currency.format(Math.abs(diff))} i Plan A`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+      {
+        metric: "Samlet skat & afgifter",
+        valA: calcA ? currency.format(getTotalTax(calcA)) : "—",
+        valB: calcB ? currency.format(getTotalTax(calcB)) : "—",
+        delta: () => {
+          if (!calcA || !calcB) return null;
+          const diff = getTotalTax(calcB) - getTotalTax(calcA);
+          if (diff === 0)
+            return { text: "Ens skat", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `${currency.format(diff)} sparet i Plan A`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `${currency.format(Math.abs(diff))} sparet i Plan B`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+      {
+        metric: "Folkepension modtaget i alt",
+        valA: calcA ? currency.format(getTotalPublicPension(calcA)) : "—",
+        valB: calcB ? currency.format(getTotalPublicPension(calcB)) : "—",
+        delta: () => {
+          if (!calcA || !calcB) return null;
+          const diff =
+            getTotalPublicPension(calcB) - getTotalPublicPension(calcA);
+          if (diff === 0)
+            return { text: "Ens folkepension", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `+${currency.format(diff)} i Plan B`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `+${currency.format(Math.abs(diff))} i Plan A`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+      {
+        metric: "Monte Carlo succesrate (Solvens)",
+        valA:
+          mcA?.successRate != null ? `${percent.format(mcA.successRate)}` : "—",
+        valB:
+          mcB?.successRate != null ? `${percent.format(mcB.successRate)}` : "—",
+        delta: () => {
+          if (mcA?.successRate == null || mcB?.successRate == null) return null;
+          const diff =
+            Math.round((mcB.successRate - mcA.successRate) * 1000) / 10;
+          if (diff === 0)
+            return { text: "Ens solvens", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `+${diff} %-point i Plan B`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `+${Math.abs(diff)} %-point i Plan A`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+      {
+        metric: "Monte Carlo Median reserve (P50)",
+        valA: mcA ? currency.format(mcA.totalBalancePercentiles.p50) : "—",
+        valB: mcB ? currency.format(mcB.totalBalancePercentiles.p50) : "—",
+        delta: () => {
+          if (!mcA || !mcB) return null;
+          const diff =
+            mcB.totalBalancePercentiles.p50 - mcA.totalBalancePercentiles.p50;
+          if (diff === 0)
+            return { text: "Ens median", cls: "scenario-delta-neutral" };
+          if (diff > 0)
+            return {
+              text: `+${currency.format(diff)} i Plan B`,
+              cls: "scenario-delta-better",
+            };
+          return {
+            text: `+${currency.format(Math.abs(diff))} i Plan A`,
+            cls: "scenario-delta-better",
+          };
+        },
+      },
+    ];
+
+    const rowsHtml = rows
+      .map((r) => {
+        const deltaObj = r.delta();
+        const deltaHtml = deltaObj
+          ? `<span class="scenario-delta-badge ${deltaObj.cls}">${deltaObj.text}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+        return `
+          <tr>
+            <td class="scenario-metric-name">${r.metric}</td>
+            <td class="val-plan-a">${r.valA}</td>
+            <td class="val-plan-b">${r.valB}</td>
+            <td>${deltaHtml}</td>
+          </tr>`;
+      })
+      .join("");
+
+    scenarioContent.innerHTML = `
+      <table class="scenario-table">
+        <thead>
+          <tr>
+            <th style="width:28%">Parameter / Nøgletal</th>
+            <th class="col-plan-a" style="width:24%">
+              Plan A ${scenarioPlanA ? `<small style="font-weight:normal;opacity:0.8;">(${scenarioPlanA.savedAt})</small>` : ""}
+            </th>
+            <th class="col-plan-b" style="width:24%">
+              Plan B ${scenarioPlanB ? `<small style="font-weight:normal;opacity:0.8;">(${scenarioPlanB.savedAt})</small>` : ""}
+            </th>
+            <th style="width:24%">Forskel (Delta)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>`;
+  }
+
   function render(calculation, inputs) {
+
 
     const stop = calculation.pensionStopRow;
     const fire = calculation.fireRow;
@@ -2993,6 +3391,7 @@
     renderCashflowChart(calculation, inputs);
     renderTaxChart(calculation, inputs);
     renderSolvencyChart(calculation, inputs, mc);
+    renderFolkepensionOptimizer(calculation, inputs);
 
     setText("current-age", `${calculation.currentAge} år`);
     const realReturn = (growthReturn, defensiveReturn) =>
@@ -3361,6 +3760,40 @@
   if (runSolvencyMcBtn) {
     runSolvencyMcBtn.addEventListener("click", runMonteCarloSimulation);
   }
+
+  if (exportPdfTrigger) {
+    exportPdfTrigger.addEventListener("click", () => window.print());
+  }
+  if (compareScenariosTrigger && scenarioDialog) {
+    compareScenariosTrigger.addEventListener("click", () => {
+      updateScenarioButtons();
+      renderScenarioComparison();
+      scenarioDialog.showModal();
+    });
+  }
+  if (closeScenarioDialogBtn && scenarioDialog) {
+    closeScenarioDialogBtn.addEventListener("click", () =>
+      scenarioDialog.close(),
+    );
+  }
+  scenarioDialog?.addEventListener("click", (event) => {
+    if (event.target === scenarioDialog) {
+      scenarioDialog.close();
+    }
+  });
+  if (saveAsPlanABtn) {
+    saveAsPlanABtn.addEventListener("click", saveAsPlanA);
+  }
+  if (saveAsPlanBBtn) {
+    saveAsPlanBBtn.addEventListener("click", saveAsPlanB);
+  }
+  if (loadPlanABtn) {
+    loadPlanABtn.addEventListener("click", loadPlanA);
+  }
+  if (loadPlanBBtn) {
+    loadPlanBBtn.addEventListener("click", loadPlanB);
+  }
+
 
   if (mcTableShowComparisonInput) {
     mcTableShowComparisonInput.addEventListener("change", () => {

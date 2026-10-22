@@ -3184,3 +3184,379 @@ th.housing-col {
 .note-disclaimer {
   background: var(--phase-background);
 }
+
+/* --- Folkepension Optimizer Card --- */
+.optimizer-card {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: var(--space-5) var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.optimizer-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.optimizer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  padding: 4px 10px;
+  border-radius: var(--radius-round);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-2);
+}
+
+.optimizer-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.optimizer-header-title h3 {
+  font-size: var(--text-section-size);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.optimizer-header-title p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  margin: 0;
+  max-width: 780px;
+}
+
+.optimizer-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.optimizer-metric-box {
+  background: #f8faf8;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.optimizer-metric-label {
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.optimizer-metric-value {
+  font-size: var(--text-metric-md-size);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.text-danger {
+  color: #dc2626 !important;
+}
+
+.text-success {
+  color: #059669 !important;
+}
+
+.optimizer-metric-box small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.optimizer-advice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.advice-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.advice-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.advice-content strong {
+  display: block;
+  font-size: var(--text-body-sm-size);
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.advice-content p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  margin: 0;
+}
+
+/* --- Scenario Dialog --- */
+.scenario-dialog {
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: 0 20px 45px rgba(29, 43, 39, 0.25);
+  max-width: 900px;
+  width: 95vw;
+  padding: 0;
+  background: var(--surface);
+}
+
+.scenario-dialog::backdrop {
+  background: rgba(29, 43, 39, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.scenario-dialog-shell {
+  padding: var(--space-6);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.scenario-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.scenario-dialog-header h2 {
+  font-size: var(--text-section-size);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  margin: 2px 0 4px;
+}
+
+.scenario-dialog-header p {
+  color: var(--muted);
+  font-size: var(--text-caption-size);
+  margin: 0;
+  max-width: 650px;
+}
+
+.scenario-dialog-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  background: #f8faf8;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+}
+
+.scenario-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.scenario-action-btn {
+  appearance: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-semibold);
+  padding: 8px 14px;
+  transition: all 140ms ease;
+}
+
+.scenario-btn-a {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.scenario-btn-a:hover {
+  background: #dbeafe;
+}
+
+.scenario-btn-b {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #6d28d9;
+}
+
+.scenario-btn-b:hover {
+  background: #ede9fe;
+}
+
+.scenario-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.scenario-btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.scenario-btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scenario-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-caption-size);
+}
+
+.scenario-table th,
+.scenario-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.scenario-table th {
+  background: #f1f3f1;
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.scenario-table th.col-plan-a {
+  color: #1d4ed8;
+}
+
+.scenario-table th.col-plan-b {
+  color: #6d28d9;
+}
+
+.scenario-table td.scenario-metric-name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.scenario-table td.val-plan-a,
+.scenario-table td.val-plan-b {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+}
+
+.scenario-delta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-round);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+}
+
+.scenario-delta-better {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+}
+
+.scenario-delta-worse {
+  background: rgba(239, 68, 68, 0.15);
+  color: #991b1b;
+}
+
+.scenario-delta-neutral {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+/* --- Print Styles --- */
+@media print {
+  @page {
+    margin: 10mm;
+    size: A4 portrait;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .planner-card,
+  .plan-code-toolbar,
+  .chart-view-selector,
+  .mc-timeline-panel,
+  .chart-view-header-actions,
+  .chart-hover-target,
+  .chart-hover-layer,
+  .plan-code-dialog,
+  .scenario-dialog,
+  .math-inspector-dialog,
+  .math-hover-tooltip,
+  .key-figures summary,
+  .action-btn,
+  #error {
+    display: none !important;
+  }
+
+  .page-shell {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .dashboard {
+    display: block !important;
+  }
+
+  .result-card,
+  .timeline-card,
+  .optimizer-card {
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 20px !important;
+    padding: 16px !important;
+  }
+
+  .wealth-chart svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .table-wrap {
+    overflow: visible !important;
+    page-break-before: auto;
+  }
+
+  table {
+    font-size: 8px !important;
+  }
+
+  th, td {
+    padding: 3px 4px !important;
+  }
+}
+
