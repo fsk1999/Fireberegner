@@ -1178,14 +1178,70 @@
             <h2 id="timeline-heading" class="visually-hidden">
               Dit økonomiske livsforløb
             </h2>
+            <div class="chart-view-selector" role="tablist" aria-label="Vælg grafvisning">
+              <button
+                type="button"
+                class="chart-view-tab is-active"
+                data-chart-view="wealth"
+                role="tab"
+                aria-selected="true"
+                aria-controls="wealth-chart-view"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 17V3m0 14h14M3 13l4-4 4 2 5-6" />
+                </svg>
+                <span>1. Formueudvikling</span>
+              </button>
+              <button
+                type="button"
+                class="chart-view-tab"
+                data-chart-view="cashflow"
+                role="tab"
+                aria-selected="false"
+                aria-controls="cashflow-chart-view"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 17h14M4 14V9m4 5V5m4 9v-6m4 6v-3" />
+                </svg>
+                <span>2. Årligt Cashflow &amp; Hævninger</span>
+              </button>
+              <button
+                type="button"
+                class="chart-view-tab"
+                data-chart-view="tax"
+                role="tab"
+                aria-selected="false"
+                aria-controls="tax-chart-view"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 2L3 6v2h14V6L10 2ZM4 10v6m4-6v6m4-6v6m4-6v6M2 18h16" />
+                </svg>
+                <span>3. Skat &amp; Afgifter</span>
+              </button>
+              <button
+                type="button"
+                class="chart-view-tab"
+                data-chart-view="solvency"
+                role="tab"
+                aria-selected="false"
+                aria-controls="solvency-chart-view"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="10" cy="10" r="7" />
+                  <path d="M10 6v4l2.5 2.5" />
+                </svg>
+                <span>4. Solvens over tid</span>
+              </button>
+            </div>
             <div class="timeline-viewport">
               <div class="timeline-plot">
                 <div class="timeline-visual-frame">
-                  <div
-                    id="mc-timeline-panel"
-                    class="mc-timeline-panel"
-                    aria-label="Monte Carlo visning og sammenligning"
-                  >
+                  <div id="wealth-chart-view" class="chart-view-pane">
+                    <div
+                      id="mc-timeline-panel"
+                      class="mc-timeline-panel"
+                      aria-label="Monte Carlo visning og sammenligning"
+                    >
                     <div class="mc-toolbar-row">
                       <div class="mc-toolbar-title">
                         <span class="mc-toolbar-kicker">Grafisk visning &amp; forløb</span>
@@ -1483,6 +1539,78 @@
                       <span
                         ><i class="legend-mc-p10" aria-hidden="true"></i>P10 Pessimistisk</span
                       >
+                    </div>
+                  </div>
+                  </div><!-- End #wealth-chart-view -->
+
+                  <div id="cashflow-chart-view" class="chart-view-pane" hidden>
+                    <div class="chart-view-header">
+                      <div class="chart-view-header-title">
+                        <span class="mc-toolbar-kicker">Likviditetsstrømme år for år</span>
+                        <strong>Hvor kommer pengene fra? (Opsparing vs. Udbetalinger fra depoter &amp; folkepension)</strong>
+                      </div>
+                    </div>
+                    <div id="cashflow-chart" class="wealth-chart"></div>
+                    <div class="chart-legend" aria-label="Cashflow-kategorier">
+                      <div class="chart-legend-group">
+                        <b class="legend-group-badge legend-group-badge-without">Kilder:</b>
+                        <span><i class="legend-cf-savings" aria-hidden="true"></i>Årlig opsparing</span>
+                        <span><i class="legend-cf-free" aria-hidden="true"></i>Frie midler (netto)</span>
+                        <span><i class="legend-cf-ask" aria-hidden="true"></i>Aktiesparekonto</span>
+                        <span><i class="legend-cf-age" aria-hidden="true"></i>Aldersopsparing</span>
+                        <span><i class="legend-cf-rate" aria-hidden="true"></i>Ratepension (netto)</span>
+                        <span><i class="legend-cf-life" aria-hidden="true"></i>Livrente (netto)</span>
+                        <span><i class="legend-cf-pub" aria-hidden="true"></i>Folkepension (netto)</span>
+                        <span><i class="legend-cf-atp" aria-hidden="true"></i>ATP &amp; Efterløn (netto)</span>
+                        <span><i class="legend-cf-housing" aria-hidden="true"></i>Frigjort friværdi</span>
+                        <span><i class="legend-cf-target" aria-hidden="true"></i>Ønsket forbrug (mål)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="tax-chart-view" class="chart-view-pane" hidden>
+                    <div class="chart-view-header">
+                      <div class="chart-view-header-title">
+                        <span class="mc-toolbar-kicker">Skattebetalinger år for år</span>
+                        <strong>Hvor mange penge afleveres til Skat? (PAL, Aktieavance, Lagerskat, Pensionsskat &amp; Modregning)</strong>
+                      </div>
+                    </div>
+                    <div id="tax-chart" class="wealth-chart"></div>
+                    <div class="chart-legend" aria-label="Skattetyper">
+                      <div class="chart-legend-group">
+                        <b class="legend-group-badge legend-group-badge-without">Skattefordeling:</b>
+                        <span><i class="legend-tax-pal" aria-hidden="true"></i>PAL-skat (15,3 %)</span>
+                        <span><i class="legend-tax-share" aria-hidden="true"></i>Aktieskat (27/42 %)</span>
+                        <span><i class="legend-tax-ask" aria-hidden="true"></i>ASK lagerskat (17 %)</span>
+                        <span><i class="legend-tax-pension" aria-hidden="true"></i>Pensionsudbetalingsskat</span>
+                        <span><i class="legend-tax-offset" aria-hidden="true"></i>Modregning i folkepension</span>
+                        <span><i class="legend-tax-total" aria-hidden="true"></i>Samlet skat pr. år</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="solvency-chart-view" class="chart-view-pane" hidden>
+                    <div class="chart-view-header">
+                      <div class="chart-view-header-title">
+                        <span class="mc-toolbar-kicker">Monte Carlo Overlevelseskurve</span>
+                        <strong>Solvens-sandsynlighed over tid: Hvor stor er chancen for at pengene rækker til den enkelte alder?</strong>
+                      </div>
+                      <div class="chart-view-header-actions">
+                        <button type="button" class="mc-segment-btn" id="run-solvency-mc-btn">
+                          <svg viewBox="0 0 20 20" aria-hidden="true" style="width:14px;height:14px;"><path d="M3 17V3h14v14H3Zm4-4h2v2H7v-2Zm0-6h2v2H7V7Zm4 6h2v2h-2v-2Zm0-6h2v2h-2V7Z"/></svg>
+                          <span>Kør Monte Carlo for frisk kurve</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div id="solvency-chart" class="wealth-chart"></div>
+                    <div class="chart-legend" aria-label="Solvens-zoner">
+                      <div class="chart-legend-group">
+                        <b class="legend-group-badge legend-group-badge-with">Sikkerhedsniveauer:</b>
+                        <span><i class="legend-solvency-high" aria-hidden="true"></i>90–100 % (Meget sikker)</span>
+                        <span><i class="legend-solvency-mid" aria-hidden="true"></i>75–90 % (Moderat risiko)</span>
+                        <span><i class="legend-solvency-low" aria-hidden="true"></i>&lt; 75 % (Forhøjet udtømningsrisiko)</span>
+                        <span><i class="legend-solvency-line" aria-hidden="true"></i>Aktuel solvenskurve</span>
+                      </div>
                     </div>
                   </div>
                 </div>

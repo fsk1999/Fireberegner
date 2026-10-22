@@ -24,6 +24,19 @@
   const chartScaleButtons = [
     ...document.querySelectorAll("[data-chart-scale]"),
   ];
+  const chartViewTabs = [...document.querySelectorAll("[data-chart-view]")];
+  const chartViewPanes = {
+    wealth: document.querySelector("#wealth-chart-view"),
+    cashflow: document.querySelector("#cashflow-chart-view"),
+    tax: document.querySelector("#tax-chart-view"),
+    solvency: document.querySelector("#solvency-chart-view"),
+  };
+  const cashflowChart = document.querySelector("#cashflow-chart");
+  const taxChart = document.querySelector("#tax-chart");
+  const solvencyChart = document.querySelector("#solvency-chart");
+  const runSolvencyMcBtn = document.querySelector("#run-solvency-mc-btn");
+  let currentChartView = "wealth";
+
   const mcTableShowComparisonInput = document.querySelector(
     "#mc-table-show-comparison",
   );
@@ -2073,7 +2086,844 @@
     hoverLayer.style.display = "none";
   }
 
+  function renderCashflowChart(calculation, inputs) {
+    if (!cashflowChart) return;
+    const rows = calculation.planRows;
+    if (!rows || rows.length === 0) {
+      cashflowChart.innerHTML = "";
+      return;
+    }
+
+    const minAge = rows[0].age;
+    const maxAge = rows[rows.length - 1].age;
+    const width = 760;
+    const height = 360;
+    const margin = { top: 24, right: 28, bottom: 36, left: 68 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const plotBottom = height - margin.bottom;
+
+    const xForAge = (age) =>
+      margin.left + ((age - minAge) / Math.max(1, maxAge - minAge)) * plotWidth;
+
+    const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.38;
+
+    const data = rows.map((row) => {
+      const isAccumulation = row.phase === "Opsparing";
+      const savings = isAccumulation ? Math.max(0, row.contribution || 0) : 0;
+      const free = Math.max(
+        0,
+        (row.freeFundsWithdrawal || 0) - (row.withdrawalTax || 0),
+      );
+      const ask = Math.max(0, row.askWithdrawal || 0);
+      const ageSavings = Math.max(0, row.ageSavingsWithdrawal || 0);
+      const rate = Math.max(
+        0,
+        (row.taxFreeRatePensionWithdrawal || 0) +
+          (row.taxableRatePensionWithdrawal || 0) * (1 - pensionTaxRate),
+      );
+      const life = Math.max(
+        0,
+        (row.lifeAnnuityWithdrawal || 0) * (1 - pensionTaxRate),
+      );
+      const pub = Math.max(0, row.publicPensionNet || 0);
+      const atp = Math.max(
+        0,
+        ((row.atpGross || 0) + (row.efterloenGross || 0)) * (1 - pensionTaxRate),
+      );
+      const housing = Math.max(0, row.housingUnlocked || 0);
+      const target = isAccumulation
+        ? 0
+        : (row.desiredWithdrawal || inputs.desiredAnnualWithdrawal || 0);
+      const totalOut =
+        free + ask + ageSavings + rate + life + pub + atp + housing;
+      const stackTotal = isAccumulation ? savings : totalOut;
+
+      return {
+        row,
+        age: row.age,
+        year: row.date.getFullYear(),
+        isAccumulation,
+        savings,
+        free,
+        ask,
+        ageSavings,
+        rate,
+        life,
+        pub,
+        atp,
+        housing,
+        target,
+        totalOut,
+        stackTotal,
+      };
+    });
+
+    const maxVal = Math.max(
+      ...data.map((d) => Math.max(d.stackTotal, d.target)),
+      100_000,
+    );
+    const magnitude = 10 ** Math.max(3, Math.floor(Math.log10(maxVal)));
+    const yMax = Math.ceil(maxVal / magnitude) * magnitude;
+    const yForValue = (val) =>
+      plotBottom - (Math.max(0, Number(val) || 0) / yMax) * plotHeight;
+
+    const yTicks = Array.from({ length: 5 }, (_, i) => (yMax / 4) * i);
+    const gridLines = yTicks
+      .map(
+        (tick) => `
+          <line class="chart-grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${yForValue(tick)}" y2="${yForValue(tick)}" />`,
+      )
+      .join("");
+
+    const yAxisLabels = yTicks
+      .map(
+        (tick) => `
+          <text class="chart-y-label" x="${margin.left - 8}" y="${yForValue(tick) + 4}">${currency.format(tick)}</text>`,
+      )
+      .join("");
+
+    const yearAxis = rows
+      .map((row, index) => {
+        const x = xForAge(row.age);
+        const nowLabel =
+          index === 0
+            ? `<text class="chart-now-label" x="${x}" y="${plotBottom + 29}">nu</text>`
+            : "";
+        return `
+          <line class="chart-year-tick" x1="${x}" x2="${x}" y1="${plotBottom}" y2="${plotBottom + 4}" />
+          <text class="chart-year-label" x="${x}" y="${plotBottom + 14}">${row.age}</text>
+          ${nowLabel}`;
+      })
+      .join("");
+
+    // Bar rendering
+    const barWidth = Math.max(2, Math.min(14, (plotWidth / rows.length) * 0.72));
+    const barsSvg = data
+      .map((d) => {
+        const x = xForAge(d.age) - barWidth / 2;
+        if (d.isAccumulation) {
+          if (d.savings <= 0) return "";
+          const h = (d.savings / yMax) * plotHeight;
+          const y = plotBottom - h;
+          return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="#2563eb" rx="1.5" />`;
+        }
+
+        const segments = [
+          { val: d.free, fill: "#10b981" },
+          { val: d.ask, fill: "#06b6d4" },
+          { val: d.ageSavings, fill: "#8b5cf6" },
+          { val: d.rate, fill: "#f59e0b" },
+          { val: d.life, fill: "#ec4899" },
+          { val: d.pub, fill: "#6366f1" },
+          { val: d.atp, fill: "#14b8a6" },
+          { val: d.housing, fill: "#84cc16" },
+        ];
+
+        let curY = plotBottom;
+        return segments
+          .map((seg) => {
+            if (seg.val <= 0) return "";
+            const h = (seg.val / yMax) * plotHeight;
+            curY -= h;
+            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="1" />`;
+          })
+          .join("");
+      })
+      .join("");
+
+    // Desired withdrawal target line
+    const targetPoints = data
+      .filter((d) => !d.isAccumulation && d.target > 0)
+      .map((d) => ({
+        x: xForAge(d.age).toFixed(2),
+        y: yForValue(d.target).toFixed(2),
+      }));
+    const targetPath =
+      targetPoints.length > 0
+        ? `M ${targetPoints.map((p) => `${p.x} ${p.y}`).join(" L ")}`
+        : "";
+
+    cashflowChart.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Årligt cashflow og udbetalingskilder fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
+        <defs>
+          <clipPath id="cf-plot-clip">
+            <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+          </clipPath>
+        </defs>
+        <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+        <g clip-path="url(#cf-plot-clip)">
+          ${gridLines}
+          ${barsSvg}
+          ${targetPath ? `<path d="${targetPath}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 3" fill="none" />` : ""}
+        </g>
+        ${yAxisLabels}
+        ${yearAxis}
+        <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis cashflow for et bestemt år" />
+        <g class="chart-hover-layer" style="display: none" aria-hidden="true">
+          <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
+          <g class="chart-tooltip"></g>
+        </g>
+      </svg>`;
+
+    const svg = cashflowChart.querySelector("svg");
+    const hoverTarget = svg.querySelector(".chart-hover-target");
+    const hoverLayer = svg.querySelector(".chart-hover-layer");
+    const hoverLine = svg.querySelector(".chart-hover-line");
+    const tooltip = svg.querySelector(".chart-tooltip");
+    let activeIndex = 0;
+
+    function showCfYear(index) {
+      activeIndex = Math.max(0, Math.min(data.length - 1, index));
+      const d = data[activeIndex];
+      const x = xForAge(d.age);
+
+      hoverLine.setAttribute("x1", x);
+      hoverLine.setAttribute("x2", x);
+
+      const items = [];
+      if (d.isAccumulation) {
+        items.push({
+          label: "Årlig opsparing",
+          value: d.savings,
+          color: "#2563eb",
+        });
+      } else {
+        if (d.free > 0)
+          items.push({
+            label: "Frie midler (netto)",
+            value: d.free,
+            color: "#10b981",
+          });
+        if (d.ask > 0)
+          items.push({
+            label: "Aktiesparekonto",
+            value: d.ask,
+            color: "#06b6d4",
+          });
+        if (d.ageSavings > 0)
+          items.push({
+            label: "Aldersopsparing",
+            value: d.ageSavings,
+            color: "#8b5cf6",
+          });
+        if (d.rate > 0)
+          items.push({
+            label: "Ratepension (netto)",
+            value: d.rate,
+            color: "#f59e0b",
+          });
+        if (d.life > 0)
+          items.push({
+            label: "Livrente (netto)",
+            value: d.life,
+            color: "#ec4899",
+          });
+        if (d.pub > 0)
+          items.push({
+            label: "Folkepension (netto)",
+            value: d.pub,
+            color: "#6366f1",
+          });
+        if (d.atp > 0)
+          items.push({
+            label: "ATP & Efterløn",
+            value: d.atp,
+            color: "#14b8a6",
+          });
+        if (d.housing > 0)
+          items.push({
+            label: "Frigjort friværdi",
+            value: d.housing,
+            color: "#84cc16",
+          });
+        items.push({
+          label: "Samlet udbetalt",
+          value: d.totalOut,
+          color: "#1d2b27",
+        });
+        if (d.target > 0) {
+          items.push({
+            label: "Ønsket forbrug (mål)",
+            value: d.target,
+            color: "#ef4444",
+          });
+        }
+      }
+
+      const tooltipWidth = 240;
+      const valX = tooltipWidth - 10;
+      const rowHeight = 17;
+      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipX =
+        x > width - margin.right - tooltipWidth - 16
+          ? x - tooltipWidth - 12
+          : x + 12;
+      const tooltipY = margin.top + 8;
+
+      tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
+      const rowsSvg = items
+        .map((item, idx) => {
+          const y = 35 + idx * rowHeight;
+          return `
+            <circle cx="16" cy="${y - 4}" r="3" fill="${item.color}" />
+            <text class="chart-tooltip-label" x="25" y="${y}">${item.label}</text>
+            <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
+        })
+        .join("");
+
+      tooltip.innerHTML = `
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
+        <text class="chart-tooltip-title" x="10" y="17">${d.year} · ${ages.format(d.age)} år (${d.isAccumulation ? "Opsparing" : "Nedsparing"})</text>
+        ${rowsSvg}`;
+
+      hoverLayer.style.display = "block";
+    }
+
+    hoverTarget.addEventListener("mousemove", (event) => {
+      const rect = svg.getBoundingClientRect();
+      const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
+      const progress = Math.max(
+        0,
+        Math.min(1, (viewBoxX - margin.left) / plotWidth),
+      );
+      const targetAge = minAge + progress * (maxAge - minAge);
+      const nearestIndex = data.reduce(
+        (bestIndex, d, index) =>
+          Math.abs(d.age - targetAge) <
+          Math.abs(data[bestIndex].age - targetAge)
+            ? index
+            : bestIndex,
+        0,
+      );
+      showCfYear(nearestIndex);
+    });
+    hoverTarget.addEventListener("mouseleave", () => {
+      hoverLayer.style.display = "none";
+    });
+    hoverTarget.addEventListener("focus", () => showCfYear(activeIndex));
+    hoverTarget.addEventListener("blur", () => {
+      hoverLayer.style.display = "none";
+    });
+    showCfYear(0);
+    hoverLayer.style.display = "none";
+  }
+
+  function renderTaxChart(calculation, inputs) {
+    if (!taxChart) return;
+    const rows = calculation.planRows;
+    if (!rows || rows.length === 0) {
+      taxChart.innerHTML = "";
+      return;
+    }
+
+    const minAge = rows[0].age;
+    const maxAge = rows[rows.length - 1].age;
+    const width = 760;
+    const height = 360;
+    const margin = { top: 24, right: 28, bottom: 36, left: 68 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const plotBottom = height - margin.bottom;
+
+    const xForAge = (age) =>
+      margin.left + ((age - minAge) / Math.max(1, maxAge - minAge)) * plotWidth;
+
+    const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.38;
+
+    const taxData = rows.map((row) => {
+      // 1. PAL-skat (15,3% af nominelt pensionsafkast)
+      const pensionDepot =
+        (row.ratePension || 0) +
+        (row.ageSavings || 0) +
+        (row.lifeAnnuityDepotValue || row.lifeAnnuity || 0);
+      const returnRate =
+        row.pensionReturnRate ?? inputs.pensionReturnRate ?? 0.05;
+      const palTax = Math.max(
+        0,
+        Math.round(pensionDepot * returnRate * (inputs.pensionTax ?? 0.153)),
+      );
+
+      // 2. Aktieavancebeskatning (27/42% på realisation af frie midler)
+      const shareTax = Math.max(0, row.withdrawalTax || 0);
+
+      // 3. ASK & depot lagerskat (17%)
+      const askTax = Math.max(
+        0,
+        row.annualFreeFundsTax ||
+          Math.round(
+            (row.ask || 0) *
+              (row.freeFundsReturnRate ?? inputs.freeFundsReturnRate ?? 0.07) *
+              0.17,
+          ),
+      );
+
+      // 4. Pensionsudbetalingsskat & ATP/efterlønskat
+      const pensionTax = Math.max(
+        0,
+        (row.pensionWithdrawalTax || 0) +
+          Math.round(
+            ((row.atpGross || 0) + (row.efterloenGross || 0)) * pensionTaxRate,
+          ),
+      );
+
+      // 5. Modregning i folkepension
+      let offsetTax = 0;
+      if (row.age >= (inputs.publicPensionAge ?? 69)) {
+        const fullPublicPension = 186_000;
+        offsetTax = Math.max(
+          0,
+          Math.round(fullPublicPension - (row.publicPensionGross || 0)),
+        );
+      }
+
+      const totalTax = palTax + shareTax + askTax + pensionTax + offsetTax;
+      return {
+        row,
+        age: row.age,
+        year: row.date.getFullYear(),
+        palTax,
+        shareTax,
+        askTax,
+        pensionTax,
+        offsetTax,
+        totalTax,
+      };
+    });
+
+    const maxVal = Math.max(...taxData.map((d) => d.totalTax), 20_000);
+    const magnitude = 10 ** Math.max(3, Math.floor(Math.log10(maxVal)));
+    const yMax = Math.ceil(maxVal / magnitude) * magnitude;
+    const yForValue = (val) =>
+      plotBottom - (Math.max(0, Number(val) || 0) / yMax) * plotHeight;
+
+    const yTicks = Array.from({ length: 5 }, (_, i) => (yMax / 4) * i);
+    const gridLines = yTicks
+      .map(
+        (tick) => `
+          <line class="chart-grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${yForValue(tick)}" y2="${yForValue(tick)}" />`,
+      )
+      .join("");
+
+    const yAxisLabels = yTicks
+      .map(
+        (tick) => `
+          <text class="chart-y-label" x="${margin.left - 8}" y="${yForValue(tick) + 4}">${currency.format(tick)}</text>`,
+      )
+      .join("");
+
+    const yearAxis = rows
+      .map((row, index) => {
+        const x = xForAge(row.age);
+        const nowLabel =
+          index === 0
+            ? `<text class="chart-now-label" x="${x}" y="${plotBottom + 29}">nu</text>`
+            : "";
+        return `
+          <line class="chart-year-tick" x1="${x}" x2="${x}" y1="${plotBottom}" y2="${plotBottom + 4}" />
+          <text class="chart-year-label" x="${x}" y="${plotBottom + 14}">${row.age}</text>
+          ${nowLabel}`;
+      })
+      .join("");
+
+    // Bar rendering
+    const barWidth = Math.max(2, Math.min(14, (plotWidth / rows.length) * 0.72));
+    const barsSvg = taxData
+      .map((d) => {
+        const x = xForAge(d.age) - barWidth / 2;
+        const segments = [
+          { val: d.palTax, fill: "#8b5cf6" },
+          { val: d.shareTax, fill: "#f59e0b" },
+          { val: d.askTax, fill: "#06b6d4" },
+          { val: d.pensionTax, fill: "#ef4444" },
+          { val: d.offsetTax, fill: "#ec4899" },
+        ];
+
+        let curY = plotBottom;
+        return segments
+          .map((seg) => {
+            if (seg.val <= 0) return "";
+            const h = (seg.val / yMax) * plotHeight;
+            curY -= h;
+            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="1" />`;
+          })
+          .join("");
+      })
+      .join("");
+
+    // Total tax line across years
+    const totalLinePoints = taxData.map((d) => ({
+      x: xForAge(d.age).toFixed(2),
+      y: yForValue(d.totalTax).toFixed(2),
+    }));
+    const totalLinePath = `M ${totalLinePoints.map((p) => `${p.x} ${p.y}`).join(" L ")}`;
+
+    taxChart.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Skat og afgifter over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
+        <defs>
+          <clipPath id="tax-plot-clip">
+            <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+          </clipPath>
+        </defs>
+        <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+        <g clip-path="url(#tax-plot-clip)">
+          ${gridLines}
+          ${barsSvg}
+          <path d="${totalLinePath}" stroke="#1e293b" stroke-width="2.5" fill="none" />
+        </g>
+        ${yAxisLabels}
+        ${yearAxis}
+        <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis skat for et bestemt år" />
+        <g class="chart-hover-layer" style="display: none" aria-hidden="true">
+          <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
+          <circle class="chart-hover-point-total" cx="0" cy="0" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.5" />
+          <g class="chart-tooltip"></g>
+        </g>
+      </svg>`;
+
+    const svg = taxChart.querySelector("svg");
+    const hoverTarget = svg.querySelector(".chart-hover-target");
+    const hoverLayer = svg.querySelector(".chart-hover-layer");
+    const hoverLine = svg.querySelector(".chart-hover-line");
+    const hoverPointTotal = svg.querySelector(".chart-hover-point-total");
+    const tooltip = svg.querySelector(".chart-tooltip");
+    let activeIndex = 0;
+
+    function showTaxYear(index) {
+      activeIndex = Math.max(0, Math.min(taxData.length - 1, index));
+      const d = taxData[activeIndex];
+      const x = xForAge(d.age);
+      const totalY = yForValue(d.totalTax);
+
+      hoverLine.setAttribute("x1", x);
+      hoverLine.setAttribute("x2", x);
+      hoverPointTotal.setAttribute("cx", x);
+      hoverPointTotal.setAttribute("cy", totalY);
+
+      const items = [];
+      if (d.palTax > 0)
+        items.push({
+          label: "PAL-skat (15,3 %)",
+          value: d.palTax,
+          color: "#8b5cf6",
+        });
+      if (d.shareTax > 0)
+        items.push({
+          label: "Aktieskat (27/42 %)",
+          value: d.shareTax,
+          color: "#f59e0b",
+        });
+      if (d.askTax > 0)
+        items.push({
+          label: "ASK lagerskat (17 %)",
+          value: d.askTax,
+          color: "#06b6d4",
+        });
+      if (d.pensionTax > 0)
+        items.push({
+          label: "Pensionsudbetalingsskat",
+          value: d.pensionTax,
+          color: "#ef4444",
+        });
+      if (d.offsetTax > 0)
+        items.push({
+          label: "Modregning i folkepension",
+          value: d.offsetTax,
+          color: "#ec4899",
+        });
+      items.push({
+        label: "Samlet skat & afgifter",
+        value: d.totalTax,
+        color: "#1e293b",
+      });
+
+      const tooltipWidth = 248;
+      const valX = tooltipWidth - 10;
+      const rowHeight = 17;
+      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipX =
+        x > width - margin.right - tooltipWidth - 16
+          ? x - tooltipWidth - 12
+          : x + 12;
+      const tooltipY = margin.top + 8;
+
+      tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
+      const rowsSvg = items
+        .map((item, idx) => {
+          const y = 35 + idx * rowHeight;
+          return `
+            <circle cx="16" cy="${y - 4}" r="3" fill="${item.color}" />
+            <text class="chart-tooltip-label" x="25" y="${y}">${item.label}</text>
+            <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
+        })
+        .join("");
+
+      tooltip.innerHTML = `
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
+        <text class="chart-tooltip-title" x="10" y="17">${d.year} · ${ages.format(d.age)} år</text>
+        ${rowsSvg}`;
+
+      hoverLayer.style.display = "block";
+    }
+
+    hoverTarget.addEventListener("mousemove", (event) => {
+      const rect = svg.getBoundingClientRect();
+      const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
+      const progress = Math.max(
+        0,
+        Math.min(1, (viewBoxX - margin.left) / plotWidth),
+      );
+      const targetAge = minAge + progress * (maxAge - minAge);
+      const nearestIndex = taxData.reduce(
+        (bestIndex, d, index) =>
+          Math.abs(d.age - targetAge) <
+          Math.abs(taxData[bestIndex].age - targetAge)
+            ? index
+            : bestIndex,
+        0,
+      );
+      showTaxYear(nearestIndex);
+    });
+    hoverTarget.addEventListener("mouseleave", () => {
+      hoverLayer.style.display = "none";
+    });
+    hoverTarget.addEventListener("focus", () => showTaxYear(activeIndex));
+    hoverTarget.addEventListener("blur", () => {
+      hoverLayer.style.display = "none";
+    });
+    showTaxYear(0);
+    hoverLayer.style.display = "none";
+  }
+
+  function renderSolvencyChart(calculation, inputs, mc) {
+    if (!solvencyChart) return;
+    const activeMc =
+      mc || latestMonteCarlo || computeMonteCarlo(inputs, false);
+    const bands = activeMc?.percentileBands;
+    if (!bands || bands.length === 0) {
+      solvencyChart.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:360px;color:var(--muted);gap:12px;">
+          <p>Kør Monte Carlo for at beregne den fulde overlevelseskurve over tid.</p>
+        </div>`;
+      return;
+    }
+
+    const minAge = bands[0].age;
+    const maxAge = bands[bands.length - 1].age;
+    const width = 760;
+    const height = 360;
+    const margin = { top: 24, right: 28, bottom: 36, left: 56 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const plotBottom = height - margin.bottom;
+
+    const xForAge = (age) =>
+      margin.left + ((age - minAge) / Math.max(1, maxAge - minAge)) * plotWidth;
+
+    const yForRate = (rate) =>
+      plotBottom -
+      (Math.max(0, Math.min(100, Number(rate) || 0)) / 100) * plotHeight;
+
+    const yTicks = [0, 25, 50, 75, 90, 100];
+    const gridLines = yTicks
+      .map(
+        (tick) => `
+          <line class="chart-grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${yForRate(tick)}" y2="${yForRate(tick)}" stroke-dasharray="${tick === 90 || tick === 75 ? "4 3" : "none"}" />`,
+      )
+      .join("");
+
+    const yAxisLabels = yTicks
+      .map(
+        (tick) => `
+          <text class="chart-y-label" x="${margin.left - 8}" y="${yForRate(tick) + 4}">${tick} %</text>`,
+      )
+      .join("");
+
+    const yearAxis = bands
+      .map((band, index) => {
+        const x = xForAge(band.age);
+        const nowLabel =
+          index === 0
+            ? `<text class="chart-now-label" x="${x}" y="${plotBottom + 29}">nu</text>`
+            : "";
+        return `
+          <line class="chart-year-tick" x1="${x}" x2="${x}" y1="${plotBottom}" y2="${plotBottom + 4}" />
+          <text class="chart-year-label" x="${x}" y="${plotBottom + 14}">${band.age}</text>
+          ${nowLabel}`;
+      })
+      .join("");
+
+    // Colored Zones:
+    // 90 - 100%: Green
+    // 75 - 90%: Amber
+    // 0 - 75%: Soft red
+    const y100 = yForRate(100);
+    const y90 = yForRate(90);
+    const y75 = yForRate(75);
+    const y0 = yForRate(0);
+
+    const zonesSvg = `
+      <rect x="${margin.left}" y="${y100}" width="${plotWidth}" height="${y90 - y100}" fill="rgba(16, 185, 129, 0.12)" />
+      <rect x="${margin.left}" y="${y90}" width="${plotWidth}" height="${y75 - y90}" fill="rgba(245, 158, 11, 0.12)" />
+      <rect x="${margin.left}" y="${y75}" width="${plotWidth}" height="${y0 - y75}" fill="rgba(239, 68, 68, 0.08)" />
+      <text x="${width - margin.right - 8}" y="${y100 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#059669">Meget sikker (90–100 %)</text>
+      <text x="${width - margin.right - 8}" y="${y90 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#d97706">Moderat risiko (75–90 %)</text>
+      <text x="${width - margin.right - 8}" y="${y75 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#dc2626">Forhøjet udtømningsrisiko (&lt;75 %)</text>
+    `;
+
+    // Solvency curve
+    const points = bands.map((b) => ({
+      x: xForAge(b.age).toFixed(2),
+      y: yForRate(b.solvencyRate).toFixed(2),
+    }));
+    const linePath = `M ${points.map((p) => `${p.x} ${p.y}`).join(" L ")}`;
+    const areaPoints = [
+      { x: margin.left, y: plotBottom },
+      ...points,
+      { x: points[points.length - 1].x, y: plotBottom },
+    ];
+    const areaPath = `M ${areaPoints.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`;
+
+    solvencyChart.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Solvens-sandsynlighed over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
+        <defs>
+          <clipPath id="solvency-plot-clip">
+            <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+          </clipPath>
+          <linearGradient id="solvency-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.02" />
+          </linearGradient>
+        </defs>
+        <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
+        <g clip-path="url(#solvency-plot-clip)">
+          ${zonesSvg}
+          ${gridLines}
+          <path d="${areaPath}" fill="url(#solvency-grad)" />
+          <path d="${linePath}" stroke="#6366f1" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        ${yAxisLabels}
+        ${yearAxis}
+        <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis solvens for en bestemt alder" />
+        <g class="chart-hover-layer" style="display: none" aria-hidden="true">
+          <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
+          <circle class="chart-hover-point-solvency" cx="0" cy="0" r="5" fill="#6366f1" stroke="#ffffff" stroke-width="2" />
+          <g class="chart-tooltip"></g>
+        </g>
+      </svg>`;
+
+    const svg = solvencyChart.querySelector("svg");
+    const hoverTarget = svg.querySelector(".chart-hover-target");
+    const hoverLayer = svg.querySelector(".chart-hover-layer");
+    const hoverLine = svg.querySelector(".chart-hover-line");
+    const hoverPoint = svg.querySelector(".chart-hover-point-solvency");
+    const tooltip = svg.querySelector(".chart-tooltip");
+    let activeIndex = 0;
+
+    function showSolvencyYear(index) {
+      activeIndex = Math.max(0, Math.min(bands.length - 1, index));
+      const b = bands[activeIndex];
+      const x = xForAge(b.age);
+      const y = yForRate(b.solvencyRate);
+
+      hoverLine.setAttribute("x1", x);
+      hoverLine.setAttribute("x2", x);
+      hoverPoint.setAttribute("cx", x);
+      hoverPoint.setAttribute("cy", y);
+
+      let statusColor = "#10b981";
+      let statusText = "Meget sikker (≥ 90 %)";
+      if (b.solvencyRate < 75) {
+        statusColor = "#ef4444";
+        statusText = "Forhøjet risiko (< 75 %)";
+      } else if (b.solvencyRate < 90) {
+        statusColor = "#f59e0b";
+        statusText = "Moderat risiko (75–90 %)";
+      }
+
+      const items = [
+        {
+          label: "Solvens-chance",
+          value: `${b.solvencyRate} %`,
+          color: statusColor,
+        },
+        {
+          label: "Sikkerhedszone",
+          value: statusText,
+          color: statusColor,
+        },
+        {
+          label: "Median formue (P50)",
+          value: currency.format(b.p50),
+          color: "#6366f1",
+        },
+        {
+          label: "Pessimistisk formue (P10)",
+          value: currency.format(b.p10),
+          color: "#b45309",
+        },
+      ];
+
+      const tooltipWidth = 246;
+      const valX = tooltipWidth - 10;
+      const rowHeight = 17;
+      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipX =
+        x > width - margin.right - tooltipWidth - 16
+          ? x - tooltipWidth - 12
+          : x + 12;
+      const tooltipY = margin.top + 8;
+
+      tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
+      const rowsSvg = items
+        .map((item, idx) => {
+          const rowY = 35 + idx * rowHeight;
+          return `
+            <circle cx="16" cy="${rowY - 4}" r="3" fill="${item.color}" />
+            <text class="chart-tooltip-label" x="25" y="${rowY}">${item.label}</text>
+            <text class="chart-tooltip-value" x="${valX}" y="${rowY}">${item.value}</text>`;
+        })
+        .join("");
+
+      tooltip.innerHTML = `
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
+        <text class="chart-tooltip-title" x="10" y="17">${ages.format(b.age)} år · Solvens over tid</text>
+        ${rowsSvg}`;
+
+      hoverLayer.style.display = "block";
+    }
+
+    hoverTarget.addEventListener("mousemove", (event) => {
+      const rect = svg.getBoundingClientRect();
+      const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
+      const progress = Math.max(
+        0,
+        Math.min(1, (viewBoxX - margin.left) / plotWidth),
+      );
+      const targetAge = minAge + progress * (maxAge - minAge);
+      const nearestIndex = bands.reduce(
+        (bestIndex, b, index) =>
+          Math.abs(b.age - targetAge) <
+          Math.abs(bands[bestIndex].age - targetAge)
+            ? index
+            : bestIndex,
+        0,
+      );
+      showSolvencyYear(nearestIndex);
+    });
+    hoverTarget.addEventListener("mouseleave", () => {
+      hoverLayer.style.display = "none";
+    });
+    hoverTarget.addEventListener("focus", () => showSolvencyYear(activeIndex));
+    hoverTarget.addEventListener("blur", () => {
+      hoverLayer.style.display = "none";
+    });
+    showSolvencyYear(0);
+    hoverLayer.style.display = "none";
+  }
+
   function render(calculation, inputs) {
+
     const stop = calculation.pensionStopRow;
     const fire = calculation.fireRow;
 
@@ -2140,6 +2990,9 @@
     renderPhases(calculation, inputs);
     renderMonteCarloComparison(calculation, inputs, mc);
     renderChart(calculation, inputs, mc);
+    renderCashflowChart(calculation, inputs);
+    renderTaxChart(calculation, inputs);
+    renderSolvencyChart(calculation, inputs, mc);
 
     setText("current-age", `${calculation.currentAge} år`);
     const realReturn = (growthReturn, defensiveReturn) =>
@@ -2483,6 +3336,32 @@
       update();
     });
   });
+  function setChartView(viewName) {
+    currentChartView = viewName;
+    chartViewTabs.forEach((tab) => {
+      const isActive = tab.dataset.chartView === viewName;
+      tab.classList.toggle("is-active", isActive);
+      tab.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    Object.entries(chartViewPanes).forEach(([name, pane]) => {
+      if (pane) {
+        if (name === viewName) {
+          pane.removeAttribute("hidden");
+        } else {
+          pane.setAttribute("hidden", "");
+        }
+      }
+    });
+  }
+  chartViewTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setChartView(tab.dataset.chartView || "wealth");
+    });
+  });
+  if (runSolvencyMcBtn) {
+    runSolvencyMcBtn.addEventListener("click", runMonteCarloSimulation);
+  }
+
   if (mcTableShowComparisonInput) {
     mcTableShowComparisonInput.addEventListener("change", () => {
       update();

@@ -1744,6 +1744,122 @@ legend,
   );
 }
 
+/* Chart View Selector & Panes */
+.chart-view-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+  background: #f1f3f1;
+  padding: 4px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+}
+
+.chart-view-tab {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--sans);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--weight-semibold);
+  gap: 8px;
+  padding: 8px 14px;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.chart-view-tab svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.chart-view-tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+}
+
+.chart-view-tab.is-active {
+  background: var(--surface);
+  color: var(--primary);
+  border-color: rgba(29, 43, 39, 0.12);
+  box-shadow: 0 1px 4px rgba(29, 43, 39, 0.08);
+}
+
+.chart-view-pane {
+  display: block;
+}
+
+.chart-view-pane[hidden] {
+  display: none !important;
+}
+
+.chart-view-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.chart-view-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-view-header-title strong {
+  font-size: var(--text-body-sm-size);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.chart-view-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Cashflow Legend */
+.legend-cf-savings { background: #2563eb; }
+.legend-cf-free { background: #10b981; }
+.legend-cf-ask { background: #06b6d4; }
+.legend-cf-age { background: #8b5cf6; }
+.legend-cf-rate { background: #f59e0b; }
+.legend-cf-life { background: #ec4899; }
+.legend-cf-pub { background: #6366f1; }
+.legend-cf-atp { background: #14b8a6; }
+.legend-cf-housing { background: #84cc16; }
+.legend-cf-target {
+  background: #ef4444;
+  border-top: 2px dashed #ef4444;
+  height: 0 !important;
+}
+
+/* Tax Legend */
+.legend-tax-pal { background: #8b5cf6; }
+.legend-tax-share { background: #f59e0b; }
+.legend-tax-ask { background: #06b6d4; }
+.legend-tax-pension { background: #ef4444; }
+.legend-tax-offset { background: #ec4899; }
+.legend-tax-total { background: #1e293b; height: 3px !important; }
+
+/* Solvency Legend */
+.legend-solvency-high { background: #10b981; }
+.legend-solvency-mid { background: #f59e0b; }
+.legend-solvency-low { background: #ef4444; }
+.legend-solvency-line { background: #6366f1; height: 3px !important; }
+
+
 .chart-year-tick {
   stroke: #9fa8a4;
   stroke-width: 0.8;

@@ -273,6 +273,12 @@
         depotP10: percentile(bucket.depot, 10),
         depotP50: percentile(bucket.depot, 50),
         depotP90: percentile(bucket.depot, 90),
+        solvencyRate:
+          Math.round(
+            ((bucket.total.filter((w) => w > 0).length /
+              Math.max(1, bucket.total.length)) *
+              1000),
+          ) / 10,
       });
     });
 
