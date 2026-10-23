@@ -3773,4 +3773,143 @@ th.housing-col {
   color: var(--ink);
 }
 
+/* Calc Mode Toolbar (Auto vs Manual) */
+.calc-mode-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: 8px 12px;
+  background: #f1f3f1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.calc-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  user-select: none;
+}
+
+.calc-mode-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.calc-mode-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: #cbd5e1;
+  border-radius: 20px;
+  transition: background 160ms ease;
+}
+
+.calc-mode-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 160ms ease;
+}
+
+.calc-mode-label input:checked + .calc-mode-switch {
+  background: var(--primary);
+}
+
+.calc-mode-label input:checked + .calc-mode-switch::after {
+  transform: translateX(16px);
+}
+
+.manual-recalculate-btn {
+  appearance: none;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: var(--sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-bold);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(29, 43, 39, 0.2);
+  transition: background 140ms ease, transform 100ms ease;
+}
+
+.manual-recalculate-btn:hover {
+  background: #153229;
+}
+
+.manual-recalculate-btn:active {
+  transform: scale(0.98);
+}
+
+.manual-recalculate-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.uncalculated-badge {
+  background: #ef4444;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
+  animation: pulse-badge 1.8s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.form-actions-bottom {
+  margin-top: var(--space-5);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-recalculate-submit-btn {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-control);
+  padding: 8px 16px;
+  font-family: var(--sans);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 140ms ease;
+}
+
+.form-recalculate-submit-btn:hover {
+  background: #f1f3f1;
+  border-color: #cbd5e1;
+}
+
+
 

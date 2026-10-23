@@ -37,6 +37,34 @@
   const runSolvencyMcBtn = document.querySelector("#run-solvency-mc-btn");
   let currentChartView = "wealth";
 
+  const autoCalculateToggle = document.querySelector("#auto-calculate-toggle");
+  const manualRecalculateBtn = document.querySelector("#manual-recalculate-btn");
+  const uncalculatedBadge = document.querySelector("#uncalculated-badge");
+  const formRecalculateSubmitBtn = document.querySelector(
+    "#form-recalculate-submit-btn",
+  );
+
+  let autoCalculateEnabled = true;
+  try {
+    const savedAuto = localStorage.getItem("fire_auto_calculate");
+    if (savedAuto !== null) {
+      autoCalculateEnabled = savedAuto === "true";
+    }
+  } catch (_e) {}
+  let hasUncalculatedChanges = false;
+
+  function updateCalcModeUi() {
+    if (autoCalculateToggle) {
+      autoCalculateToggle.checked = autoCalculateEnabled;
+    }
+    if (manualRecalculateBtn) {
+      manualRecalculateBtn.hidden = autoCalculateEnabled;
+    }
+    if (uncalculatedBadge) {
+      uncalculatedBadge.hidden = !hasUncalculatedChanges || autoCalculateEnabled;
+    }
+  }
+
   const compareScenariosTrigger = document.querySelector(
     "#compare-scenarios-trigger",
   );
@@ -2724,14 +2752,19 @@
 
   function renderSolvencyChart(calculation, inputs, mc) {
     if (!solvencyChart) return;
-    const activeMc =
-      mc || latestMonteCarlo || computeMonteCarlo(inputs, false);
+    const activeMc = mc || latestMonteCarlo;
     const bands = activeMc?.percentileBands;
     if (!bands || bands.length === 0) {
       solvencyChart.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:360px;color:var(--muted);gap:12px;">
-          <p>Kør Monte Carlo for at beregne den fulde overlevelseskurve over tid.</p>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:360px;color:var(--muted);gap:14px;text-align:center;padding:24px;">
+          <p style="font-size:16px;color:var(--ink);font-weight:600;margin:0;">Overlevelseskurven kræver en Monte Carlo-simulering</p>
+          <p style="max-width:440px;margin:0;font-size:13px;line-height:1.4;">Klik på knappen for at køre simuleringen og beregne din solvens-sandsynlighed for hvert enkelt leveår.</p>
+          <button type="button" class="mc-segment-btn is-active" id="run-solvency-empty-btn" style="padding:8px 16px;font-size:13px;cursor:pointer;">
+            🎲 Kør Monte Carlo nu
+          </button>
         </div>`;
+      const emptyBtn = solvencyChart.querySelector("#run-solvency-empty-btn");
+      if (emptyBtn) emptyBtn.addEventListener("click", runMonteCarloSimulation);
       return;
     }
 
@@ -3405,6 +3438,38 @@
       </table>`;
   }
 
+  let deepDiveTimeout = null;
+  function scheduleDeepDive(inputs) {
+    if (deepDiveTimeout) {
+      window.clearTimeout(deepDiveTimeout);
+    }
+    deepDiveTimeout = window.setTimeout(() => {
+      deepDiveTimeout = null;
+      renderStressTests(inputs);
+      renderTornadoAnalysis(inputs);
+    }, 120);
+  }
+
+  function renderActiveChart(calculation, inputs, mc) {
+    if (!calculation || !inputs) return;
+    const activeMc = mc || latestMonteCarlo;
+    switch (currentChartView) {
+      case "cashflow":
+        renderCashflowChart(calculation, inputs);
+        break;
+      case "tax":
+        renderTaxChart(calculation, inputs);
+        break;
+      case "solvency":
+        renderSolvencyChart(calculation, inputs, activeMc);
+        break;
+      case "wealth":
+      default:
+        renderChart(calculation, inputs, activeMc);
+        break;
+    }
+  }
+
   function render(calculation, inputs) {
 
 
@@ -3465,21 +3530,13 @@
           : "Formuen dækker ikke den ønskede hævning gennem hele perioden.",
     );
 
-    const needsMonteCarlo =
-      mcChartMode !== "without" ||
-      mcTableScenario !== "baseline" ||
-      latestMonteCarlo !== null;
-    const mc = needsMonteCarlo ? computeMonteCarlo(inputs, false) : null;
+    const mc = latestMonteCarlo;
 
     renderPhases(calculation, inputs);
     renderMonteCarloComparison(calculation, inputs, mc);
-    renderChart(calculation, inputs, mc);
-    renderCashflowChart(calculation, inputs);
-    renderTaxChart(calculation, inputs);
-    renderSolvencyChart(calculation, inputs, mc);
+    renderActiveChart(calculation, inputs, mc);
     renderFolkepensionOptimizer(calculation, inputs);
-    renderStressTests(inputs);
-    renderTornadoAnalysis(inputs);
+    scheduleDeepDive(inputs);
 
     setText("current-age", `${calculation.currentAge} år`);
     const realReturn = (growthReturn, defensiveReturn) =>
@@ -3733,6 +3790,10 @@
     if (event) {
       event.preventDefault();
     }
+    hasUncalculatedChanges = false;
+    if (uncalculatedBadge) {
+      uncalculatedBadge.hidden = true;
+    }
 
     try {
       const inputs = readInputs();
@@ -3748,6 +3809,17 @@
       errorBox.hidden = false;
       results.hidden = true;
     }
+  }
+
+  let inputDebounceTimer = null;
+  function scheduleUpdate() {
+    if (inputDebounceTimer) {
+      window.clearTimeout(inputDebounceTimer);
+    }
+    inputDebounceTimer = window.setTimeout(() => {
+      inputDebounceTimer = null;
+      update();
+    }, 160);
   }
 
   form.addEventListener("submit", update);
@@ -3792,8 +3864,53 @@
     ) {
       renderHousingState();
     }
-    update(event);
+
+    if (!autoCalculateEnabled) {
+      hasUncalculatedChanges = true;
+      if (uncalculatedBadge) {
+        uncalculatedBadge.hidden = false;
+      }
+      return;
+    }
+
+    const isTextOrNumberInput =
+      event.target.type === "text" ||
+      event.target.type === "number" ||
+      event.target.tagName === "TEXTAREA";
+
+    if (isTextOrNumberInput) {
+      scheduleUpdate();
+    } else {
+      if (inputDebounceTimer) {
+        window.clearTimeout(inputDebounceTimer);
+        inputDebounceTimer = null;
+      }
+      update(event);
+    }
   });
+
+  if (autoCalculateToggle) {
+    autoCalculateToggle.addEventListener("change", () => {
+      autoCalculateEnabled = autoCalculateToggle.checked;
+      try {
+        localStorage.setItem(
+          "fire_auto_calculate",
+          String(autoCalculateEnabled),
+        );
+      } catch (_e) {}
+      updateCalcModeUi();
+      if (autoCalculateEnabled && hasUncalculatedChanges) {
+        update();
+      }
+    });
+  }
+
+  if (manualRecalculateBtn) {
+    manualRecalculateBtn.addEventListener("click", () => {
+      update();
+    });
+  }
+
   optimizeButton.addEventListener("click", runContributionOptimization);
   applyOptimizationButton.addEventListener("click", applyOptimization);
   if (runMonteCarloButton) {
@@ -3802,6 +3919,9 @@
   mcChartModeButtons.forEach((button) => {
     button.addEventListener("click", () => {
       mcChartMode = button.dataset.mcChartMode || "without";
+      if (mcChartMode !== "without" && !latestMonteCarlo) {
+        computeMonteCarlo(latestInputs || readInputs(), false);
+      }
       syncMonteCarloButtons();
       update();
     });
@@ -3811,6 +3931,9 @@
       mcTableScenario = button.dataset.mcTableScenario || "baseline";
       if (mcTableScenario !== "baseline" && mcChartMode === "without") {
         mcChartMode = "compare";
+      }
+      if (mcTableScenario !== "baseline" && !latestMonteCarlo) {
+        computeMonteCarlo(latestInputs || readInputs(), false);
       }
       syncMonteCarloButtons();
       update();
@@ -3839,6 +3962,9 @@
         }
       }
     });
+    if (latestCalculation && latestInputs) {
+      renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+    }
   }
   chartViewTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -4186,5 +4312,6 @@
   renderFolkepensionState();
   renderHousingState();
 
+  updateCalcModeUi();
   update();
 })();
