@@ -175,8 +175,8 @@ summary {
 .dashboard {
   align-items: stretch;
   display: grid;
-  gap: var(--space-5) var(--space-7);
-  grid-template-columns: minmax(0, 2.12fr) minmax(330px, 0.96fr);
+  gap: var(--space-5) var(--space-6);
+  grid-template-columns: minmax(0, 1.8fr) minmax(310px, 0.95fr);
 }
 
 #results {
@@ -1202,10 +1202,13 @@ legend,
 
 .result-card {
   align-self: start;
+  position: sticky;
+  top: var(--space-4);
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-width: 0;
   overflow: hidden;
+  z-index: 5;
 }
 
 .result-card > header {
@@ -2159,7 +2162,7 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-@media (max-width: 1350px) {
+@media (max-width: 960px) {
   .page-header {
     grid-template-columns: 1fr;
   }
@@ -2169,6 +2172,7 @@ textarea:focus-visible {
   }
 
   .result-card {
+    position: static;
     grid-column: 1;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
