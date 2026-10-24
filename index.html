@@ -844,18 +844,68 @@
                       /><b>år</b></span
                     ></label
                   >
-                  <label class="field">
-                    <span>Rente på kontantreserve (bank/kontant)
-                      <i title="Den forventede årlige nominelle rente på dit bankindestående/kontantreserve før skat og inflation (f.eks. 1,5 % eller 2,0 %)."
-                      >i</i></span>
-                    <span class="input-suffix"><input name="cashInterestRate" type="number" min="-10" step="0.1" value="1.5" required /><b>%</b></span>
-                  </label>
-                  <label class="field">
-                    <span>Skat på kontantrente (Kapitalindkomst)
-                      <i title="Den forventede skatteprocent på dine renteindtægter fra banken (kapitalindkomstskat, typisk ca. 37 % op til progressionsgrænsen for positiv nettokapitalindkomst)."
-                      >i</i></span>
-                    <span class="input-suffix"><input name="cashInterestTax" type="number" min="0" max="100" step="0.1" value="37" required /><b>%</b></span>
-                  </label>
+                  <div class="cash-reserve-card-box">
+                    <div class="cash-card-title-row">
+                      <span class="cash-card-title">💵 Kontantreserve, Likviditetsbuffer &amp; Forrentning</span>
+                      <span class="cash-card-badge" id="cash-glide-badge">5 % → 20 %</span>
+                    </div>
+                    <p class="cash-card-hint">
+                      Definér kontantbeholdningen som en dynamisk procentdel af dine frie midler, forrentningen på dit bankindestående samt optrapningsprofil mod pension eller FIRE.
+                    </p>
+                    <div class="form-grid cash-subgrid">
+                      <label class="field">
+                        <span>Kontantandel ved start
+                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start.">i</i>
+                        </span>
+                        <div class="slider-input-inline">
+                          <input type="range" name="cashShareStartRange" min="0" max="50" step="1" value="5" class="cash-range-slider" />
+                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" required /><b>%</b></span>
+                        </div>
+                      </label>
+
+                      <label class="field">
+                        <span>Kontantandel ved pension / FIRE
+                          <i title="Mål-procentdel i kontanter, når du når pension eller FIRE.">i</i>
+                        </span>
+                        <div class="slider-input-inline">
+                          <input type="range" name="cashShareTargetRange" min="0" max="50" step="1" value="20" class="cash-range-slider" />
+                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" required /><b>%</b></span>
+                        </div>
+                      </label>
+
+                      <label class="field">
+                        <span>Optrapningsprofil over årene
+                          <i title="Vælg hvordan kontantandelen udvikler sig over tid: 'Glidende' stiger lineært år for år. 'Trinvis' skifter først på måldatoen.">i</i>
+                        </span>
+                        <select name="cashShareStrategy" required>
+                          <option value="glidePath">📈 Glidende optrapning mod folkepension (Lineær)</option>
+                          <option value="glidePathFire">🎯 Glidende optrapning mod FIRE-start</option>
+                          <option value="stepAtRetirement">⚡ Trinvis stigning ved folkepension</option>
+                          <option value="stepAtFire">⚡ Trinvis stigning ved FIRE-start</option>
+                          <option value="constant">🔒 Fast kontantandel (Samme % alle år)</option>
+                        </select>
+                      </label>
+
+                      <label class="field">
+                        <span>Rente på kontantreserve (bank/kontant)
+                          <i title="Den forventede årlige nominelle rente på dit bankindestående/kontantreserve før skat og inflation (f.eks. 1,5 % eller 2,0 %)."
+                          >i</i></span>
+                        <span class="input-suffix"><input name="cashInterestRate" type="number" min="-10" step="0.1" value="1.5" required /><b>%</b></span>
+                      </label>
+
+                      <label class="field">
+                        <span>Skat på kontantrente (Kapitalindkomst)
+                          <i title="Den forventede skatteprocent på dine renteindtægter fra banken (kapitalindkomstskat, typisk ca. 37 % op til progressionsgrænsen for positiv nettokapitalindkomst)."
+                          >i</i></span>
+                        <span class="input-suffix"><input name="cashInterestTax" type="number" min="0" max="100" step="0.1" value="37" required /><b>%</b></span>
+                      </label>
+                    </div>
+
+                    <div class="cash-glide-visual-strip" id="cash-glide-visual-strip">
+                      <span class="glide-strip-title">Optrapningssti:</span>
+                      <span class="glide-strip-pills" id="cash-glide-pills-container"></span>
+                    </div>
+                  </div>
                 </div>
               </details>
 
@@ -999,55 +1049,8 @@
                         value="0"
                         required
                       /><b>%</b></span
-                  <div class="cash-reserve-card-box">
-                    <div class="cash-card-title-row">
-                      <span class="cash-card-title">💵 Kontantreserve &amp; Likviditetsbuffer</span>
-                      <span class="cash-card-badge" id="cash-glide-badge">5 % → 20 %</span>
-                    </div>
-                    <p class="cash-card-hint">
-                      Definér kontantbeholdningen som en dynamisk procentdel af dine frie midler og vælg en optrapningsprofil over årene mod pension eller FIRE.
-                    </p>
-                    <div class="form-grid cash-subgrid">
-                      <label class="field">
-                        <span>Kontantandel ved start
-                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start.">i</i>
-                        </span>
-                        <div class="slider-input-inline">
-                          <input type="range" name="cashShareStartRange" min="0" max="50" step="1" value="5" class="cash-range-slider" />
-                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" required /><b>%</b></span>
-                        </div>
-                      </label>
-
-                      <label class="field">
-                        <span>Kontantandel ved pension / FIRE
-                          <i title="Mål-procentdel i kontanter, når du når pension eller FIRE.">i</i>
-                        </span>
-                        <div class="slider-input-inline">
-                          <input type="range" name="cashShareTargetRange" min="0" max="50" step="1" value="20" class="cash-range-slider" />
-                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" required /><b>%</b></span>
-                        </div>
-                      </label>
-
-                      <label class="field">
-                        <span>Optrapningsprofil over årene
-                          <i title="Vælg hvordan kontantandelen udvikler sig over tid: 'Glidende' stiger lineært år for år. 'Trinvis' skifter først på måldatoen.">i</i>
-                        </span>
-                        <select name="cashShareStrategy" required>
-                          <option value="glidePath">📈 Glidende optrapning mod folkepension (Lineær)</option>
-                          <option value="glidePathFire">🎯 Glidende optrapning mod FIRE-start</option>
-                          <option value="stepAtRetirement">⚡ Trinvis stigning ved folkepension</option>
-                          <option value="stepAtFire">⚡ Trinvis stigning ved FIRE-start</option>
-                          <option value="constant">🔒 Fast kontantandel (Samme % alle år)</option>
-                        </select>
-                      </label>
-                      <p class="cash-card-subhint" style="grid-column: 1 / -1; margin: 2px 0 0; font-size: 11.5px; color: var(--muted);">💡 <em>Rente og beskatning for kontantreserven konfigureres under sektionen <strong>"Afkast"</strong> ovenfor.</em></p>
-                    </div>
-
-                    <div class="cash-glide-visual-strip" id="cash-glide-visual-strip">
-                      <span class="glide-strip-title">Optrapningssti:</span>
-                      <span class="glide-strip-pills" id="cash-glide-pills-container"></span>
-                    </div>
-                  </div>
+                    ></label
+                  >
                 </div>
               </details>
 

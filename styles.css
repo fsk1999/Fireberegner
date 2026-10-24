@@ -135,8 +135,8 @@ summary {
 
 .page-header {
   display: grid;
-  gap: var(--space-5) var(--space-7);
-  grid-template-columns: minmax(0, 2.12fr) minmax(330px, 0.96fr);
+  gap: var(--space-4) var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   margin: 0 0 var(--space-4);
 }
 
@@ -175,8 +175,8 @@ summary {
 .dashboard {
   align-items: stretch;
   display: grid;
-  gap: var(--space-5) var(--space-6);
-  grid-template-columns: minmax(0, 1.8fr) minmax(310px, 0.95fr);
+  gap: var(--space-4) var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
 
 #results {
@@ -2162,7 +2162,7 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 680px) {
   .page-header {
     grid-template-columns: 1fr;
   }
@@ -2174,8 +2174,8 @@ textarea:focus-visible {
   .result-card {
     position: static;
     grid-column: 1;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     margin-top: 0;
   }
 
@@ -2184,14 +2184,13 @@ textarea:focus-visible {
   }
 
   .result-milestones {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    padding-block: 24px;
+    grid-column: 1;
+    padding-block: 20px;
   }
 
   .result-card > footer {
     grid-column: 1;
-    margin-inline: 28px;
+    margin-inline: 20px;
   }
 }
 
