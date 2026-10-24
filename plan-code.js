@@ -57,12 +57,16 @@
     "annualCashContribution",
     "cashInterestRate",
     "cashInterestTax",
+    "cashShareStart",
+    "cashShareTarget",
   ]);
   const STRING_FIELDS = Object.freeze([
     "returnStrategy",
     "withdrawalStrategy",
     "housingType",
     "housingUnlockAgeType",
+    "cashShareStrategy",
+    "cashTargetAgeType",
   ]);
   const BOOLEAN_FIELDS = Object.freeze([
     "withdrawalAfterTax",
@@ -110,6 +114,10 @@
     annualCashContribution: 0,
     cashInterestRate: 0.015,
     cashInterestTax: 0.37,
+    cashShareStart: 5,
+    cashShareTarget: 20,
+    cashShareStrategy: "glidePath",
+    cashTargetAgeType: "retirement",
   });
 
   function invalidFormat() {

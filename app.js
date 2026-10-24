@@ -515,6 +515,13 @@
       cashInterestTax: form.elements.cashInterestTax
         ? readNumber("cashInterestTax", 100)
         : 0.37,
+      cashShareStart: form.elements.cashShareStart
+        ? readNumber("cashShareStart")
+        : 5,
+      cashShareTarget: form.elements.cashShareTarget
+        ? readNumber("cashShareTarget")
+        : 20,
+      cashShareStrategy: form.elements.cashShareStrategy?.value || "glidePath",
       returnRate: readNumber("returnRate", 100),
       inflationRate: readNumber("inflationRate", 100),
       lifeAnnuityPayoutRate: readNumber("lifeAnnuityPayoutRate", 100),
@@ -733,6 +740,12 @@
     renderFreeFundsTaxation();
     renderReturnStrategyState();
     renderHousingState();
+    if (form.elements.cashShareStartRange && form.elements.cashShareStart) {
+      form.elements.cashShareStartRange.value = form.elements.cashShareStart.value;
+    }
+    if (form.elements.cashShareTargetRange && form.elements.cashShareTarget) {
+      form.elements.cashShareTargetRange.value = form.elements.cashShareTarget.value;
+    }
     update();
   }
 
@@ -1695,7 +1708,7 @@
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
-        <td data-col-group="free"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span></td>
+        <td data-col-group="free"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}${row.cashShare !== undefined && row.cashShare > 0.001 ? ` <span class="cash-share-pill">${Math.round(row.cashShare * 100)} %</span>` : ""}</span></td>
         <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
@@ -3296,6 +3309,43 @@
     }
   }
 
+  function renderCashGlidePreview(calculation, inputs) {
+    const badge = document.querySelector("#cash-glide-badge");
+    const container = document.querySelector("#cash-glide-pills-container");
+    if (!container) return;
+
+    const startShare = Number.isFinite(inputs.cashShareStart) ? inputs.cashShareStart : 5;
+    const targetShare = Number.isFinite(inputs.cashShareTarget) ? inputs.cashShareTarget : 20;
+    if (badge) {
+      badge.textContent = `${startShare} % → ${targetShare} %`;
+    }
+
+    const fireAge = calculation.fireRow ? calculation.fireRow.age : null;
+    const retAge = inputs.retirementAge;
+    const curAge = inputs.currentAge;
+
+    const milestones = [{ label: `Nu (${curAge} år)`, age: curAge }];
+    if (fireAge && fireAge > curAge && fireAge < retAge) {
+      milestones.push({ label: `FIRE (${fireAge} år)`, age: fireAge, isKey: true });
+    } else {
+      const midAge = Math.round((curAge + retAge) / 2);
+      if (midAge > curAge && midAge < retAge) {
+        milestones.push({ label: `Midtvejs (${midAge} år)`, age: midAge });
+      }
+    }
+    milestones.push({ label: `Pension (${retAge} år)`, age: retAge, isKey: true });
+
+    container.innerHTML = milestones
+      .map((m) => {
+        const share = window.FireCalculations?.getTargetCashShare
+          ? window.FireCalculations.getTargetCashShare(m.age - curAge, m.age, inputs, fireAge || retAge)
+          : (m.age >= retAge ? targetShare / 100 : startShare / 100);
+        const sharePct = (share * 100).toFixed(1).replace(/\.0$/, "");
+        return `<span class="cash-glide-pill${m.isKey ? " is-key-milestone" : ""}">${m.label}: <strong>${sharePct} %</strong></span>`;
+      })
+      .join("");
+  }
+
   function renderStressTests(inputs, skipChartRefresh = false) {
     const grid = document.querySelector("#stress-test-grid");
     if (!grid || !window.FireMonteCarlo?.runHistoricalStressTests) return;
@@ -3773,7 +3823,7 @@
         <td data-col-group="pension">${currency.format(row.ageSavings)}</td>
         <td data-col-group="free">${currency.format(row.freeFunds)}</td>
         <td data-col-group="free">${currency.format(row.ask)}</td>
-        <td data-col-group="free">${currency.format(row.cash ?? 0)}</td>
+        <td data-col-group="free">${currency.format(row.cash ?? 0)}${row.cashShare !== undefined && row.cashShare > 0.001 ? ` <span class="cash-share-pill">${Math.round(row.cashShare * 100)} %</span>` : ""}</td>
         <td><strong>${currency.format(row.totalDepotValue ?? row.totalBalance)}</strong></td>
         <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
         <td data-col-group="cashflow">${row.contribution ? currency.format(row.contribution) : "—"}</td>
@@ -4210,6 +4260,7 @@
     renderMonteCarloComparison(calculation, inputs, mc);
     renderActiveChart(calculation, inputs, mc);
     renderFolkepensionOptimizer(calculation, inputs);
+    renderCashGlidePreview(calculation, inputs);
     scheduleDeepDive(inputs);
 
     setText("current-age", `${calculation.currentAge} år`);
@@ -4624,6 +4675,7 @@
     const isTextOrNumberInput =
       event.target.type === "text" ||
       event.target.type === "number" ||
+      event.target.type === "range" ||
       event.target.tagName === "TEXTAREA";
 
     if (isTextOrNumberInput) {
@@ -4636,6 +4688,27 @@
       update(event);
     }
   });
+
+  const cashShareStartInput = form.elements.cashShareStart;
+  const cashShareStartRange = form.elements.cashShareStartRange;
+  const cashShareTargetInput = form.elements.cashShareTarget;
+  const cashShareTargetRange = form.elements.cashShareTargetRange;
+  if (cashShareStartInput && cashShareStartRange) {
+    cashShareStartRange.addEventListener("input", () => {
+      cashShareStartInput.value = cashShareStartRange.value;
+    });
+    cashShareStartInput.addEventListener("input", () => {
+      cashShareStartRange.value = cashShareStartInput.value;
+    });
+  }
+  if (cashShareTargetInput && cashShareTargetRange) {
+    cashShareTargetRange.addEventListener("input", () => {
+      cashShareTargetInput.value = cashShareTargetRange.value;
+    });
+    cashShareTargetInput.addEventListener("input", () => {
+      cashShareTargetRange.value = cashShareTargetInput.value;
+    });
+  }
 
   if (autoCalculateToggle) {
     autoCalculateToggle.addEventListener("change", () => {

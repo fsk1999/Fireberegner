@@ -4491,3 +4491,129 @@ th.housing-col {
   color: #0f172a;
   border-color: #94a3b8;
 }
+
+/* =====================================================================
+   Cash Reserve & Dynamic Glide Path
+   ===================================================================== */
+.cash-reserve-card-box {
+  grid-column: 1 / -1;
+  background: var(--surface-soft, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-left: 4px solid #10b981;
+  border-radius: var(--radius-card, 8px);
+  padding: var(--space-3, 14px);
+  margin-top: var(--space-2, 8px);
+}
+
+.cash-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cash-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink, #1e293b);
+}
+
+.cash-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cash-card-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted, #64748b);
+  margin: 0 0 12px 0;
+}
+
+.cash-subgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3, 12px);
+}
+
+.slider-input-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cash-range-slider {
+  flex: 1;
+  accent-color: #10b981;
+  height: 5px;
+  cursor: pointer;
+}
+
+.slider-input-inline .input-suffix {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.cash-glide-visual-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line, #e2e8f0);
+}
+
+.glide-strip-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.glide-strip-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cash-glide-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cash-glide-pill.is-key-milestone {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  font-weight: 700;
+}
+
+.cash-share-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  margin-left: 4px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}

@@ -346,8 +346,45 @@ console.assert(Number.isFinite(customCrisisRes.finalReserve), "Custom crisis mus
 console.log(`Custom Crisis: Solvent=${customCrisisRes.isSolvent}, MinBalance=${customCrisisRes.minBalance}, FinalReserve=${customCrisisRes.finalReserve}`);
 console.log("✓ Custom crisis simulation and matrix return profiling verified.");
 
+console.log("\n=== 16. Dynamic Cash Share (% af frie midler) & Glide Path ===");
+const dynamicCashInputs = {
+  ...baseInputs,
+  freeFundsBalance: 500000,
+  annualFreeFundsContribution: 50000,
+  cashShareStart: 5,
+  cashShareTarget: 20,
+  cashShareStrategy: "glidePath",
+};
+const dynCalc = FireCalculations.calculateFire(dynamicCashInputs);
+console.assert(dynCalc.planRows.length > 0, "Must generate plan rows");
+const initialRow = dynCalc.planRows[0];
+console.assert(Math.abs(initialRow.cashShare - 0.05) < 0.001, `Initial cash share must be ~5%, got ${initialRow.cashShare}`);
+console.assert(Math.abs(initialRow.cash - (500000 * 0.05)) < 1, `Initial cash must be 5% of total free funds: expected 25000, got ${initialRow.cash}`);
+
+const retRow = dynCalc.planRows.find((r) => r.age >= dynamicCashInputs.retirementAge);
+if (retRow && (retRow.freeFunds + retRow.cash) > 0) {
+  console.assert(Math.abs(retRow.cashShare - 0.20) < 0.01, `Retirement cash share must reach 20%, got ${retRow.cashShare}`);
+}
+
+const encodedDyn = FirePlanCode.encodePlan(dynamicCashInputs);
+const decodedDyn = FirePlanCode.decodePlan(encodedDyn);
+console.assert(decodedDyn.cashShareStart === 5, "Plan code must preserve cashShareStart");
+console.assert(decodedDyn.cashShareTarget === 20, "Plan code must preserve cashShareTarget");
+console.assert(decodedDyn.cashShareStrategy === "glidePath", "Plan code must preserve cashShareStrategy");
+
+const dynExp = FireMathExplainer.explainTableCell({
+  colKey: "cash",
+  row: initialRow,
+  calculation: dynCalc,
+  inputs: dynamicCashInputs,
+});
+console.assert(dynExp !== null, "Math explainer must explain dynamic cash share");
+console.assert(dynExp.formula.includes("5") || dynExp.formula.includes("%"), "Explainer formula should mention cash share percentage");
+console.log("✓ Dynamic cash share, linear glide path, and plan persistence verified.");
+
 console.log("\n==================================");
-console.log("ALL 15 VERIFICATION SUITES PASSED!");
+console.log("ALL 16 VERIFICATION SUITES PASSED!");
 console.log("==================================");
+
 
 

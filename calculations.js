@@ -63,6 +63,46 @@
   const ASK = 5;
   const CASH = 6;
 
+  const CASH_STRATEGY = Object.freeze({
+    glidePath: "glidePath",
+    glidePathFire: "glidePathFire",
+    stepAtRetirement: "stepAtRetirement",
+    stepAtFire: "stepAtFire",
+    constant: "constant",
+  });
+
+  function getTargetCashShare(year, age, inputs, fireAge = inputs?.retirementAge) {
+    if (!Number.isFinite(inputs?.cashShareStart)) {
+      return 0;
+    }
+    const startShare = Math.max(0, Math.min(1, inputs.cashShareStart / 100));
+    const targetShare = Number.isFinite(inputs.cashShareTarget)
+      ? Math.max(0, Math.min(1, inputs.cashShareTarget / 100))
+      : startShare;
+    const strategy = inputs.cashShareStrategy || "glidePath";
+
+    if (strategy === "constant") {
+      return startShare;
+    }
+
+    const currentAge = inputs.currentAge;
+    const targetAge =
+      strategy === "glidePathFire" || strategy === "stepAtFire" || inputs.cashTargetAgeType === "fire"
+        ? (fireAge || inputs.retirementAge)
+        : inputs.retirementAge;
+
+    if (strategy === "stepAtRetirement" || strategy === "stepAtFire") {
+      return age >= targetAge ? targetShare : startShare;
+    }
+
+    if (targetAge <= currentAge) {
+      return targetShare;
+    }
+
+    const progress = Math.max(0, Math.min(1, (age - currentAge) / (targetAge - currentAge)));
+    return startShare + progress * (targetShare - startShare);
+  }
+
   function householdMultiplier(inputs) {
     return inputs?.isCouple ? 2 : 1;
   }
@@ -1027,6 +1067,9 @@
           row.totalDepotValue
         : null;
 
+    const totalLiquidFree = row.freeFunds + (row.cash ?? 0);
+    row.cashShare = totalLiquidFree > 0 ? (row.cash / totalLiquidFree) : 0;
+
     Object.values(row)
       .filter((value) => typeof value === "number")
       .forEach((value) => assertFinite(value));
@@ -1069,6 +1112,16 @@
     }
 
     const inventoryShare = freeFundsInventoryShare(inputs);
+    if (inputs.cashShareStart !== undefined) {
+      if (!Number.isFinite(inputs.cashShareStart) || inputs.cashShareStart < 0 || inputs.cashShareStart > 100) {
+        throw new Error("Kontantandel ved start skal være mellem 0 % og 100 %.");
+      }
+    }
+    if (inputs.cashShareTarget !== undefined) {
+      if (!Number.isFinite(inputs.cashShareTarget) || inputs.cashShareTarget < 0 || inputs.cashShareTarget > 100) {
+        throw new Error("Kontantandel ved pension skal være mellem 0 % og 100 %.");
+      }
+    }
     if (
       !Number.isFinite(inventoryShare) ||
       inventoryShare < 0 ||
@@ -1706,16 +1759,37 @@
     const followsInflation = inputs.contributionsFollowInflation !== false;
     const redirectsPensionContributions =
       inputs.redirectPensionContributionsToFreeFunds !== false;
+    const hasDynamicCashShare = Number.isFinite(inputs.cashShareStart);
+    let initialCash = 0;
+    let initialFreeRealization = 0;
+    let initialFreeInventory = 0;
+    let initialCostBasis = inputs.freeFundsCostBasis ?? 0;
+
+    if (hasDynamicCashShare) {
+      const totalFree = inputs.freeFundsBalance + (inputs.cashBalance ?? 0);
+      const startShare = getTargetCashShare(0, inputs.currentAge, inputs, inputs.retirementAge);
+      initialCash = totalFree * startShare;
+      const initialFreeStock = totalFree * (1 - startShare);
+      initialFreeRealization = initialFreeStock * (1 - inventoryShare);
+      initialFreeInventory = initialFreeStock * inventoryShare;
+      initialCostBasis = Math.min(initialFreeRealization, (inputs.freeFundsCostBasis ?? 0) * (1 - startShare));
+    } else {
+      initialCash = inputs.cashBalance ?? 0;
+      initialFreeRealization = inputs.freeFundsBalance * (1 - inventoryShare);
+      initialFreeInventory = inputs.freeFundsBalance * inventoryShare;
+      initialCostBasis = (inputs.freeFundsCostBasis ?? 0) * (1 - inventoryShare);
+    }
+
     const initialBalances = [
       inputs.ratePensionBalance,
       inputs.lifeAnnuityBalance ?? 0,
       inputs.ageSavingsBalance,
-      inputs.freeFundsBalance * (1 - inventoryShare),
-      inputs.freeFundsBalance * inventoryShare,
+      initialFreeRealization,
+      initialFreeInventory,
       inputs.askBalance,
-      inputs.cashBalance ?? 0,
+      initialCash,
     ];
-    assertFinite(...initialBalances, inputs.freeFundsCostBasis);
+    assertFinite(...initialBalances, initialCostBasis);
 
     function contributionAtMidyear(baseContribution, yearNumber) {
       if (baseContribution <= 0) {
@@ -2177,6 +2251,18 @@
           rows[rows.length - 1].annualFreeFundsTax = growth.freeFundsTax;
         }
         balances = growth.balances;
+        if (hasDynamicCashShare) {
+          const nextTargetShare = getTargetCashShare(year + 1, currentAgeYear + 1, inputs, effectiveFireAge);
+          const totalFreeEnding = balances[FREE_FUNDS_REALIZATION] + balances[FREE_FUNDS_INVENTORY] + balances[CASH];
+          if (totalFreeEnding > 0) {
+            const targetCashEnding = totalFreeEnding * nextTargetShare;
+            const targetStockEnding = totalFreeEnding - targetCashEnding;
+            balances[CASH] = targetCashEnding;
+            balances[FREE_FUNDS_REALIZATION] = targetStockEnding * (1 - inventoryShare);
+            balances[FREE_FUNDS_INVENTORY] = targetStockEnding * inventoryShare;
+            freeFundsCostBasis = Math.min(balances[FREE_FUNDS_REALIZATION], freeFundsCostBasis);
+          }
+        }
         annualFreeFundsTax += growth.freeFundsTax;
         annualFreeFundsTaxableGain += growth.freeFundsTaxableGain;
         freeFundsCostBasis /= 1 + inputs.inflationRate;
@@ -2397,7 +2483,7 @@
     const accumulationRows = [];
     const milestoneRows = [];
     let balances = [...initialBalances];
-    let freeFundsCostBasis = inputs.freeFundsCostBasis * (1 - inventoryShare);
+    let freeFundsCostBasis = initialCostBasis;
     let ratePensionNonDeductibleBasis = initialRatePensionNonDeductibleBasis;
     let accumulationFreeFundsTax = 0;
     let accumulationFreeFundsTaxableGain = 0;
@@ -2612,10 +2698,25 @@
         ageSavingsContributionRedirected +
         askContributionRedirected +
         redirectedPensionContribution;
-      const cashContribution = contributionAtMidyear(
-        inputs.annualCashContribution ?? 0,
-        nextYear,
-      );
+      let cashContribution = 0;
+      let freeRealizationContrib = 0;
+      let freeInventoryContrib = 0;
+
+      if (hasDynamicCashShare) {
+        const targetShare = getTargetCashShare(nextYear, currentAgeYear, inputs, yearsToRetirement);
+        cashContribution = totalFreeFundsContribution * targetShare;
+        const stockContrib = totalFreeFundsContribution * (1 - targetShare);
+        freeRealizationContrib = stockContrib * (1 - inventoryShare);
+        freeInventoryContrib = stockContrib * inventoryShare;
+      } else {
+        cashContribution = contributionAtMidyear(
+          inputs.annualCashContribution ?? 0,
+          nextYear,
+        );
+        freeRealizationContrib = totalFreeFundsContribution * (1 - inventoryShare);
+        freeInventoryContrib = totalFreeFundsContribution * inventoryShare;
+      }
+
       const contributions = [
         pensionContributionsActive
           ? deductibleRatePensionContribution +
@@ -2623,8 +2724,8 @@
           : 0,
         pensionContributionsActive ? lifeAnnuityContribution : 0,
         pensionContributionsActive ? ageSavingsContribution : 0,
-        totalFreeFundsContribution * (1 - inventoryShare),
-        totalFreeFundsContribution * inventoryShare,
+        freeRealizationContrib,
+        freeInventoryContrib,
         askContribution,
         cashContribution,
       ];
@@ -2642,6 +2743,17 @@
           growth.freeFundsTax;
       }
       balances = growth.balances;
+      if (hasDynamicCashShare) {
+        const nextTargetShare = getTargetCashShare(nextYear, currentAgeYear + 1, inputs, yearsToRetirement);
+        const totalFreeEnding = balances[FREE_FUNDS_REALIZATION] + balances[FREE_FUNDS_INVENTORY] + balances[CASH];
+        if (totalFreeEnding > 0) {
+          const targetCashEnding = totalFreeEnding * nextTargetShare;
+          const targetStockEnding = totalFreeEnding - targetCashEnding;
+          balances[CASH] = targetCashEnding;
+          balances[FREE_FUNDS_REALIZATION] = targetStockEnding * (1 - inventoryShare);
+          balances[FREE_FUNDS_INVENTORY] = targetStockEnding * inventoryShare;
+        }
+      }
       accumulationFreeFundsTax += growth.freeFundsTax;
       accumulationFreeFundsTaxableGain += growth.freeFundsTaxableGain;
       freeFundsCostBasis =
@@ -3795,5 +3907,7 @@
     calculatePublicPensionForAge,
     desiredWithdrawalForAge,
     applyOneOffCashflowForAge,
+    CASH_STRATEGY,
+    getTargetCashShare,
   };
 });

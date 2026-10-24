@@ -745,20 +745,29 @@
 
       case "cash": {
         const end = row.cash ?? 0;
+        const totalLiquidFree = (row.freeFunds ?? 0) + end;
+        const cashSharePct = ((row.cashShare ?? (totalLiquidFree > 0 ? end / totalLiquidFree : 0)) * 100).toFixed(1);
         const cashRate = inputs.cashInterestRate ?? 0.015;
         const cashTax = inputs.cashInterestTax ?? 0.37;
+        const hasGlide = Number.isFinite(inputs.cashShareStart);
+
         if (!prevRow) {
           return {
             title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
             badge: "Sikker likviditet",
-            quickMath: `Startsaldo: ${currency.format(end)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing i kontantreserve/bankindestående. Forrentes med en fast bankrente og fungerer som sikker buffer.",
-            formula: "Startsaldo (primo)",
+            quickMath: `Startsaldo: ${currency.format(end)} (${cashSharePct} % af frie midler)`,
+            description: hasGlide
+              ? `Din kontantreserve udgør ${cashSharePct} % af dine samlede frie midler (${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart} % og stige mod ${inputs.cashShareTarget} % ved pension.`
+              : "Din indtastede startopsparing i kontantreserve/bankindestående. Forrentes med en fast bankrente og fungerer som sikker buffer.",
+            formula: hasGlide ? `Startsaldo = Frie midler × Kontantandel (${cashSharePct} %)` : "Startsaldo (primo)",
             formulaDetails: `Forrentes med ${percent.format(cashRate)} før skat. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst.`,
             steps: [
-              { label: "Kontantreserve indtastet", value: currency.format(end), isResult: true }
+              { label: "Samlede frie midler", value: currency.format(totalLiquidFree) },
+              ...(hasGlide ? [{ label: `Kontantandel ved start (${inputs.cashShareStart} %)`, value: `${cashSharePct} %`, isSub: true }] : []),
+              { label: "Startsaldo i kontantreserve", value: currency.format(end), isResult: true }
             ],
             assumptions: [
+              { label: "Kontantandel ved start", value: `${inputs.cashShareStart ?? cashSharePct} %` },
               { label: "Rente på kontantreserve", value: percent.format(cashRate) },
               { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
             ]
@@ -772,23 +781,29 @@
         if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indskud)`);
         if (netAfkast !== 0) quickMathParts.push(netAfkast >= 0 ? `+ ${currency.format(netAfkast)} (netto rente)` : `− ${currency.format(Math.abs(netAfkast))} (inflationsfald)`);
         if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (hævning)`);
-        quickMathParts.push(`= ${currency.format(end)}`);
+        quickMathParts.push(`= ${currency.format(end)} (${cashSharePct} %)`);
 
         return {
           title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
           badge: "Sikker likviditet",
           quickMath: quickMathParts.join(" "),
-          description: "Kontantreserve på bankkonto eller pengemarkedskonto. Giver kursstabilitet og likviditetsbuffer, men er udsat for inflationsudhulning over tid.",
-          formula: "Ultimo = Primo + Indbetaling + Netto bankrente (efter skat & inflation) − Hævning",
+          description: hasGlide
+            ? `Kontantreserven udgør ${cashSharePct} % af dine samlede frie midler i år (${currency.format(totalLiquidFree)}). Den tilpasses dynamisk iht. din valgte optrapningsprofil.`
+            : "Kontantreserve på bankkonto eller pengemarkedskonto. Giver kursstabilitet og likviditetsbuffer, men er udsat for inflationsudhulning over tid.",
+          formula: hasGlide
+            ? `Kontantreserve = Frie midler (${currency.format(totalLiquidFree)}) × ${cashSharePct} %`
+            : "Ultimo = Primo + Indbetaling + Netto bankrente (efter skat & inflation) − Hævning",
           formulaDetails: `Nominel rente ${percent.format(cashRate)} fratrukket ${percent.format(cashTax)} skat og korrigeret for ${percent.format(inflRate)} inflation.`,
           steps: [
             { label: "Startsaldo (primo)", value: currency.format(start) },
+            { label: "Kontantandel af frie midler", value: `${cashSharePct} %` },
             { label: "Årets kontantindbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr." },
             { label: "Netto rente efter skat & inflation", value: netAfkast >= 0 ? `+ ${currency.format(netAfkast)}` : `− ${currency.format(Math.abs(netAfkast))}` },
-            ...(withdrawal > 0 ? [{ label: "Hævet til forbrug", value: `− ${currency.format(withdrawal)}` }] : []),
+            ...(withdrawal > 0 ? [{ label: "Hævet skattefrit til forbrug", value: `− ${currency.format(withdrawal)}` }] : []),
             { label: "Slutsaldo (ultimo)", value: `= ${currency.format(end)}`, isResult: true }
           ],
           assumptions: [
+            { label: "Kontantandel (dette år)", value: `${cashSharePct} % af frie midler` },
             { label: "Rente på kontantreserve", value: percent.format(cashRate) },
             { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
           ]
