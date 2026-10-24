@@ -395,11 +395,15 @@
         if (y < fireYear) {
           annualReturnMultipliers.push(1.0);
         } else {
-          const crisisIdx = (y - fireYear) % crisis.returns.length;
-          const r = crisis.returns[crisisIdx];
-          annualReturnMultipliers.push(
-            Math.max(0.1, (1 + r) / (1 + baseReturn)),
-          );
+          const crisisIdx = y - fireYear;
+          if (crisisIdx < crisis.returns.length) {
+            const r = crisis.returns[crisisIdx];
+            annualReturnMultipliers.push(
+              Math.max(0.1, (1 + r) / (1 + baseReturn)),
+            );
+          } else {
+            annualReturnMultipliers.push(1.0);
+          }
         }
       }
 

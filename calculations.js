@@ -2298,20 +2298,38 @@
           )
         : null;
 
+      const lifeAnnuityVal =
+        year < yearsToRetirement ? balances[LIFE_ANNUITY] : 0;
+      const freeFundsVal =
+        balances[FREE_FUNDS_REALIZATION] + balances[FREE_FUNDS_INVENTORY];
+      const totalBalanceVal =
+        balances[RATE_PENSION] +
+        lifeAnnuityVal +
+        balances[AGE_SAVINGS] +
+        freeFundsVal +
+        balances[ASK];
+      const milestoneHousing = calculateHousingForAge(
+        inputs,
+        inputs.currentAge + year,
+        null,
+      );
+
       return {
         age: inputs.currentAge + year,
         date: annualDate(asOfDate, year),
         ratePension: balances[RATE_PENSION],
-        lifeAnnuity:
-          year < yearsToRetirement ? balances[LIFE_ANNUITY] : 0,
+        lifeAnnuity: lifeAnnuityVal,
         ageSavings: balances[AGE_SAVINGS],
-        freeFunds:
-          balances[FREE_FUNDS_REALIZATION] + balances[FREE_FUNDS_INVENTORY],
+        freeFunds: freeFundsVal,
         freeFundsRealization: balances[FREE_FUNDS_REALIZATION],
         freeFundsInventory: balances[FREE_FUNDS_INVENTORY],
         freeFundsCostBasis,
         ratePensionNonDeductibleBasis,
         ask: balances[ASK],
+        totalBalance: totalBalanceVal,
+        housingEquity: milestoneHousing.housingEquity,
+        totalWealthWithHousing:
+          totalBalanceVal + (milestoneHousing.housingEquity ?? 0),
         bridgeYears,
         pensionTarget,
         coastFinanced,

@@ -874,15 +874,29 @@
       "mc-comp-base-fire",
       fire ? `${ages.format(fire.age)} år` : "Ikke nået",
     );
+    const firePlanRow = fire
+      ? calculation.planRows?.find((r) => r.age === fire.age) || fire
+      : null;
+    const fireWealthVal = firePlanRow
+      ? calculation.includeHousing
+        ? (firePlanRow.totalWealthWithHousing ??
+          firePlanRow.totalBalance ??
+          (firePlanRow.ratePension || 0) +
+            (firePlanRow.lifeAnnuity || 0) +
+            (firePlanRow.ageSavings || 0) +
+            (firePlanRow.freeFunds || 0) +
+            (firePlanRow.ask || 0) +
+            (firePlanRow.housingEquity || 0))
+        : (firePlanRow.totalBalance ??
+          (firePlanRow.ratePension || 0) +
+            (firePlanRow.lifeAnnuity || 0) +
+            (firePlanRow.ageSavings || 0) +
+            (firePlanRow.freeFunds || 0) +
+            (firePlanRow.ask || 0))
+      : null;
     setText(
       "mc-comp-base-fire-wealth",
-      fire
-        ? currency.format(
-            calculation.includeHousing
-              ? (fire.totalWealthWithHousing ?? fire.totalBalance)
-              : fire.totalBalance,
-          )
-        : "—",
+      Number.isFinite(fireWealthVal) ? currency.format(fireWealthVal) : "—",
     );
     setText(
       "mc-comp-base-status",
@@ -1701,6 +1715,8 @@
 
     const showMcOnChart = Boolean(mc) && mcChartMode !== "without";
     const showWithoutOnChart = mcChartMode !== "with";
+    const showTotalBaseline =
+      showWithoutOnChart && (showMcOnChart || Boolean(activeStressTestCrisis));
     const bandsByAge = new Map(
       (mc?.percentileBands ?? []).map((band) => [band.age, band]),
     );
@@ -1712,7 +1728,7 @@
       legendHousing.hidden = !(showWithoutOnChart && calculation.includeHousing);
     }
     if (legendBaselineTotal) {
-      legendBaselineTotal.hidden = !(showMcOnChart && showWithoutOnChart);
+      legendBaselineTotal.hidden = !showTotalBaseline;
     }
     if (legendCrisisOverlay) {
       legendCrisisOverlay.hidden = !activeStressTestCrisis;
@@ -1729,7 +1745,7 @@
         const total = calculation.includeHousing
           ? (row.totalWealthWithHousing ?? row.totalBalance)
           : row.totalBalance;
-        return showMcOnChart
+        return showTotalBaseline
           ? Math.max(
               pensionValue(row),
               freeFundsValue(row),
@@ -1747,7 +1763,21 @@
     const mcMax = showMcOnChart
       ? Math.max(...mc.percentileBands.map((band) => band.p90), 1)
       : 1;
-    const rawMax = Math.max(showWithoutOnChart ? baseMax : 1, mcMax);
+    const crisisMax = activeStressTestCrisis?.planRows?.length
+      ? Math.max(
+          ...activeStressTestCrisis.planRows.map((cr) =>
+            calculation.includeHousing
+              ? (cr.totalWealthWithHousing ?? cr.totalBalance)
+              : cr.totalBalance,
+          ),
+          1,
+        )
+      : 1;
+    const rawMax = Math.max(
+      showWithoutOnChart ? baseMax : 1,
+      mcMax,
+      crisisMax,
+    );
     const xForAge = (age) =>
       margin.left + ((age - minAge) / Math.max(1, maxAge - minAge)) * plotWidth;
 
@@ -1819,8 +1849,13 @@
         }
       }
     } else {
-      const magnitude = 10 ** Math.floor(Math.log10(rawMax));
-      yMax = Math.ceil(rawMax / magnitude) * magnitude;
+      const paddedMax = rawMax * 1.04;
+      const magnitude = 10 ** Math.floor(Math.log10(paddedMax));
+      const halfMag = magnitude / 2;
+      yMax =
+        paddedMax / magnitude <= 2.5 && halfMag >= 100_000
+          ? Math.ceil(paddedMax / halfMag) * halfMag
+          : Math.ceil(paddedMax / magnitude) * magnitude;
       yForValue = (value) =>
         plotBottom - (Math.max(0, Number(value) || 0) / yMax) * plotHeight;
       yTicks = Array.from({ length: 5 }, (_, index) => (yMax / 4) * index);
@@ -1983,7 +2018,7 @@
           <path class="chart-line-pension" d="${pointPath(pensionPoints)}" />
           <path class="chart-line-free-funds" d="${pointPath(freeFundsPoints)}" />
           ${calculation.includeHousing ? `<path class="chart-line-housing" d="${pointPath(housingPoints)}" />` : ""}
-          ${showMcOnChart ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
+          ${showTotalBaseline ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
       : "";
     const crisisLineLayer = activeCrisisPoints
       ? `<path class="chart-line-crisis" d="${pointPath(activeCrisisPoints)}" />`
@@ -3131,14 +3166,24 @@
     }
   }
 
-  function renderStressTests(inputs) {
+  function renderStressTests(inputs, skipChartRefresh = false) {
     const grid = document.querySelector("#stress-test-grid");
     if (!grid || !window.FireMonteCarlo?.runHistoricalStressTests) return;
 
     const results = window.FireMonteCarlo.runHistoricalStressTests(inputs);
     if (activeStressTestCrisis) {
       const updated = results.find((r) => r.name === activeStressTestCrisis.name);
-      if (updated) activeStressTestCrisis = updated;
+      if (updated) {
+        activeStressTestCrisis = updated;
+        if (
+          !skipChartRefresh &&
+          currentChartView === "wealth" &&
+          latestCalculation &&
+          latestInputs
+        ) {
+          renderChart(latestCalculation, latestInputs, latestMonteCarlo);
+        }
+      }
     }
 
     grid.innerHTML = results
@@ -3193,7 +3238,7 @@
             chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         }
-        renderStressTests(inputs);
+        renderStressTests(inputs, true);
         if (latestCalculation && latestInputs) {
           renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
         }
