@@ -1542,25 +1542,38 @@ legend,
   fill: var(--green-soft);
 }
 
+.chart-phase-saving-pension {
+  fill: rgba(99, 102, 241, 0.04);
+}
+
+.chart-phase-saving-free {
+  fill: rgba(16, 185, 129, 0.04);
+}
+
+.chart-phase-fire {
+  fill: rgba(245, 158, 11, 0.06);
+}
+
 .chart-phase-pension {
-  fill: var(--gold-soft);
+  fill: rgba(99, 102, 241, 0.04);
 }
 
 .chart-plot-surface {
-  fill: var(--surface-soft);
-  stroke: none;
+  fill: #ffffff;
+  stroke: #e2e8f0;
+  stroke-width: 1;
 }
 
 .chart-grid-line {
-  stroke: #cfd4d1;
-  stroke-dasharray: 2 4;
+  stroke: #e2e8f0;
+  stroke-dasharray: 4 4;
   stroke-width: 1;
 }
 
 .chart-boundary {
-  stroke: #b6bbb8;
-  stroke-dasharray: 3 3;
-  stroke-width: 1;
+  stroke: #94a3b8;
+  stroke-dasharray: 4 4;
+  stroke-width: 1.5;
 }
 
 .chart-line-pension,
@@ -1569,57 +1582,63 @@ legend,
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.6;
+  stroke-width: 2.8;
 }
 
 .chart-area-pension {
-  fill: var(--color-pension-fill);
-  opacity: 0.16;
+  fill: url(#gradient-pension);
 }
 
 .chart-area-free-funds {
-  fill: var(--color-free-funds-fill);
-  opacity: 0.15;
+  fill: url(#gradient-free-funds);
 }
 
 .chart-area-housing {
-  fill: var(--color-housing-fill);
-  opacity: 0.14;
+  fill: url(#gradient-housing);
 }
 
 .chart-line-pension {
-  stroke: var(--color-pension-line);
+  stroke: #6366f1;
 }
 
 .chart-line-free-funds {
-  stroke: var(--color-free-funds-line);
+  stroke: #10b981;
 }
 
 .chart-line-housing {
-  stroke: var(--color-housing-line);
+  stroke: #f59e0b;
 }
 
 .chart-line-total-baseline {
   fill: none;
-  stroke: #1d2b27;
+  stroke: #0f172a;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.2;
+  stroke-width: 3.2;
+}
+
+.chart-line-crisis {
+  fill: none;
+  stroke: #ef4444;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.8;
 }
 
 .chart-band-p10-p90 {
-  fill: #7c3aed;
-  opacity: 0.11;
+  fill: #3b82f6;
+  opacity: 0.12;
 }
 
 .chart-band-p25-p75 {
-  fill: #7c3aed;
+  fill: #3b82f6;
   opacity: 0.22;
 }
 
 .chart-line-mc-p50 {
   fill: none;
-  stroke: #6d28d9;
+  stroke: #2563eb;
   stroke-dasharray: 6 4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1628,7 +1647,7 @@ legend,
 
 .chart-line-mc-p10 {
   fill: none;
-  stroke: #b45309;
+  stroke: #d97706;
   stroke-dasharray: 3 4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1636,9 +1655,10 @@ legend,
 }
 
 .chart-axis-label {
-  fill: #606967;
+  fill: #64748b;
   font-family: var(--sans);
-  font-size: var(--text-caption-size);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .chart-legend {
@@ -1702,44 +1722,50 @@ legend,
 }
 
 .legend-pension {
-  background: var(--color-pension-line);
+  background: #6366f1;
 }
 
 .legend-free-funds {
-  background: var(--color-free-funds-line);
+  background: #10b981;
 }
 
 .legend-housing {
-  background: var(--color-housing-line);
+  background: #f59e0b;
 }
 
 .legend-total-baseline {
-  background: #1d2b27;
+  background: #0f172a;
+}
+
+.legend-crisis-overlay {
+  background: #ef4444;
+  border-top: 2.5px dashed #ef4444;
+  height: 0 !important;
 }
 
 .legend-mc-p50 {
   background: repeating-linear-gradient(
     90deg,
-    #6d28d9 0 6px,
+    #2563eb 0 6px,
     transparent 6px 10px
   );
 }
 
 .legend-mc-p25-p75 {
-  background: rgba(124, 58, 237, 0.35);
+  background: rgba(59, 130, 246, 0.35);
   height: 10px !important;
 }
 
 .legend-mc-p10-p90 {
-  background: rgba(124, 58, 237, 0.16);
-  border: 1px dashed rgba(109, 40, 217, 0.45);
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px dashed rgba(37, 99, 235, 0.45);
   height: 10px !important;
 }
 
 .legend-mc-p10 {
   background: repeating-linear-gradient(
     90deg,
-    #b45309 0 3px,
+    #d97706 0 3px,
     transparent 3px 6px
   );
 }
@@ -1873,10 +1899,13 @@ legend,
 }
 
 .chart-now-label {
-  fill: #68706e;
+  fill: #64748b;
   font-family: var(--sans);
-  font-size: var(--text-chart-tick-size);
+  font-size: 10px;
+  font-weight: 700;
   text-anchor: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .chart-hover-target {
@@ -1886,33 +1915,38 @@ legend,
 }
 
 .chart-hover-line {
-  stroke: #59625f;
-  stroke-dasharray: 3 3;
-  stroke-width: 1;
+  stroke: #475569;
+  stroke-dasharray: 4 4;
+  stroke-width: 1.5;
 }
 
 .chart-hover-point-pension,
 .chart-hover-point-free-funds,
 .chart-hover-point-housing,
-.chart-hover-point-mc-p50 {
-  fill: #fff;
+.chart-hover-point-mc-p50,
+.chart-hover-point-crisis {
+  fill: #ffffff;
   stroke-width: 2.5;
 }
 
 .chart-hover-point-pension {
-  stroke: var(--color-pension-line);
+  stroke: #6366f1;
 }
 
 .chart-hover-point-free-funds {
-  stroke: var(--color-free-funds-line);
+  stroke: #10b981;
 }
 
 .chart-hover-point-housing {
-  stroke: var(--color-housing-line);
+  stroke: #f59e0b;
 }
 
 .chart-hover-point-mc-p50 {
-  stroke: #6d28d9;
+  stroke: #2563eb;
+}
+
+.chart-hover-point-crisis {
+  stroke: #ef4444;
 }
 
 .chart-tooltip {
@@ -1920,48 +1954,46 @@ legend,
 }
 
 .chart-tooltip-box {
-  fill: #fff;
-  filter: drop-shadow(0 4px 8px rgba(29, 43, 39, 0.14));
-  stroke: #d6d8d4;
-}
-
-.chart-tooltip-title,
-.chart-tooltip-label,
-.chart-tooltip-value,
-.chart-tooltip-section-tag {
-  fill: var(--ink);
-  font-family: var(--sans);
+  fill: #0f172a;
+  fill-opacity: 0.96;
+  filter: drop-shadow(0 12px 28px rgba(15, 23, 42, 0.35));
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
 }
 
 .chart-tooltip-title {
-  font-size: var(--text-tooltip-title-size);
-  font-weight: var(--weight-bold);
+  fill: #f8fafc;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.chart-tooltip-section-tag {
-  fill: var(--green-dark);
-  font-size: 9.5px;
-  font-weight: var(--weight-bold);
-  letter-spacing: 0.05em;
-}
-
-.chart-tooltip-section-mc {
-  fill: #5b21b6;
+.chart-tooltip-phase-tag {
+  fill: #38bdf8;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .chart-tooltip-label {
-  fill: var(--muted);
-  font-size: var(--text-tooltip-size);
+  fill: #94a3b8;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
 }
 
 .chart-tooltip-value {
-  font-size: var(--text-tooltip-size);
-  font-weight: var(--weight-semibold);
+  fill: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
   text-anchor: end;
 }
 
 .chart-tooltip-total-rule {
-  stroke: #e1e2df;
+  stroke: rgba(255, 255, 255, 0.14);
   stroke-width: 1;
 }
 
@@ -3910,6 +3942,96 @@ th.housing-col {
   background: #f1f3f1;
   border-color: #cbd5e1;
 }
+
+/* Interactive Stress Cards & Tornado */
+.stress-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.stress-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: #94a3b8;
+}
+
+.stress-card.is-active {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  background: #fffafa;
+}
+
+.stress-card-action {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.stress-card-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 120ms ease;
+}
+
+.stress-card.is-active .stress-card-btn {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.tornado-bar-left,
+.tornado-bar-right {
+  cursor: pointer;
+  transition: filter 140ms ease, transform 120ms ease;
+}
+
+.tornado-bar-left:hover,
+.tornado-bar-right:hover {
+  filter: brightness(1.1);
+  transform: scaleY(1.08);
+}
+
+.tornado-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #1e3a8a;
+  gap: 12px;
+}
+
+.tornado-banner-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tornado-banner-btn:hover {
+  background: #1d4ed8;
+}
+
 
 
 

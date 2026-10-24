@@ -426,6 +426,7 @@
         finalReserve,
         minBalance: Math.max(0, minBalance),
         depletionAge: depletionRow ? depletionRow.age : null,
+        planRows: sim.planRows || [],
       };
     });
   }
@@ -444,12 +445,22 @@
         name: "Forbrugsbehov (Netto)",
         desc: "Hvor meget du ønsker udbetalt til forbrug",
         lowLabel: "-20 % forbrug",
+        lowInputs: {
+          desiredAnnualWithdrawal: Math.round(
+            inputs.desiredAnnualWithdrawal * 0.8,
+          ),
+        },
         lowAge: getAge({
           desiredAnnualWithdrawal: Math.round(
             inputs.desiredAnnualWithdrawal * 0.8,
           ),
         }),
         highLabel: "+20 % forbrug",
+        highInputs: {
+          desiredAnnualWithdrawal: Math.round(
+            inputs.desiredAnnualWithdrawal * 1.2,
+          ),
+        },
         highAge: getAge({
           desiredAnnualWithdrawal: Math.round(
             inputs.desiredAnnualWithdrawal * 1.2,
@@ -460,16 +471,33 @@
         name: "Investeringsafkast",
         desc: "Dit gennemsnitlige årlige afkast før skat",
         lowLabel: "-1 %-point afkast",
+        lowInputs: {
+          returnRate: Math.max(0.01, (inputs.returnRate || 0.07) - 0.01),
+        },
         lowAge: getAge({
           returnRate: Math.max(0.01, (inputs.returnRate || 0.07) - 0.01),
         }),
         highLabel: "+1 %-point afkast",
+        highInputs: {
+          returnRate: (inputs.returnRate || 0.07) + 0.01,
+        },
         highAge: getAge({ returnRate: (inputs.returnRate || 0.07) + 0.01 }),
       },
       {
         name: "Årlig opsparing",
         desc: "Dine årlige indbetalinger til depoter",
         lowLabel: "+20 % opsparing",
+        lowInputs: {
+          annualFreeFundsContribution: Math.round(
+            (inputs.annualFreeFundsContribution || 0) * 1.2,
+          ),
+          annualRatePensionContribution: Math.round(
+            (inputs.annualRatePensionContribution || 0) * 1.2,
+          ),
+          annualAskContribution: Math.round(
+            (inputs.annualAskContribution || 0) * 1.2,
+          ),
+        },
         lowAge: getAge({
           annualFreeFundsContribution: Math.round(
             (inputs.annualFreeFundsContribution || 0) * 1.2,
@@ -482,6 +510,17 @@
           ),
         }),
         highLabel: "-20 % opsparing",
+        highInputs: {
+          annualFreeFundsContribution: Math.round(
+            (inputs.annualFreeFundsContribution || 0) * 0.8,
+          ),
+          annualRatePensionContribution: Math.round(
+            (inputs.annualRatePensionContribution || 0) * 0.8,
+          ),
+          annualAskContribution: Math.round(
+            (inputs.annualAskContribution || 0) * 0.8,
+          ),
+        },
         highAge: getAge({
           annualFreeFundsContribution: Math.round(
             (inputs.annualFreeFundsContribution || 0) * 0.8,
@@ -498,10 +537,16 @@
         name: "Inflation",
         desc: "Købekraftstab og inflationsrate",
         lowLabel: "-1 %-point inflation",
+        lowInputs: {
+          inflationRate: Math.max(0, (inputs.inflationRate || 0.02) - 0.01),
+        },
         lowAge: getAge({
           inflationRate: Math.max(0, (inputs.inflationRate || 0.02) - 0.01),
         }),
         highLabel: "+1 %-point inflation",
+        highInputs: {
+          inflationRate: (inputs.inflationRate || 0.02) + 0.01,
+        },
         highAge: getAge({
           inflationRate: (inputs.inflationRate || 0.02) + 0.01,
         }),

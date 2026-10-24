@@ -103,6 +103,10 @@
   const legendGroupWith = document.querySelector("#legend-group-with");
   const legendBaselineTotal = document.querySelector("#legend-baseline-total");
   const legendHousing = document.querySelector("#legend-housing");
+  const legendCrisisOverlay = document.querySelector("#legend-crisis-overlay");
+  const legendCrisisTitle = document.querySelector("#legend-crisis-title");
+  let activeStressTestCrisis = null;
+  let activeTornadoPreset = null;
   const freeFundsCostBasisField = document.querySelector(
     "#free-funds-cost-basis-field",
   );
@@ -1675,8 +1679,8 @@
 
   function renderChart(calculation, inputs, mc) {
     const width = 1120;
-    const height = 236;
-    const margin = { top: 4, right: 76, bottom: 44, left: 76 };
+    const height = 400;
+    const margin = { top: 32, right: 80, bottom: 50, left: 85 };
     const plotWidth = width - margin.left - margin.right;
     const plotHeight = height - margin.top - margin.bottom;
     const plotBottom = margin.top + plotHeight;
@@ -1709,6 +1713,12 @@
     }
     if (legendBaselineTotal) {
       legendBaselineTotal.hidden = !(showMcOnChart && showWithoutOnChart);
+    }
+    if (legendCrisisOverlay) {
+      legendCrisisOverlay.hidden = !activeStressTestCrisis;
+      if (activeStressTestCrisis && legendCrisisTitle) {
+        legendCrisisTitle.textContent = `Krise: ${activeStressTestCrisis.name}`;
+      }
     }
     if (legendGroupWith) {
       legendGroupWith.hidden = !showMcOnChart;
@@ -1859,6 +1869,25 @@
     const mcP75Points = showMcOnChart ? mcPointsForKey("p75") : [];
     const mcP90Points = showMcOnChart ? mcPointsForKey("p90") : [];
 
+    const activeCrisisPoints = activeStressTestCrisis?.planRows?.length
+      ? rows.map((row) => {
+          const crisisRow = activeStressTestCrisis.planRows.find(
+            (cr) => cr.age === row.age,
+          );
+          const val = crisisRow
+            ? calculation.includeHousing
+              ? (crisisRow.totalWealthWithHousing ?? crisisRow.totalBalance)
+              : crisisRow.totalBalance
+            : 0;
+          return {
+            age: row.age,
+            val,
+            x: xForAge(row.age).toFixed(2),
+            y: yForValue(val).toFixed(2),
+          };
+        })
+      : null;
+
     const axisRows = rows.filter(
       (row, index) => index === 0 || row.age !== rows[index - 1].age,
     );
@@ -1867,28 +1896,38 @@
         className: "chart-phase-saving-pension",
         from: minAge,
         to: pensionStopAge,
+        label: "Opsparing",
       },
       {
         className: "chart-phase-saving-free",
         from: pensionStopAge,
         to: fireAge,
+        label: "Frie Midler",
       },
       {
         className: "chart-phase-fire",
         from: fireAge,
         to: inputs.retirementAge,
+        label: "FIRE Brofase",
       },
       {
         className: "chart-phase-pension",
         from: inputs.retirementAge,
         to: maxAge,
+        label: "Pension",
       },
     ]
       .filter((phase) => phase.to > phase.from)
-      .map(
-        (phase) =>
-          `<rect class="${phase.className}" x="${xForAge(phase.from)}" y="${margin.top}" width="${xForAge(phase.to) - xForAge(phase.from)}" height="${plotHeight}" />`,
-      )
+      .map((phase) => {
+        const x1 = xForAge(phase.from);
+        const x2 = xForAge(phase.to);
+        const w = x2 - x1;
+        const labelSvg =
+          w > 50
+            ? `<text x="${x1 + w / 2}" y="${margin.top + 16}" text-anchor="middle" font-size="10" font-weight="600" fill="#64748b" opacity="0.65" letter-spacing="0.04em" style="text-transform:uppercase">${phase.label}</text>`
+            : "";
+        return `<rect class="${phase.className}" x="${x1}" y="${margin.top}" width="${w}" height="${plotHeight}" />${labelSvg}`;
+      })
       .join("");
     const gridLines = yTicks
       .map((value) => {
@@ -1946,11 +1985,26 @@
           ${calculation.includeHousing ? `<path class="chart-line-housing" d="${pointPath(housingPoints)}" />` : ""}
           ${showMcOnChart ? `<path class="chart-line-total-baseline" d="${pointPath(totalBaselinePoints)}" />` : ""}`
       : "";
+    const crisisLineLayer = activeCrisisPoints
+      ? `<path class="chart-line-crisis" d="${pointPath(activeCrisisPoints)}" />`
+      : "";
 
     chart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pension og frie midler fra ${ages.format(minAge)} til ${ages.format(maxAge)} år" aria-describedby="wealth-chart-description">
         <desc id="wealth-chart-description">Grafen viser formueudviklingen med og uden Monte Carlo-simulering for hvert år.</desc>
         <defs>
+          <linearGradient id="gradient-free-funds" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.01" />
+          </linearGradient>
+          <linearGradient id="gradient-pension" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.01" />
+          </linearGradient>
+          <linearGradient id="gradient-housing" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.01" />
+          </linearGradient>
           <clipPath id="chart-plot-clip">
             <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
           </clipPath>
@@ -1963,16 +2017,18 @@
           ${gridLines}
           ${boundaries}
           ${withoutLineLayers}
+          ${crisisLineLayer}
         </g>
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis beløb for et bestemt år" />
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
-          <circle class="chart-hover-point-pension" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
-          <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4" ${showWithoutOnChart ? "" : 'style="display:none"'} />
-          <circle class="chart-hover-point-housing" cx="0" cy="0" r="4" ${showWithoutOnChart && calculation.includeHousing ? "" : 'style="display:none"'} />
-          <circle class="chart-hover-point-mc-p50" cx="0" cy="0" r="4" ${showMcOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-pension" cx="0" cy="0" r="4.5" ${showWithoutOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-free-funds" cx="0" cy="0" r="4.5" ${showWithoutOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-housing" cx="0" cy="0" r="4.5" ${showWithoutOnChart && calculation.includeHousing ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-mc-p50" cx="0" cy="0" r="4.5" ${showMcOnChart ? "" : 'style="display:none"'} />
+          <circle class="chart-hover-point-crisis" cx="0" cy="0" r="4.5" ${activeCrisisPoints ? "" : 'style="display:none"'} />
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
@@ -1987,6 +2043,7 @@
     );
     const hoverHousingPoint = svg.querySelector(".chart-hover-point-housing");
     const hoverMcP50Point = svg.querySelector(".chart-hover-point-mc-p50");
+    const hoverCrisisPoint = svg.querySelector(".chart-hover-point-crisis");
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
@@ -2008,50 +2065,65 @@
         items.push({
           label: "Pension",
           value: pensionValue(row),
+          color: "#818cf8",
         });
         items.push({
           label: "Frie midler",
           value: freeFundsValue(row),
+          color: "#34d399",
         });
         if (calculation.includeHousing) {
           items.push({
             label: "Friværdi",
             value: housingValue(row),
+            color: "#fbbf24",
           });
         }
       }
       items.push({
         label: showMcOnChart ? "Samlet formue (Fast)" : "Samlet formue",
         value: totalBalanceVal,
+        color: "#38bdf8",
       });
       if (showMcOnChart && band) {
         items.push({
           label: "MC P90 (Optimistisk)",
           value: band.p90,
+          color: "#93c5fd",
         });
         items.push({
           label: "MC P50 (Median)",
           value: band.p50,
+          color: "#60a5fa",
         });
         items.push({
           label: "MC P10 (Pessimistisk)",
           value: band.p10,
+          color: "#f59e0b",
+        });
+      }
+      if (activeCrisisPoints && activeCrisisPoints[activeIndex]) {
+        items.push({
+          label: `Krise (${activeStressTestCrisis.name.split(" ")[0]})`,
+          value: activeCrisisPoints[activeIndex].val,
+          color: "#ef4444",
         });
       }
 
       // Sorter faldende efter beløb: grafen med det højeste beløb øverst, dernæst de øvrige mod laveste beløb nederst
       items.sort((a, b) => b.value - a.value);
 
-      const tooltipWidth = showMcOnChart ? 244 : 196;
-      const valX = tooltipWidth - 10;
-      const rowHeight = 17;
-      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipWidth = 248;
+      const valX = tooltipWidth - 14;
+      const rowHeight = 20;
+      const headerHeight = 32;
+      const boxHeight = headerHeight + items.length * rowHeight + 10;
 
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
-          ? x - tooltipWidth - 12
-          : x + 12;
-      const tooltipY = margin.top + 8;
+          ? x - tooltipWidth - 14
+          : x + 14;
+      const tooltipY = margin.top + 10;
 
       hoverLine.setAttribute("x1", x);
       hoverLine.setAttribute("x2", x);
@@ -2067,21 +2139,37 @@
         hoverMcP50Point.setAttribute("cx", x);
         hoverMcP50Point.setAttribute("cy", Number(mcP50Points[activeIndex].y));
       }
+      if (hoverCrisisPoint && activeCrisisPoints && activeCrisisPoints[activeIndex]) {
+        hoverCrisisPoint.setAttribute("cx", x);
+        hoverCrisisPoint.setAttribute("cy", Number(activeCrisisPoints[activeIndex].y));
+      }
 
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
 
+      const currentPhase =
+        row.age < pensionStopAge
+          ? "Opsparing"
+          : row.age < fireAge
+            ? "Frie Midler"
+            : row.age < inputs.retirementAge
+              ? "FIRE Brofase"
+              : "Pension";
+
       const rowsSvg = items
         .map((item, idx) => {
-          const y = 35 + idx * rowHeight;
+          const y = headerHeight + 15 + idx * rowHeight;
           return `
-            <text class="chart-tooltip-label" x="10" y="${y}">${item.label}</text>
+            <circle cx="16" cy="${y - 4}" r="3.5" fill="${item.color}" />
+            <text class="chart-tooltip-label" x="26" y="${y}">${item.label}</text>
             <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
         })
         .join("");
 
       tooltip.innerHTML = `
-        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
-        <text class="chart-tooltip-title" x="10" y="17">${row.date.getFullYear()} · ${ages.format(row.age)} år</text>
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="8" />
+        <text class="chart-tooltip-title" x="12" y="20">${row.date.getFullYear()} · ${ages.format(row.age)} år</text>
+        <text class="chart-tooltip-phase-tag" x="${valX}" y="20" text-anchor="end">${currentPhase}</text>
+        <line class="chart-tooltip-total-rule" x1="12" x2="${tooltipWidth - 12}" y1="28" y2="28" />
         ${rowsSvg}`;
 
       const ariaDetails = items
@@ -2151,9 +2239,9 @@
 
     const minAge = rows[0].age;
     const maxAge = rows[rows.length - 1].age;
-    const width = 760;
-    const height = 360;
-    const margin = { top: 24, right: 28, bottom: 36, left: 68 };
+    const width = 1120;
+    const height = 400;
+    const margin = { top: 32, right: 80, bottom: 50, left: 85 };
     const plotWidth = width - margin.left - margin.right;
     const plotHeight = height - margin.top - margin.bottom;
     const plotBottom = height - margin.bottom;
@@ -2234,7 +2322,7 @@
     const yAxisLabels = yTicks
       .map(
         (tick) => `
-          <text class="chart-y-label" x="${margin.left - 8}" y="${yForValue(tick) + 4}">${currency.format(tick)}</text>`,
+          <text class="chart-axis-label" x="${margin.left - 12}" y="${yForValue(tick) + 4}" text-anchor="end">${compactNumber.format(tick)} kr.</text>`,
       )
       .join("");
 
@@ -2253,7 +2341,7 @@
       .join("");
 
     // Bar rendering
-    const barWidth = Math.max(2, Math.min(14, (plotWidth / rows.length) * 0.72));
+    const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
     const barsSvg = data
       .map((d) => {
         const x = xForAge(d.age) - barWidth / 2;
@@ -2261,7 +2349,7 @@
           if (d.savings <= 0) return "";
           const h = (d.savings / yMax) * plotHeight;
           const y = plotBottom - h;
-          return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="#2563eb" rx="1.5" />`;
+          return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="#2563eb" rx="2.5" />`;
         }
 
         const segments = [
@@ -2281,7 +2369,7 @@
             if (seg.val <= 0) return "";
             const h = (seg.val / yMax) * plotHeight;
             curY -= h;
-            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="1" />`;
+            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
           })
           .join("");
       })
@@ -2406,30 +2494,33 @@
         }
       }
 
-      const tooltipWidth = 240;
-      const valX = tooltipWidth - 10;
-      const rowHeight = 17;
-      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipWidth = 252;
+      const valX = tooltipWidth - 12;
+      const rowHeight = 20;
+      const headerHeight = 32;
+      const boxHeight = headerHeight + items.length * rowHeight + 10;
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
-          ? x - tooltipWidth - 12
-          : x + 12;
+          ? x - tooltipWidth - 14
+          : x + 14;
       const tooltipY = margin.top + 8;
 
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
       const rowsSvg = items
         .map((item, idx) => {
-          const y = 35 + idx * rowHeight;
+          const y = headerHeight + 14 + idx * rowHeight;
           return `
-            <circle cx="16" cy="${y - 4}" r="3" fill="${item.color}" />
+            <circle cx="15" cy="${y - 4}" r="4" fill="${item.color}" />
             <text class="chart-tooltip-label" x="25" y="${y}">${item.label}</text>
             <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
         })
         .join("");
 
       tooltip.innerHTML = `
-        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
-        <text class="chart-tooltip-title" x="10" y="17">${d.year} · ${ages.format(d.age)} år (${d.isAccumulation ? "Opsparing" : "Nedsparing"})</text>
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="8" />
+        <text class="chart-tooltip-title" x="12" y="21">${d.year} · ${ages.format(d.age)} år</text>
+        <text class="chart-tooltip-phase" x="${valX}" y="20">${d.isAccumulation ? "Opsparing" : "Udbetaling"}</text>
+        <line class="chart-tooltip-total-rule" x1="12" x2="${tooltipWidth - 12}" y1="${headerHeight}" y2="${headerHeight}" />
         ${rowsSvg}`;
 
       hoverLayer.style.display = "block";
@@ -2474,9 +2565,9 @@
 
     const minAge = rows[0].age;
     const maxAge = rows[rows.length - 1].age;
-    const width = 760;
-    const height = 360;
-    const margin = { top: 24, right: 28, bottom: 36, left: 68 };
+    const width = 1120;
+    const height = 400;
+    const margin = { top: 32, right: 80, bottom: 50, left: 85 };
     const plotWidth = width - margin.left - margin.right;
     const plotHeight = height - margin.top - margin.bottom;
     const plotBottom = height - margin.bottom;
@@ -2563,7 +2654,7 @@
     const yAxisLabels = yTicks
       .map(
         (tick) => `
-          <text class="chart-y-label" x="${margin.left - 8}" y="${yForValue(tick) + 4}">${currency.format(tick)}</text>`,
+          <text class="chart-axis-label" x="${margin.left - 12}" y="${yForValue(tick) + 4}" text-anchor="end">${compactNumber.format(tick)} kr.</text>`,
       )
       .join("");
 
@@ -2576,13 +2667,13 @@
             : "";
         return `
           <line class="chart-year-tick" x1="${x}" x2="${x}" y1="${plotBottom}" y2="${plotBottom + 4}" />
-          <text class="chart-year-label" x="${x}" y="${plotBottom + 14}">${row.age}</text>
+          <text class="chart-year-label" x="${x}" y="${plotBottom + 16}">${row.age}</text>
           ${nowLabel}`;
       })
       .join("");
 
     // Bar rendering
-    const barWidth = Math.max(2, Math.min(14, (plotWidth / rows.length) * 0.72));
+    const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
     const barsSvg = taxData
       .map((d) => {
         const x = xForAge(d.age) - barWidth / 2;
@@ -2600,7 +2691,7 @@
             if (seg.val <= 0) return "";
             const h = (seg.val / yMax) * plotHeight;
             curY -= h;
-            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="1" />`;
+            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
           })
           .join("");
       })
@@ -2692,30 +2783,33 @@
         color: "#1e293b",
       });
 
-      const tooltipWidth = 248;
-      const valX = tooltipWidth - 10;
-      const rowHeight = 17;
-      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipWidth = 256;
+      const valX = tooltipWidth - 12;
+      const rowHeight = 20;
+      const headerHeight = 32;
+      const boxHeight = headerHeight + items.length * rowHeight + 10;
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
-          ? x - tooltipWidth - 12
-          : x + 12;
+          ? x - tooltipWidth - 14
+          : x + 14;
       const tooltipY = margin.top + 8;
 
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
       const rowsSvg = items
         .map((item, idx) => {
-          const y = 35 + idx * rowHeight;
+          const y = headerHeight + 14 + idx * rowHeight;
           return `
-            <circle cx="16" cy="${y - 4}" r="3" fill="${item.color}" />
+            <circle cx="15" cy="${y - 4}" r="4" fill="${item.color}" />
             <text class="chart-tooltip-label" x="25" y="${y}">${item.label}</text>
             <text class="chart-tooltip-value" x="${valX}" y="${y}">${currency.format(item.value)}</text>`;
         })
         .join("");
 
       tooltip.innerHTML = `
-        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
-        <text class="chart-tooltip-title" x="10" y="17">${d.year} · ${ages.format(d.age)} år</text>
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="8" />
+        <text class="chart-tooltip-title" x="12" y="21">${d.year} · ${ages.format(d.age)} år</text>
+        <text class="chart-tooltip-phase" x="${valX}" y="20">Skat &amp; afgifter</text>
+        <line class="chart-tooltip-total-rule" x1="12" x2="${tooltipWidth - 12}" y1="${headerHeight}" y2="${headerHeight}" />
         ${rowsSvg}`;
 
       hoverLayer.style.display = "block";
@@ -2770,9 +2864,9 @@
 
     const minAge = bands[0].age;
     const maxAge = bands[bands.length - 1].age;
-    const width = 760;
-    const height = 360;
-    const margin = { top: 24, right: 28, bottom: 36, left: 56 };
+    const width = 1120;
+    const height = 400;
+    const margin = { top: 32, right: 80, bottom: 50, left: 85 };
     const plotWidth = width - margin.left - margin.right;
     const plotHeight = height - margin.top - margin.bottom;
     const plotBottom = height - margin.bottom;
@@ -2795,7 +2889,7 @@
     const yAxisLabels = yTicks
       .map(
         (tick) => `
-          <text class="chart-y-label" x="${margin.left - 8}" y="${yForRate(tick) + 4}">${tick} %</text>`,
+          <text class="chart-axis-label" x="${margin.left - 12}" y="${yForRate(tick) + 4}" text-anchor="end">${tick} %</text>`,
       )
       .join("");
 
@@ -2808,7 +2902,7 @@
             : "";
         return `
           <line class="chart-year-tick" x1="${x}" x2="${x}" y1="${plotBottom}" y2="${plotBottom + 4}" />
-          <text class="chart-year-label" x="${x}" y="${plotBottom + 14}">${band.age}</text>
+          <text class="chart-year-label" x="${x}" y="${plotBottom + 16}">${band.age}</text>
           ${nowLabel}`;
       })
       .join("");
@@ -2826,9 +2920,9 @@
       <rect x="${margin.left}" y="${y100}" width="${plotWidth}" height="${y90 - y100}" fill="rgba(16, 185, 129, 0.12)" />
       <rect x="${margin.left}" y="${y90}" width="${plotWidth}" height="${y75 - y90}" fill="rgba(245, 158, 11, 0.12)" />
       <rect x="${margin.left}" y="${y75}" width="${plotWidth}" height="${y0 - y75}" fill="rgba(239, 68, 68, 0.08)" />
-      <text x="${width - margin.right - 8}" y="${y100 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#059669">Meget sikker (90–100 %)</text>
-      <text x="${width - margin.right - 8}" y="${y90 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#d97706">Moderat risiko (75–90 %)</text>
-      <text x="${width - margin.right - 8}" y="${y75 + 14}" text-anchor="end" font-size="10" font-weight="600" fill="#dc2626">Forhøjet udtømningsrisiko (&lt;75 %)</text>
+      <text x="${width - margin.right - 12}" y="${y100 + 16}" text-anchor="end" font-size="11" font-weight="700" fill="#059669">Meget sikker (90–100 %)</text>
+      <text x="${width - margin.right - 12}" y="${y90 + 16}" text-anchor="end" font-size="11" font-weight="700" fill="#d97706">Moderat risiko (75–90 %)</text>
+      <text x="${width - margin.right - 12}" y="${y75 + 16}" text-anchor="end" font-size="11" font-weight="700" fill="#dc2626">Forhøjet udtømningsrisiko (&lt;75 %)</text>
     `;
 
     // Solvency curve
@@ -2924,30 +3018,33 @@
         },
       ];
 
-      const tooltipWidth = 246;
-      const valX = tooltipWidth - 10;
-      const rowHeight = 17;
-      const boxHeight = 26 + items.length * rowHeight + 8;
+      const tooltipWidth = 256;
+      const valX = tooltipWidth - 12;
+      const rowHeight = 20;
+      const headerHeight = 32;
+      const boxHeight = headerHeight + items.length * rowHeight + 10;
       const tooltipX =
         x > width - margin.right - tooltipWidth - 16
-          ? x - tooltipWidth - 12
-          : x + 12;
+          ? x - tooltipWidth - 14
+          : x + 14;
       const tooltipY = margin.top + 8;
 
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
       const rowsSvg = items
         .map((item, idx) => {
-          const rowY = 35 + idx * rowHeight;
+          const rowY = headerHeight + 14 + idx * rowHeight;
           return `
-            <circle cx="16" cy="${rowY - 4}" r="3" fill="${item.color}" />
+            <circle cx="15" cy="${rowY - 4}" r="4" fill="${item.color}" />
             <text class="chart-tooltip-label" x="25" y="${rowY}">${item.label}</text>
             <text class="chart-tooltip-value" x="${valX}" y="${rowY}">${item.value}</text>`;
         })
         .join("");
 
       tooltip.innerHTML = `
-        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="6" />
-        <text class="chart-tooltip-title" x="10" y="17">${ages.format(b.age)} år · Solvens over tid</text>
+        <rect class="chart-tooltip-box" width="${tooltipWidth}" height="${boxHeight}" rx="8" />
+        <text class="chart-tooltip-title" x="12" y="21">${ages.format(b.age)} år</text>
+        <text class="chart-tooltip-phase" x="${valX}" y="20">Monte Carlo Solvens</text>
+        <line class="chart-tooltip-total-rule" x1="12" x2="${tooltipWidth - 12}" y1="${headerHeight}" y2="${headerHeight}" />
         ${rowsSvg}`;
 
       hoverLayer.style.display = "block";
@@ -3039,8 +3136,14 @@
     if (!grid || !window.FireMonteCarlo?.runHistoricalStressTests) return;
 
     const results = window.FireMonteCarlo.runHistoricalStressTests(inputs);
+    if (activeStressTestCrisis) {
+      const updated = results.find((r) => r.name === activeStressTestCrisis.name);
+      if (updated) activeStressTestCrisis = updated;
+    }
+
     grid.innerHTML = results
-      .map((r) => {
+      .map((r, idx) => {
+        const isActive = activeStressTestCrisis && activeStressTestCrisis.name === r.name;
         const badgeClass = r.isSolvent
           ? "scenario-delta-better"
           : "scenario-delta-worse";
@@ -3049,7 +3152,7 @@
           : `Udtømmes ved ${ages.format(r.depletionAge || 75)} år`;
 
         return `
-          <div class="stress-card">
+          <div class="stress-card${isActive ? " is-active" : ""}" data-crisis-idx="${idx}" tabindex="0" role="button" aria-pressed="${isActive}">
             <div class="stress-card-header">
               <span class="stress-card-title">${r.name}</span>
               <span class="stress-card-badge ${badgeClass}">${badgeText}</span>
@@ -3067,10 +3170,46 @@
                 </strong>
               </div>
             </div>
+            <div class="stress-card-action">
+              <button type="button" class="stress-card-btn">
+                ${isActive ? "✓ Vises på formuegraf (Klik for at slå fra)" : "📈 Vis kriseforløb på formuegraf"}
+              </button>
+            </div>
           </div>`;
       })
       .join("");
+
+    grid.querySelectorAll(".stress-card").forEach((card) => {
+      const toggleCrisis = () => {
+        const idx = Number(card.dataset.crisisIdx);
+        const selected = results[idx];
+        if (!selected) return;
+        if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
+          activeStressTestCrisis = null;
+        } else {
+          activeStressTestCrisis = selected;
+          setChartView("wealth");
+          if (chart) {
+            chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+        renderStressTests(inputs);
+        if (latestCalculation && latestInputs) {
+          renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+        }
+      };
+
+      card.addEventListener("click", toggleCrisis);
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleCrisis();
+        }
+      });
+    });
   }
+
+  let originalInputsForTornado = null;
 
   function renderTornadoAnalysis(inputs) {
     const container = document.querySelector("#sensitivity-tornado-container");
@@ -3079,44 +3218,85 @@
 
     const factors = window.FireMonteCarlo.calculateSensitivityAnalysis(inputs);
 
-    container.innerHTML = factors
-      .map((f) => {
-        const leftShare = Math.max(
-          0.1,
-          (f.baseAge - f.bestAge) / Math.max(1, f.swing),
-        );
-        const rightShare = Math.max(
-          0.1,
-          (f.worstAge - f.baseAge) / Math.max(1, f.swing),
-        );
-        const total = leftShare + rightShare;
-        const leftPct = Math.round((leftShare / total) * 100);
-        const rightPct = 100 - leftPct;
+    const activeBannerHtml = activeTornadoPreset
+      ? `<div class="tornado-banner">
+          <span>🔍 Du tester nu: <strong>${activeTornadoPreset.label}</strong></span>
+          <button type="button" id="reset-tornado-preset-btn">↺ Nulstil til din basisplan</button>
+        </div>`
+      : `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">💡 <strong>Tip:</strong> Klik på en grøn eller rød bjælke herunder for at afprøve scenariet direkte i beregneren.</div>`;
 
-        return `
-          <div class="tornado-row">
-            <div class="tornado-factor-info">
-              <strong>${f.name}</strong>
-              <small>${f.desc}</small>
-            </div>
-            <div class="tornado-visual">
-              <span style="font-size:11px;color:var(--muted);width:70px;text-align:right;">${f.lowLabel}</span>
-              <div class="tornado-bar-wrap" title="${f.bestAge} år til ${f.worstAge} år">
-                <div class="tornado-bar-left" style="width:${leftPct}%;">
-                  <span>${f.bestAge} år</span>
-                </div>
-                <div class="tornado-bar-right" style="width:${rightPct}%;">
-                  <span>${f.worstAge} år</span>
-                </div>
+    container.innerHTML =
+      activeBannerHtml +
+      factors
+        .map((f, idx) => {
+          const leftShare = Math.max(
+            0.1,
+            (f.baseAge - f.bestAge) / Math.max(1, f.swing),
+          );
+          const rightShare = Math.max(
+            0.1,
+            (f.worstAge - f.baseAge) / Math.max(1, f.swing),
+          );
+          const total = leftShare + rightShare;
+          const leftPct = Math.round((leftShare / total) * 100);
+          const rightPct = 100 - leftPct;
+
+          return `
+            <div class="tornado-row">
+              <div class="tornado-factor-info">
+                <strong>${f.name}</strong>
+                <small>${f.desc}</small>
               </div>
-              <span style="font-size:11px;color:var(--muted);width:70px;">${f.highLabel}</span>
-            </div>
-            <div class="tornado-swing-badge">
-              <span>± ${f.swing} års forskel</span>
-            </div>
-          </div>`;
-      })
-      .join("");
+              <div class="tornado-visual">
+                <span style="font-size:11px;color:var(--muted);width:78px;text-align:right;font-weight:600;">${f.lowLabel}</span>
+                <div class="tornado-bar-wrap" title="Klik på en side for at afprøve scenariet (${f.bestAge} år til ${f.worstAge} år)">
+                  <div class="tornado-bar-left" style="width:${leftPct}%;" data-factor-idx="${idx}" data-side="low" title="Klik for at teste: ${f.name} (${f.lowLabel})">
+                    <span>${f.bestAge} år</span>
+                  </div>
+                  <div class="tornado-bar-right" style="width:${rightPct}%;" data-factor-idx="${idx}" data-side="high" title="Klik for at teste: ${f.name} (${f.highLabel})">
+                    <span>${f.worstAge} år</span>
+                  </div>
+                </div>
+                <span style="font-size:11px;color:var(--muted);width:78px;font-weight:600;">${f.highLabel}</span>
+              </div>
+              <div class="tornado-swing-badge">
+                <span>± ${f.swing} års forskel</span>
+              </div>
+            </div>`;
+        })
+        .join("");
+
+    const resetBtn = container.querySelector("#reset-tornado-preset-btn");
+    if (resetBtn && originalInputsForTornado) {
+      resetBtn.addEventListener("click", () => {
+        const toRestore = originalInputsForTornado;
+        originalInputsForTornado = null;
+        activeTornadoPreset = null;
+        applyPlanInputs(toRestore);
+        update();
+      });
+    }
+
+    container.querySelectorAll("[data-factor-idx]").forEach((bar) => {
+      bar.addEventListener("click", () => {
+        const idx = Number(bar.dataset.factorIdx);
+        const side = bar.dataset.side;
+        const factor = factors[idx];
+        if (!factor) return;
+        const targetInputs = side === "low" ? factor.lowInputs : factor.highInputs;
+        const sideLabel = side === "low" ? factor.lowLabel : factor.highLabel;
+        if (!targetInputs) return;
+
+        if (!originalInputsForTornado) {
+          originalInputsForTornado = readInputs();
+        }
+        activeTornadoPreset = {
+          label: `${factor.name}: ${sideLabel}`,
+        };
+        applyPlanInputs({ ...readInputs(), ...targetInputs });
+        update();
+      });
+    });
   }
 
 
