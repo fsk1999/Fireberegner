@@ -3965,14 +3965,16 @@ th.housing-col {
 .stress-card-action {
   margin-top: 10px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .stress-card-btn {
   font-size: 11px;
   font-weight: 600;
-  padding: 5px 12px;
+  padding: 5px 10px;
   border-radius: 4px;
   border: 1px solid var(--line);
   background: #ffffff;
@@ -3984,10 +3986,26 @@ th.housing-col {
   transition: all 120ms ease;
 }
 
-.stress-card.is-active .stress-card-btn {
+.stress-card-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.stress-card.is-active .stress-card-btn-primary {
   background: #ef4444;
   color: #ffffff;
   border-color: #ef4444;
+}
+
+.stress-card-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.stress-card-btn-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .tornado-bar-left,
@@ -4004,16 +4022,24 @@ th.housing-col {
 
 .tornado-banner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   border-radius: 6px;
-  padding: 8px 14px;
+  padding: 10px 14px;
   margin-bottom: 12px;
   font-size: 12px;
   color: #1e3a8a;
-  gap: 12px;
+  gap: 10px;
+}
+
+.tornado-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .tornado-banner-btn {
@@ -4021,7 +4047,7 @@ th.housing-col {
   color: #ffffff;
   border: none;
   border-radius: 4px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -4032,6 +4058,235 @@ th.housing-col {
   background: #1d4ed8;
 }
 
+.tornado-banner-btn-secondary {
+  background: #ffffff;
+  color: #1e3a8a;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
+.tornado-banner-btn-secondary:hover {
+  background: #dbeafe;
+}
 
+.tornado-slider-track-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
 
+.tornado-range-slider {
+  flex: 1;
+  height: 6px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.tornado-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.tornado-live-badge.is-modified {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.tornado-single-reset {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.tornado-single-reset:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.tornado-endpoint-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.tornado-endpoint-btn:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+/* Collapsible Column Groups */
+.col-group-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.col-group-toolbar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.col-group-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.col-group-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.col-group-pill.is-expanded {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.col-group-pill:not(.is-expanded) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+  opacity: 0.85;
+}
+
+.col-group-chevron {
+  font-size: 10px;
+  transition: transform 120ms ease;
+}
+
+.col-group-pill:not(.is-expanded) .col-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.col-group-action-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.col-group-action-btn:hover {
+  background: #f1f5f9;
+}
+
+.table-crisis-picker-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.table-crisis-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.table-wrap[data-collapsed-pension="true"] [data-col-group="pension"],
+.table-wrap[data-collapsed-free="true"] [data-col-group="free"],
+.table-wrap[data-collapsed-housing="true"] [data-col-group="housing"],
+.table-wrap[data-collapsed-cashflow="true"] [data-col-group="cashflow"],
+.table-wrap[data-collapsed-comparison="true"] [data-col-group="comparison"] {
+  display: none !important;
+}
+
+/* Deep Dive Detail Modal */
+.deep-dive-detail-dialog {
+  width: min(1240px, 95vw);
+  max-height: 90vh;
+}
+
+.deep-dive-dialog-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.deep-dive-kpi-card {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deep-dive-kpi-card span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.deep-dive-kpi-card strong {
+  font-size: 15px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.deep-dive-kpi-card small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.deep-dive-modal-table-wrap {
+  max-height: 56vh;
+  overflow: auto;
+}

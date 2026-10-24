@@ -431,6 +431,7 @@
         minBalance: Math.max(0, minBalance),
         depletionAge: depletionRow ? depletionRow.age : null,
         planRows: sim.planRows || [],
+        calculation: sim,
       };
     });
   }
@@ -446,8 +447,15 @@
 
     const factors = [
       {
+        key: "spendingPct",
         name: "Forbrugsbehov (Netto)",
         desc: "Hvor meget du ønsker udbetalt til forbrug",
+        sliderMin: -30,
+        sliderMax: 30,
+        sliderStep: 1,
+        leftVal: -20,
+        rightVal: 20,
+        unit: "%",
         lowLabel: "-20 % forbrug",
         lowInputs: {
           desiredAnnualWithdrawal: Math.round(
@@ -472,8 +480,15 @@
         }),
       },
       {
+        key: "returnPts",
         name: "Investeringsafkast",
         desc: "Dit gennemsnitlige årlige afkast før skat",
+        sliderMin: -2.5,
+        sliderMax: 2.5,
+        sliderStep: 0.1,
+        leftVal: 1.0,
+        rightVal: -1.0,
+        unit: "%-point",
         lowLabel: "-1 %-point afkast",
         lowInputs: {
           returnRate: Math.max(0.01, (inputs.returnRate || 0.07) - 0.01),
@@ -488,8 +503,15 @@
         highAge: getAge({ returnRate: (inputs.returnRate || 0.07) + 0.01 }),
       },
       {
+        key: "savingsPct",
         name: "Årlig opsparing",
         desc: "Dine årlige indbetalinger til depoter",
+        sliderMin: -40,
+        sliderMax: 40,
+        sliderStep: 1,
+        leftVal: 20,
+        rightVal: -20,
+        unit: "%",
         lowLabel: "+20 % opsparing",
         lowInputs: {
           annualFreeFundsContribution: Math.round(
@@ -538,8 +560,15 @@
         }),
       },
       {
+        key: "inflationPts",
         name: "Inflation",
         desc: "Købekraftstab og inflationsrate",
+        sliderMin: -2.0,
+        sliderMax: 2.5,
+        sliderStep: 0.1,
+        leftVal: -1.0,
+        rightVal: 1.0,
+        unit: "%-point",
         lowLabel: "-1 %-point inflation",
         lowInputs: {
           inflationRate: Math.max(0, (inputs.inflationRate || 0.02) - 0.01),

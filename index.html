@@ -1666,7 +1666,7 @@
               </div>
             </div>
 
-            <details class="projection-card">
+            <details id="projection-details-card" class="projection-card">
               <summary>Se op- og nedsparing år for år</summary>
               <div id="mc-table-toolbar" class="mc-table-toolbar">
                 <div class="mc-table-toolbar-top">
@@ -1715,6 +1715,34 @@
                       <span class="mc-badge mc-badge-p90">Med MC</span>
                       <span>P90 Optimistisk</span>
                     </button>
+                    <button
+                      type="button"
+                      class="mc-segment-btn"
+                      data-mc-table-scenario="crisis"
+                      aria-pressed="false"
+                    >
+                      <span class="mc-badge mc-badge-p10">Stress-test</span>
+                      <span id="mc-table-crisis-btn-label">Historisk Krise</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="mc-segment-btn"
+                      data-mc-table-scenario="sensitivity"
+                      id="mc-table-sensitivity-btn"
+                      aria-pressed="false"
+                    >
+                      <span class="mc-badge mc-badge-with">Sensitivitet</span>
+                      <span>Aktivt Scenarie</span>
+                    </button>
+                  </div>
+                  <div id="table-crisis-picker-wrap" class="table-crisis-picker-wrap" hidden>
+                    <label for="table-crisis-select">Vælg krise:</label>
+                    <select id="table-crisis-select" class="table-crisis-select">
+                      <option value="0">1929 Wall Street Krakket</option>
+                      <option value="1">1973 Oliekrisen (Stagflation)</option>
+                      <option value="2">2000 Dot-Com Boblen</option>
+                      <option value="3">2008 Den Globale Finanskrise</option>
+                    </select>
                   </div>
                   <label class="mc-table-compare-toggle">
                     <input
@@ -1722,9 +1750,39 @@
                       type="checkbox"
                       checked
                     />
-                    <span>Vis sammenligningskolonner <i title="Slå til for at få kolonner i tabellen, der sammenligner fast afkast direkte mod Monte Carlo P10 (pessimistisk), P50 (median), P90 (optimistisk) samt forskellen mellem P50 og fast afkast.">i</i></span>
+                    <span>Vis sammenligningskolonner <i title="Slå til for at få kolonner i tabellen, der sammenligner fast afkast direkte mod Monte Carlo (P10/P50/P90) eller mod det valgte Stress-test / Sensitivitets-scenarie.">i</i></span>
                   </label>
                 </div>
+
+                <div class="col-group-toolbar" aria-label="Fold kolonnegrupper ud eller sammen">
+                  <span class="col-group-toolbar-label">Overgrupper (klik for at folde ud/sammen):</span>
+                  <div class="col-group-pills">
+                    <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="pension" aria-expanded="true">
+                      <span class="col-group-chevron">▾</span>
+                      <span>🏛️ Pension (4)</span>
+                    </button>
+                    <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="free" aria-expanded="true">
+                      <span class="col-group-chevron">▾</span>
+                      <span>💼 Frie midler &amp; ASK (2)</span>
+                    </button>
+                    <button type="button" class="col-group-pill is-expanded housing-col-pill" data-toggle-col-group="housing" aria-expanded="true" hidden>
+                      <span class="col-group-chevron">▾</span>
+                      <span>🏠 Bolig &amp; Friværdi (2)</span>
+                    </button>
+                    <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="cashflow" aria-expanded="true">
+                      <span class="col-group-chevron">▾</span>
+                      <span>💸 Cashflow &amp; Skat (5)</span>
+                    </button>
+                    <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="comparison" aria-expanded="true">
+                      <span class="col-group-chevron">▾</span>
+                      <span>📊 Sammenligning</span>
+                    </button>
+                    <button type="button" class="col-group-action-btn" id="col-group-toggle-all-btn">
+                      Kompakt visning (Fold detaljer sammen)
+                    </button>
+                  </div>
+                </div>
+
                 <div id="mc-table-active-banner" class="mc-table-active-banner is-without">
                   <span id="mc-table-active-pill" class="mc-mode-pill mc-mode-pill-without">
                     AKTIV TABEL: UDEN MONTE CARLO (FAST AFKAST)
@@ -1734,7 +1792,7 @@
                   </p>
                 </div>
               </div>
-              <div class="table-wrap">
+              <div class="table-wrap" id="main-projection-table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -1742,40 +1800,52 @@
                       <th>Alder</th>
                       <th>Fase</th>
                       <th>Afkast</th>
-                      <th>Ratepension</th>
-                      <th>Livrentedepot</th>
-                      <th>Livrenteudb.</th>
-                      <th>Aldersopsparing</th>
-                      <th>Frie midler</th>
-                      <th>Aktiesparekonto</th>
+                      <th data-col-group="pension">Ratepension</th>
+                      <th data-col-group="pension">Livrentedepot</th>
+                      <th data-col-group="pension">Livrenteudb.</th>
+                      <th data-col-group="pension">Aldersopsparing</th>
+                      <th data-col-group="free">Frie midler</th>
+                      <th data-col-group="free">Aktiesparekonto</th>
                       <th>Samlet depotværdi</th>
-                      <th class="housing-col" hidden>Friværdi</th>
-                      <th class="housing-col" hidden>Samlet formue (inkl. bolig)</th>
-                      <th>Indbetaling</th>
-                      <th>Brutto-udb.</th>
+                      <th class="housing-col" data-col-group="housing" hidden>Friværdi</th>
+                      <th class="housing-col" data-col-group="housing" hidden>Samlet formue (inkl. bolig)</th>
+                      <th data-col-group="cashflow">Indbetaling</th>
+                      <th data-col-group="cashflow">Brutto-udb.</th>
                       <th>Netto-udb.</th>
-                      <th>Lagerskat</th>
-                      <th>Effektiv skat</th>
-                      <th>Udb. fra</th>
-                      <th class="mc-comp-col mc-comp-col-base" hidden>
+                      <th data-col-group="cashflow">Lagerskat</th>
+                      <th data-col-group="cashflow">Effektiv skat</th>
+                      <th data-col-group="cashflow">Udb. fra</th>
+                      <th class="mc-comp-col mc-comp-col-base" data-col-group="comparison" hidden>
                         <span class="mc-th-badge mc-th-without">Uden MC</span>
                         Formue (Fast)
                       </th>
-                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                      <th class="mc-comp-col mc-comp-col-mc" data-col-group="comparison" hidden>
                         <span class="mc-th-badge mc-th-with">Med MC</span>
                         P10 (Svagt)
                       </th>
-                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                      <th class="mc-comp-col mc-comp-col-mc" data-col-group="comparison" hidden>
                         <span class="mc-th-badge mc-th-with">Med MC</span>
                         P50 (Median)
                       </th>
-                      <th class="mc-comp-col mc-comp-col-mc" hidden>
+                      <th class="mc-comp-col mc-comp-col-mc" data-col-group="comparison" hidden>
                         <span class="mc-th-badge mc-th-with">Med MC</span>
                         P90 (Stærkt)
                       </th>
-                      <th class="mc-comp-col mc-comp-col-diff" hidden>
+                      <th class="mc-comp-col mc-comp-col-diff" data-col-group="comparison" hidden>
                         <span class="mc-th-badge mc-th-diff">Forskel</span>
                         MC P50 vs. Uden MC
+                      </th>
+                      <th class="scen-comp-col mc-comp-col-base" data-col-group="comparison" hidden>
+                        <span class="mc-th-badge mc-th-without">Basisplan</span>
+                        Formue (Basis)
+                      </th>
+                      <th class="scen-comp-col mc-comp-col-mc" data-col-group="comparison" hidden>
+                        <span class="mc-th-badge mc-th-with" id="scen-comp-th-badge">Scenarie</span>
+                        <span id="scen-comp-th-title">Formue (Scenarie)</span>
+                      </th>
+                      <th class="scen-comp-col mc-comp-col-diff" data-col-group="comparison" hidden>
+                        <span class="mc-th-badge mc-th-diff">Forskel</span>
+                        Scenarie vs. Basis
                       </th>
                     </tr>
                   </thead>
@@ -2361,6 +2431,94 @@
 
         <div id="scenario-comparison-content" class="scenario-comparison-content">
           <!-- Dynamisk genereret indhold -->
+        </div>
+      </div>
+    </dialog>
+
+    <dialog
+      id="deep-dive-detail-dialog"
+      class="scenario-dialog deep-dive-detail-dialog"
+      aria-labelledby="deep-dive-dialog-heading"
+    >
+      <div class="scenario-dialog-shell">
+        <header class="scenario-dialog-header">
+          <div>
+            <span class="mc-toolbar-kicker" id="deep-dive-dialog-kicker">Detaljeret År-for-År Analyse</span>
+            <h2 id="deep-dive-dialog-heading">Detaljeret beregning for scenarie</h2>
+            <p id="deep-dive-dialog-sub">Sammenlign hvert enkelt beregningsår i det valgte scenarie direkte mod din basisplan.</p>
+          </div>
+          <button
+            id="close-deep-dive-dialog"
+            class="plan-code-dialog-close"
+            type="button"
+            aria-label="Luk detaljeret beregning"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <path d="m4 4 10 10M14 4 4 14" />
+            </svg>
+          </button>
+        </header>
+
+        <div id="deep-dive-dialog-summary" class="deep-dive-dialog-summary"></div>
+
+        <div class="col-group-toolbar modal-col-group-toolbar" aria-label="Fold kolonnegrupper ud eller sammen i modal">
+          <span class="col-group-toolbar-label">Overgrupper:</span>
+          <div class="col-group-pills">
+            <button type="button" class="col-group-pill is-expanded" data-modal-col-group="pension" aria-expanded="true">
+              <span class="col-group-chevron">▾</span>
+              <span>🏛️ Pension (4)</span>
+            </button>
+            <button type="button" class="col-group-pill is-expanded" data-modal-col-group="free" aria-expanded="true">
+              <span class="col-group-chevron">▾</span>
+              <span>💼 Frie midler &amp; ASK (2)</span>
+            </button>
+            <button type="button" class="col-group-pill is-expanded" data-modal-col-group="cashflow" aria-expanded="true">
+              <span class="col-group-chevron">▾</span>
+              <span>💸 Cashflow &amp; Skat (5)</span>
+            </button>
+            <button type="button" class="col-group-pill is-expanded" data-modal-col-group="comparison" aria-expanded="true">
+              <span class="col-group-chevron">▾</span>
+              <span>📊 Sammenligning mod Basisplan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap deep-dive-modal-table-wrap" id="deep-dive-modal-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Alder</th>
+                <th>Fase</th>
+                <th>Afkast (Scenarie)</th>
+                <th data-col-group="pension">Ratepension</th>
+                <th data-col-group="pension">Livrentedepot</th>
+                <th data-col-group="pension">Livrenteudb.</th>
+                <th data-col-group="pension">Aldersopsparing</th>
+                <th data-col-group="free">Frie midler</th>
+                <th data-col-group="free">Aktiesparekonto</th>
+                <th>Samlet depotværdi</th>
+                <th data-col-group="cashflow">Indbetaling</th>
+                <th data-col-group="cashflow">Brutto-udb.</th>
+                <th>Netto-udb.</th>
+                <th data-col-group="cashflow">Lagerskat</th>
+                <th data-col-group="cashflow">Effektiv skat</th>
+                <th data-col-group="cashflow">Udb. fra</th>
+                <th class="mc-comp-col mc-comp-col-base" data-col-group="comparison">
+                  <span class="mc-th-badge mc-th-without">Basisplan</span>
+                  Formue (Basis)
+                </th>
+                <th class="mc-comp-col mc-comp-col-mc" data-col-group="comparison">
+                  <span class="mc-th-badge mc-th-with">Scenarie</span>
+                  Formue (Valgt)
+                </th>
+                <th class="mc-comp-col mc-comp-col-diff" data-col-group="comparison">
+                  <span class="mc-th-badge mc-th-diff">Forskel</span>
+                  Scenarie vs. Basis
+                </th>
+              </tr>
+            </thead>
+            <tbody id="deep-dive-modal-tbody"></tbody>
+          </table>
         </div>
       </div>
     </dialog>

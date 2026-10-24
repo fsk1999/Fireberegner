@@ -98,7 +98,59 @@
   const mcTableActiveBanner = document.querySelector("#mc-table-active-banner");
   const mcTableActivePill = document.querySelector("#mc-table-active-pill");
   const mcTableActiveDesc = document.querySelector("#mc-table-active-desc");
-  const mcComparisonThs = [...document.querySelectorAll("th.mc-comp-col")];
+  const mcComparisonThs = [
+    ...document.querySelectorAll("#main-projection-table-wrap th.mc-comp-col"),
+  ];
+  const scenComparisonThs = [
+    ...document.querySelectorAll("#main-projection-table-wrap th.scen-comp-col"),
+  ];
+  const scenCompThBadge = document.querySelector("#scen-comp-th-badge");
+  const scenCompThTitle = document.querySelector("#scen-comp-th-title");
+  const tableCrisisPickerWrap = document.querySelector(
+    "#table-crisis-picker-wrap",
+  );
+  const tableCrisisSelect = document.querySelector("#table-crisis-select");
+  const mcTableCrisisBtnLabel = document.querySelector(
+    "#mc-table-crisis-btn-label",
+  );
+  const mainProjectionTableWrap = document.querySelector(
+    "#main-projection-table-wrap",
+  );
+  const projectionDetailsCard = document.querySelector(
+    "#projection-details-card",
+  );
+  const colGroupPills = [
+    ...document.querySelectorAll("[data-toggle-col-group]"),
+  ];
+  const colGroupToggleAllBtn = document.querySelector(
+    "#col-group-toggle-all-btn",
+  );
+  const housingColPill = document.querySelector(".housing-col-pill");
+
+  const deepDiveDetailDialog = document.querySelector(
+    "#deep-dive-detail-dialog",
+  );
+  const closeDeepDiveDialogBtn = document.querySelector(
+    "#close-deep-dive-dialog",
+  );
+  const deepDiveDialogKicker = document.querySelector(
+    "#deep-dive-dialog-kicker",
+  );
+  const deepDiveDialogHeading = document.querySelector(
+    "#deep-dive-dialog-heading",
+  );
+  const deepDiveDialogSub = document.querySelector("#deep-dive-dialog-sub");
+  const deepDiveDialogSummary = document.querySelector(
+    "#deep-dive-dialog-summary",
+  );
+  const deepDiveModalTableWrap = document.querySelector(
+    "#deep-dive-modal-table-wrap",
+  );
+  const deepDiveModalTbody = document.querySelector("#deep-dive-modal-tbody");
+  const modalColGroupPills = [
+    ...document.querySelectorAll("[data-modal-col-group]"),
+  ];
+
   const legendGroupWithout = document.querySelector("#legend-group-without");
   const legendGroupWith = document.querySelector("#legend-group-with");
   const legendBaselineTotal = document.querySelector("#legend-baseline-total");
@@ -106,7 +158,17 @@
   const legendCrisisOverlay = document.querySelector("#legend-crisis-overlay");
   const legendCrisisTitle = document.querySelector("#legend-crisis-title");
   let activeStressTestCrisis = null;
+  let latestStressResults = [];
+  let selectedTableCrisisIdx = 0;
   let activeTornadoPreset = null;
+  let baseTornadoInputs = null;
+  let isApplyingTornadoSliders = false;
+  let tornadoOffsets = {
+    spendingPct: 0,
+    returnPts: 0,
+    savingsPct: 0,
+    inflationPts: 0,
+  };
   const freeFundsCostBasisField = document.querySelector(
     "#free-funds-cost-basis-field",
   );
@@ -1521,7 +1583,15 @@
     return `${prefix}${currency.format(diff)}`;
   }
 
-  function rowMarkup(row, freeFundsInventoryShare, band, showComparison, includeHousing = false) {
+  function rowMarkup(
+    row,
+    freeFundsInventoryShare,
+    band,
+    showComparison,
+    includeHousing = false,
+    baseComparisonRow = null,
+    showScenarioComp = false,
+  ) {
     const inventoryTax =
       freeFundsInventoryShare > 0 && row.phase !== "Slut"
         ? currency.format(row.annualFreeFundsTax)
@@ -1549,12 +1619,27 @@
       const diff = band.p50 - band.baselineTotal;
       const diffClass =
         diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : "";
-      comparisonCells = `
-        <td class="mc-comp-col mc-comp-col-base"><span class="explainable-val" data-col-key="baseTotal" data-row-age="${row.age}" tabindex="0">${currency.format(band.baselineTotal)}</span></td>
-        <td class="mc-comp-col mc-comp-col-mc"><span class="explainable-val" data-col-key="p10" data-row-age="${row.age}" tabindex="0">${currency.format(band.p10)}</span></td>
-        <td class="mc-comp-col mc-comp-col-mc mc-comp-col-p50"><span class="explainable-val" data-col-key="p50" data-row-age="${row.age}" tabindex="0">${currency.format(band.p50)}</span></td>
-        <td class="mc-comp-col mc-comp-col-mc"><span class="explainable-val" data-col-key="p90" data-row-age="${row.age}" tabindex="0">${currency.format(band.p90)}</span></td>
-        <td class="mc-comp-col mc-comp-col-diff ${diffClass}"><span class="explainable-val" data-col-key="diff" data-row-age="${row.age}" tabindex="0">${formatDiffCurrency(diff)}</span></td>`;
+      comparisonCells += `
+        <td class="mc-comp-col mc-comp-col-base" data-col-group="comparison"><span class="explainable-val" data-col-key="baseTotal" data-row-age="${row.age}" tabindex="0">${currency.format(band.baselineTotal)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc" data-col-group="comparison"><span class="explainable-val" data-col-key="p10" data-row-age="${row.age}" tabindex="0">${currency.format(band.p10)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc mc-comp-col-p50" data-col-group="comparison"><span class="explainable-val" data-col-key="p50" data-row-age="${row.age}" tabindex="0">${currency.format(band.p50)}</span></td>
+        <td class="mc-comp-col mc-comp-col-mc" data-col-group="comparison"><span class="explainable-val" data-col-key="p90" data-row-age="${row.age}" tabindex="0">${currency.format(band.p90)}</span></td>
+        <td class="mc-comp-col mc-comp-col-diff ${diffClass}" data-col-group="comparison"><span class="explainable-val" data-col-key="diff" data-row-age="${row.age}" tabindex="0">${formatDiffCurrency(diff)}</span></td>`;
+    }
+    if (showScenarioComp && baseComparisonRow) {
+      const baseVal = includeHousing
+        ? (baseComparisonRow.totalWealthWithHousing ?? baseComparisonRow.totalBalance)
+        : baseComparisonRow.totalBalance;
+      const scenVal = includeHousing
+        ? (row.totalWealthWithHousing ?? row.totalBalance)
+        : row.totalBalance;
+      const diff = scenVal - baseVal;
+      const diffClass =
+        diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : "";
+      comparisonCells += `
+        <td class="scen-comp-col mc-comp-col-base" data-col-group="comparison">${currency.format(baseVal)}</td>
+        <td class="scen-comp-col mc-comp-col-mc mc-comp-col-p50" data-col-group="comparison">${currency.format(scenVal)}</td>
+        <td class="scen-comp-col mc-comp-col-diff ${diffClass}" data-col-group="comparison">${formatDiffCurrency(diff)}</td>`;
     }
 
     return `
@@ -1563,21 +1648,21 @@
         <td>${ages.format(row.age)}</td>
         <td>${row.phase}</td>
         <td class="projection-return"><span class="explainable-val" data-col-key="returnRate" data-row-age="${row.age}" tabindex="0">${returnRate}</span></td>
-        <td><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
-        <td><span class="explainable-val" data-col-key="lifeAnnuityDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityDepotValue)}</span></td>
-        <td>${row.lifeAnnuityWithdrawal ? `<span class="explainable-val" data-col-key="lifeAnnuityWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityWithdrawal)}</span>` : "—"}</td>
-        <td><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
-        <td><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
-        <td><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
+        <td data-col-group="pension"><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
+        <td data-col-group="pension"><span class="explainable-val" data-col-key="lifeAnnuityDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityDepotValue)}</span></td>
+        <td data-col-group="pension">${row.lifeAnnuityWithdrawal ? `<span class="explainable-val" data-col-key="lifeAnnuityWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityWithdrawal)}</span>` : "—"}</td>
+        <td data-col-group="pension"><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
+        <td data-col-group="free"><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
+        <td data-col-group="free"><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
         <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
-        <td class="housing-col"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
-        <td class="housing-col"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
-        <td>${row.contribution ? `<span class="explainable-val" data-col-key="contribution" data-row-age="${row.age}" tabindex="0">${currency.format(row.contribution)}</span>` : "—"}</td>
-        <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="withdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.withdrawal)}</span>` : "—"}</td>
+        <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
+        <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
+        <td data-col-group="cashflow">${row.contribution ? `<span class="explainable-val" data-col-key="contribution" data-row-age="${row.age}" tabindex="0">${currency.format(row.contribution)}</span>` : "—"}</td>
+        <td data-col-group="cashflow">${row.withdrawal ? `<span class="explainable-val" data-col-key="withdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.withdrawal)}</span>` : "—"}</td>
         <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="netWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.netWithdrawal)}</span>` : "—"}</td>
-        <td>${inventoryTax !== "—" ? `<span class="explainable-val" data-col-key="lagerskat" data-row-age="${row.age}" tabindex="0">${inventoryTax}</span>` : "—"}</td>
-        <td>${effectiveTax !== "—" ? `<span class="explainable-val" data-col-key="effectiveWithdrawalTaxRate" data-row-age="${row.age}" tabindex="0">${effectiveTax}</span>` : "—"}</td>
-        <td>${source}</td>${comparisonCells}
+        <td data-col-group="cashflow">${inventoryTax !== "—" ? `<span class="explainable-val" data-col-key="lagerskat" data-row-age="${row.age}" tabindex="0">${inventoryTax}</span>` : "—"}</td>
+        <td data-col-group="cashflow">${effectiveTax !== "—" ? `<span class="explainable-val" data-col-key="effectiveWithdrawalTaxRate" data-row-age="${row.age}" tabindex="0">${effectiveTax}</span>` : "—"}</td>
+        <td data-col-group="cashflow">${source}</td>${comparisonCells}
       </tr>`;
   }
 
@@ -3170,7 +3255,10 @@
     const grid = document.querySelector("#stress-test-grid");
     if (!grid || !window.FireMonteCarlo?.runHistoricalStressTests) return;
 
-    const results = window.FireMonteCarlo.runHistoricalStressTests(inputs);
+    const anchorInputs = baseTornadoInputs || inputs;
+    const results = window.FireMonteCarlo.runHistoricalStressTests(anchorInputs);
+    latestStressResults = results;
+
     if (activeStressTestCrisis) {
       const updated = results.find((r) => r.name === activeStressTestCrisis.name);
       if (updated) {
@@ -3197,7 +3285,7 @@
           : `Udtømmes ved ${ages.format(r.depletionAge || 75)} år`;
 
         return `
-          <div class="stress-card${isActive ? " is-active" : ""}" data-crisis-idx="${idx}" tabindex="0" role="button" aria-pressed="${isActive}">
+          <div class="stress-card${isActive ? " is-active" : ""}" data-crisis-idx="${idx}">
             <div class="stress-card-header">
               <span class="stress-card-title">${r.name}</span>
               <span class="stress-card-badge ${badgeClass}">${badgeText}</span>
@@ -3216,59 +3304,169 @@
               </div>
             </div>
             <div class="stress-card-action">
-              <button type="button" class="stress-card-btn">
-                ${isActive ? "✓ Vises på formuegraf (Klik for at slå fra)" : "📈 Vis kriseforløb på formuegraf"}
+              <button type="button" class="stress-card-btn stress-card-btn-primary" data-stress-action="chart" data-crisis-idx="${idx}">
+                ${isActive ? "✓ På graf (Slå fra)" : "📈 Vis på formuegraf"}
+              </button>
+              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="modal" data-crisis-idx="${idx}">
+                🔍 År-for-år vindue
+              </button>
+              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="table" data-crisis-idx="${idx}">
+                📋 Vis i hovedtabel
               </button>
             </div>
           </div>`;
       })
       .join("");
 
-    grid.querySelectorAll(".stress-card").forEach((card) => {
-      const toggleCrisis = () => {
-        const idx = Number(card.dataset.crisisIdx);
+    grid.querySelectorAll("[data-stress-action]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = Number(btn.dataset.crisisIdx);
+        const action = btn.dataset.stressAction;
         const selected = results[idx];
         if (!selected) return;
-        if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
-          activeStressTestCrisis = null;
-        } else {
-          activeStressTestCrisis = selected;
-          setChartView("wealth");
-          if (chart) {
-            chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-        }
-        renderStressTests(inputs, true);
-        if (latestCalculation && latestInputs) {
-          renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
-        }
-      };
 
-      card.addEventListener("click", toggleCrisis);
-      card.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggleCrisis();
+        if (action === "chart") {
+          if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
+            activeStressTestCrisis = null;
+          } else {
+            activeStressTestCrisis = selected;
+            setChartView("wealth");
+            if (chart) chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+          renderStressTests(inputs, true);
+          if (latestCalculation && latestInputs) {
+            renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+          }
+        } else if (action === "modal") {
+          openDeepDiveDetailModal("crisis", idx);
+        } else if (action === "table") {
+          selectedTableCrisisIdx = idx;
+          if (tableCrisisSelect) tableCrisisSelect.value = String(idx);
+          mcTableScenario = "crisis";
+          syncMonteCarloButtons();
+          update();
+          if (projectionDetailsCard) {
+            projectionDetailsCard.open = true;
+            projectionDetailsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         }
       });
     });
   }
 
-  let originalInputsForTornado = null;
+  function hasActiveTornadoOffsets() {
+    return (
+      Math.abs(tornadoOffsets.spendingPct) > 0.001 ||
+      Math.abs(tornadoOffsets.returnPts) > 0.001 ||
+      Math.abs(tornadoOffsets.savingsPct) > 0.001 ||
+      Math.abs(tornadoOffsets.inflationPts) > 0.001
+    );
+  }
+
+  function buildModifiedInputsFromOffsets(base, offsets) {
+    const next = { ...base };
+    if (Math.abs(offsets.spendingPct) > 0.001) {
+      next.desiredAnnualWithdrawal = Math.max(
+        0,
+        Math.round(base.desiredAnnualWithdrawal * (1 + offsets.spendingPct / 100)),
+      );
+    }
+    if (Math.abs(offsets.returnPts) > 0.001) {
+      next.returnRate = Math.max(
+        0.005,
+        Number(((base.returnRate || 0.07) + offsets.returnPts / 100).toFixed(4)),
+      );
+    }
+    if (Math.abs(offsets.savingsPct) > 0.001) {
+      const mult = 1 + offsets.savingsPct / 100;
+      next.annualFreeFundsContribution = Math.max(
+        0,
+        Math.round((base.annualFreeFundsContribution || 0) * mult),
+      );
+      next.annualRatePensionContribution = Math.max(
+        0,
+        Math.round((base.annualRatePensionContribution || 0) * mult),
+      );
+      next.annualAskContribution = Math.max(
+        0,
+        Math.round((base.annualAskContribution || 0) * mult),
+      );
+    }
+    if (Math.abs(offsets.inflationPts) > 0.001) {
+      next.inflationRate = Math.max(
+        0,
+        Number(((base.inflationRate || 0.02) + offsets.inflationPts / 100).toFixed(4)),
+      );
+    }
+    return next;
+  }
+
+  function formatTornadoOffsetLabel(key, val) {
+    if (Math.abs(val) < 0.001) return "0 (Basisplan)";
+    const sign = val > 0 ? "+" : "";
+    if (key === "returnPts" || key === "inflationPts") {
+      return `${sign}${val.toFixed(1).replace(".", ",")} %-pt`;
+    }
+    return `${sign}${Math.round(val)} %`;
+  }
+
+  function applyTornadoOffsetsToCalculator() {
+    if (!baseTornadoInputs) {
+      baseTornadoInputs = readInputs();
+    }
+    const active = hasActiveTornadoOffsets();
+    const targetInputs = active
+      ? buildModifiedInputsFromOffsets(baseTornadoInputs, tornadoOffsets)
+      : { ...baseTornadoInputs };
+
+    const activeParts = [];
+    if (Math.abs(tornadoOffsets.spendingPct) > 0.001)
+      activeParts.push(`Forbrug ${formatTornadoOffsetLabel("spendingPct", tornadoOffsets.spendingPct)}`);
+    if (Math.abs(tornadoOffsets.returnPts) > 0.001)
+      activeParts.push(`Afkast ${formatTornadoOffsetLabel("returnPts", tornadoOffsets.returnPts)}`);
+    if (Math.abs(tornadoOffsets.savingsPct) > 0.001)
+      activeParts.push(`Opsparing ${formatTornadoOffsetLabel("savingsPct", tornadoOffsets.savingsPct)}`);
+    if (Math.abs(tornadoOffsets.inflationPts) > 0.001)
+      activeParts.push(`Inflation ${formatTornadoOffsetLabel("inflationPts", tornadoOffsets.inflationPts)}`);
+
+    activeTornadoPreset = active ? { label: activeParts.join(" · ") } : null;
+
+    isApplyingTornadoSliders = true;
+    try {
+      applyPlanInputs(targetInputs);
+    } finally {
+      isApplyingTornadoSliders = false;
+    }
+  }
 
   function renderTornadoAnalysis(inputs) {
     const container = document.querySelector("#sensitivity-tornado-container");
     if (!container || !window.FireMonteCarlo?.calculateSensitivityAnalysis)
       return;
 
-    const factors = window.FireMonteCarlo.calculateSensitivityAnalysis(inputs);
+    if (!baseTornadoInputs && !hasActiveTornadoOffsets()) {
+      baseTornadoInputs = { ...inputs };
+    }
+    const anchorInputs = baseTornadoInputs || inputs;
+    const factors = window.FireMonteCarlo.calculateSensitivityAnalysis(anchorInputs);
+    const active = hasActiveTornadoOffsets();
 
-    const activeBannerHtml = activeTornadoPreset
+    const activeBannerHtml = active
       ? `<div class="tornado-banner">
-          <span>🔍 Du tester nu: <strong>${activeTornadoPreset.label}</strong></span>
-          <button type="button" id="reset-tornado-preset-btn">↺ Nulstil til din basisplan</button>
+          <span>🎛️ <strong>Aktiv sensitivitets-test:</strong> ${activeTornadoPreset?.label || "Tilpasset"} (Beregnes altid ud fra din oprindelige basisplan)</span>
+          <div class="tornado-banner-actions">
+            <button type="button" class="tornado-banner-btn-secondary" id="open-tornado-modal-btn">🔍 År-for-år vindue</button>
+            <button type="button" class="tornado-banner-btn-secondary" id="open-tornado-table-btn">📋 Vis i hovedtabel</button>
+            <button type="button" class="tornado-banner-btn" id="reset-tornado-preset-btn">↺ Nulstil alle til basisplan</button>
+          </div>
         </div>`
-      : `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">💡 <strong>Tip:</strong> Klik på en grøn eller rød bjælke herunder for at afprøve scenariet direkte i beregneren.</div>`;
+      : `<div class="tornado-banner" style="background:#f8fafc;border-color:var(--line);color:var(--ink);">
+          <span>💡 <strong>Dynamisk sensitivitet:</strong> Træk i sliderne (eller klik på bjælkerne) for at teste kontinuerte ændringer i forhold til din basisplan. Du kan kombinere flere slidere på én gang.</span>
+          <div class="tornado-banner-actions">
+            <button type="button" class="tornado-banner-btn-secondary" id="open-tornado-modal-btn">🔍 Se år-for-år vindue</button>
+          </div>
+        </div>`;
 
     container.innerHTML =
       activeBannerHtml +
@@ -3285,24 +3483,59 @@
           const total = leftShare + rightShare;
           const leftPct = Math.round((leftShare / total) * 100);
           const rightPct = 100 - leftPct;
+          const currentOffset = Number(tornadoOffsets[f.key] || 0);
+          const isModified = Math.abs(currentOffset) > 0.001;
+          const singleModInputs = buildModifiedInputsFromOffsets(anchorInputs, {
+            spendingPct: 0,
+            returnPts: 0,
+            savingsPct: 0,
+            inflationPts: 0,
+            [f.key]: currentOffset,
+          });
+          const singleCalc = calculateFire(singleModInputs);
+          const singleAge = singleCalc.fireRow
+            ? singleCalc.fireRow.age
+            : anchorInputs.retirementAge;
 
           return `
             <div class="tornado-row">
               <div class="tornado-factor-info">
-                <strong>${f.name}</strong>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <strong>${f.name}</strong>
+                  <span class="tornado-live-badge${isModified ? " is-modified" : ""}" data-live-badge="${f.key}">
+                    ${formatTornadoOffsetLabel(f.key, currentOffset)} → ${singleAge} år
+                  </span>
+                  ${isModified ? `<button type="button" class="tornado-single-reset" data-reset-key="${f.key}" title="Nulstil kun denne slider">↺</button>` : ""}
+                </div>
                 <small>${f.desc}</small>
               </div>
-              <div class="tornado-visual">
-                <span style="font-size:11px;color:var(--muted);width:78px;text-align:right;font-weight:600;">${f.lowLabel}</span>
-                <div class="tornado-bar-wrap" title="Klik på en side for at afprøve scenariet (${f.bestAge} år til ${f.worstAge} år)">
-                  <div class="tornado-bar-left" style="width:${leftPct}%;" data-factor-idx="${idx}" data-side="low" title="Klik for at teste: ${f.name} (${f.lowLabel})">
-                    <span>${f.bestAge} år</span>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div class="tornado-visual">
+                  <button type="button" class="tornado-endpoint-btn" style="width:82px;text-align:right;" data-factor-idx="${idx}" data-side="low" title="Klik for ${f.lowLabel}">${f.lowLabel}</button>
+                  <div class="tornado-bar-wrap" title="Klik på en side eller træk slideren nedenfor (${f.bestAge} år til ${f.worstAge} år)">
+                    <div class="tornado-bar-left" style="width:${leftPct}%;" data-factor-idx="${idx}" data-side="low">
+                      <span>${f.bestAge} år</span>
+                    </div>
+                    <div class="tornado-bar-right" style="width:${rightPct}%;" data-factor-idx="${idx}" data-side="high">
+                      <span>${f.worstAge} år</span>
+                    </div>
                   </div>
-                  <div class="tornado-bar-right" style="width:${rightPct}%;" data-factor-idx="${idx}" data-side="high" title="Klik for at teste: ${f.name} (${f.highLabel})">
-                    <span>${f.worstAge} år</span>
-                  </div>
+                  <button type="button" class="tornado-endpoint-btn" style="width:82px;text-align:left;" data-factor-idx="${idx}" data-side="high" title="Klik for ${f.highLabel}">${f.highLabel}</button>
                 </div>
-                <span style="font-size:11px;color:var(--muted);width:78px;font-weight:600;">${f.highLabel}</span>
+                <div class="tornado-slider-track-wrap">
+                  <span style="font-size:10px;color:var(--muted);width:82px;text-align:right;">${f.sliderMin > 0 ? "+" : ""}${f.sliderMin} ${f.unit}</span>
+                  <input
+                    type="range"
+                    class="tornado-range-slider"
+                    data-slider-key="${f.key}"
+                    min="${f.sliderMin}"
+                    max="${f.sliderMax}"
+                    step="${f.sliderStep}"
+                    value="${currentOffset}"
+                    aria-label="Juster ${f.name}"
+                  />
+                  <span style="font-size:10px;color:var(--muted);width:82px;">+${f.sliderMax} ${f.unit}</span>
+                </div>
               </div>
               <div class="tornado-swing-badge">
                 <span>± ${f.swing} års forskel</span>
@@ -3312,15 +3545,47 @@
         .join("");
 
     const resetBtn = container.querySelector("#reset-tornado-preset-btn");
-    if (resetBtn && originalInputsForTornado) {
+    if (resetBtn) {
       resetBtn.addEventListener("click", () => {
-        const toRestore = originalInputsForTornado;
-        originalInputsForTornado = null;
-        activeTornadoPreset = null;
-        applyPlanInputs(toRestore);
-        update();
+        tornadoOffsets = {
+          spendingPct: 0,
+          returnPts: 0,
+          savingsPct: 0,
+          inflationPts: 0,
+        };
+        applyTornadoOffsetsToCalculator();
       });
     }
+
+    const modalBtn = container.querySelector("#open-tornado-modal-btn");
+    if (modalBtn) {
+      modalBtn.addEventListener("click", () => {
+        openDeepDiveDetailModal("sensitivity");
+      });
+    }
+
+    const tableBtn = container.querySelector("#open-tornado-table-btn");
+    if (tableBtn) {
+      tableBtn.addEventListener("click", () => {
+        mcTableScenario = "sensitivity";
+        syncMonteCarloButtons();
+        update();
+        if (projectionDetailsCard) {
+          projectionDetailsCard.open = true;
+          projectionDetailsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+
+    container.querySelectorAll("[data-reset-key]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const k = btn.dataset.resetKey;
+        if (k && k in tornadoOffsets) {
+          tornadoOffsets[k] = 0;
+          applyTornadoOffsetsToCalculator();
+        }
+      });
+    });
 
     container.querySelectorAll("[data-factor-idx]").forEach((bar) => {
       bar.addEventListener("click", () => {
@@ -3328,22 +3593,104 @@
         const side = bar.dataset.side;
         const factor = factors[idx];
         if (!factor) return;
-        const targetInputs = side === "low" ? factor.lowInputs : factor.highInputs;
-        const sideLabel = side === "low" ? factor.lowLabel : factor.highLabel;
-        if (!targetInputs) return;
+        const targetVal = side === "low" ? factor.leftVal : factor.rightVal;
+        tornadoOffsets[factor.key] = targetVal;
+        applyTornadoOffsetsToCalculator();
+      });
+    });
 
-        if (!originalInputsForTornado) {
-          originalInputsForTornado = readInputs();
+    container.querySelectorAll(".tornado-range-slider").forEach((slider) => {
+      slider.addEventListener("input", () => {
+        const key = slider.dataset.sliderKey;
+        const val = Number(slider.value);
+        const badge = container.querySelector(`[data-live-badge="${key}"]`);
+        if (badge) {
+          badge.textContent = `${formatTornadoOffsetLabel(key, val)}`;
+          badge.classList.toggle("is-modified", Math.abs(val) > 0.001);
         }
-        activeTornadoPreset = {
-          label: `${factor.name}: ${sideLabel}`,
-        };
-        applyPlanInputs({ ...readInputs(), ...targetInputs });
-        update();
+      });
+      slider.addEventListener("change", () => {
+        const key = slider.dataset.sliderKey;
+        const val = Number(slider.value);
+        tornadoOffsets[key] = val;
+        applyTornadoOffsetsToCalculator();
       });
     });
   }
 
+  function openDeepDiveDetailModal(mode, crisisIdx = 0) {
+    if (!deepDiveDetailDialog || !deepDiveModalTbody) return;
+    const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
+    const baseCalc = calculateFire(anchorInputs);
+    let scenCalc = latestCalculation || baseCalc;
+
+    if (mode === "crisis") {
+      if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
+        latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(anchorInputs);
+      }
+      const crisis = latestStressResults[crisisIdx] || latestStressResults[0];
+      if (!crisis || !crisis.calculation) return;
+      scenCalc = crisis.calculation;
+      if (deepDiveDialogTitle) deepDiveDialogTitle.textContent = `Krise-test: ${crisis.name}`;
+      if (deepDiveDialogSubtitle) deepDiveDialogSubtitle.textContent = `${crisis.desc} · Sammenlignet år-for-år mod din basisplan.`;
+    } else {
+      const label = activeTornadoPreset?.label || "Basisplan (Ingen aktive ændringer)";
+      if (deepDiveDialogTitle) deepDiveDialogTitle.textContent = `Sensitivitets-analyse: ${label}`;
+      if (deepDiveDialogSubtitle) deepDiveDialogSubtitle.textContent = "Detaljeret år-for-år sammenligning af det valgte sensitivitets-scenarie mod din oprindelige basisplan.";
+    }
+
+    const baseEnd = baseCalc.finalRow?.totalBalance ?? 0;
+    const scenEnd = scenCalc.finalRow?.totalBalance ?? 0;
+    const diffEnd = scenEnd - baseEnd;
+    const minWealth = Math.min(...(scenCalc.planRows || []).map((r) => r.totalBalance));
+    const scenFire = scenCalc.fireRow ? `${ages.format(scenCalc.fireRow.age)} år` : "Ikke nået";
+
+    if (deepDiveDialogSummary) {
+      deepDiveDialogSummary.innerHTML = `
+        <div class="deep-dive-kpi-card"><span class="deep-dive-kpi-label">Start FIRE (Scenarie)</span><strong class="deep-dive-kpi-val">${scenFire}</strong></div>
+        <div class="deep-dive-kpi-card"><span class="deep-dive-kpi-label">Laveste formue undervejs</span><strong class="deep-dive-kpi-val ${minWealth <= 0 ? "is-neg" : ""}">${currency.format(minWealth)}</strong></div>
+        <div class="deep-dive-kpi-card"><span class="deep-dive-kpi-label">Slutreserve (Basisplan)</span><strong class="deep-dive-kpi-val">${currency.format(baseEnd)}</strong></div>
+        <div class="deep-dive-kpi-card"><span class="deep-dive-kpi-label">Slutreserve (Scenarie)</span><strong class="deep-dive-kpi-val">${currency.format(scenEnd)}</strong></div>
+        <div class="deep-dive-kpi-card"><span class="deep-dive-kpi-label">Forskel ved 90 år</span><strong class="deep-dive-kpi-val ${diffEnd >= 0 ? "is-pos" : "is-neg"}">${diffEnd >= 0 ? "+" : ""}${currency.format(diffEnd)}</strong></div>
+      `;
+    }
+
+    const baseByAge = new Map((baseCalc.planRows || []).map((r) => [r.age, r]));
+    deepDiveModalTbody.innerHTML = (scenCalc.planRows || []).map((row) => {
+      const bRow = baseByAge.get(row.age);
+      const bBal = bRow ? bRow.totalBalance : row.totalBalance;
+      const diff = row.totalBalance - bBal;
+      const diffColor = diff > 0 ? "#166534" : diff < 0 ? "#b91c1c" : "inherit";
+      const retText = row.EffectiveReturnRate !== undefined ? percent.format(row.EffectiveReturnRate) : "—";
+      const totalPension = row.ratePension + row.lifeAnnuity + row.ageSavings;
+      return `<tr>
+        <td>${ages.format(row.age)} år</td>
+        <td><span class="phase-pill ${phaseClass(row.phase)}">${row.phase}</span></td>
+        <td>${retText}</td>
+        <td data-col-group="pension">${currency.format(row.ratePension)}</td>
+        <td data-col-group="pension">${currency.format(row.lifeAnnuity)}</td>
+        <td data-col-group="pension">${currency.format(row.ageSavings)}</td>
+        <td data-col-group="pension"><strong>${currency.format(totalPension)}</strong></td>
+        <td data-col-group="free">${currency.format(row.freeFunds)}</td>
+        <td data-col-group="free">${currency.format(row.ask)}</td>
+        <td><strong>${currency.format(row.totalBalance)}</strong></td>
+        <td data-col-group="cashflow">${currency.format(row.totalContribution)}</td>
+        <td data-col-group="cashflow">${currency.format(row.netSpendingNeed)}</td>
+        <td data-col-group="cashflow">${currency.format(row.publicPensionNet)}</td>
+        <td data-col-group="cashflow">${currency.format(row.privatePensionNet)}</td>
+        <td data-col-group="cashflow">${currency.format(row.freePhaseWithdrawalNet)}</td>
+        <td data-col-group="comparison">${currency.format(bBal)}</td>
+        <td data-col-group="comparison"><strong>${currency.format(row.totalBalance)}</strong></td>
+        <td data-col-group="comparison" style="color:${diffColor};font-weight:700;">${diff >= 0 ? "+" : ""}${currency.format(diff)}</td>
+      </tr>`;
+    }).join("");
+
+    if (typeof deepDiveDetailDialog.showModal === "function") {
+      deepDiveDetailDialog.showModal();
+    } else {
+      deepDiveDetailDialog.setAttribute("open", "true");
+    }
+  }
 
   function updateScenarioButtons() {
     if (loadPlanABtn) loadPlanABtn.disabled = !scenarioPlanA;
@@ -3917,19 +4264,49 @@
     document.querySelectorAll(".housing-col").forEach((el) => {
       el.hidden = !calculation.includeHousing;
     });
+    if (housingColPill) {
+      housingColPill.hidden = !calculation.includeHousing;
+    }
 
-    const activeTableCalc =
-      mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]
-        ? mc.scenarios[mcTableScenario].calculation
+    if (tableCrisisPickerWrap) {
+      tableCrisisPickerWrap.hidden = mcTableScenario !== "crisis";
+    }
+    const baseCalcForTable =
+      mcTableScenario === "sensitivity" && baseTornadoInputs
+        ? calculateFire(baseTornadoInputs)
         : calculation;
+
+    let activeTableCalc = calculation;
+    if (mcTableScenario === "crisis") {
+      if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
+        latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(baseTornadoInputs || inputs);
+      }
+      activeTableCalc = latestStressResults[selectedTableCrisisIdx]?.calculation || calculation;
+    } else if (mcTableScenario === "sensitivity") {
+      activeTableCalc = calculation;
+    } else if (mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]) {
+      activeTableCalc = mc.scenarios[mcTableScenario].calculation;
+    }
     latestActiveTableCalc = activeTableCalc;
+
+    const isMcScenario = ["p10", "p50", "p90"].includes(mcTableScenario);
+    const isScenScenario = mcTableScenario === "crisis" || mcTableScenario === "sensitivity";
     const showCompCols =
-      Boolean(mc) && Boolean(mcTableShowComparisonInput?.checked);
+      Boolean(mc) && Boolean(mcTableShowComparisonInput?.checked) && !isScenScenario;
+    const showScenCompCols =
+      Boolean(mcTableShowComparisonInput?.checked) && isScenScenario;
+
     const bandsByAge = new Map(
       (mc?.percentileBands ?? []).map((band) => [band.age, band]),
     );
+    const baseRowsByAge = new Map(
+      (baseCalcForTable.planRows ?? []).map((r) => [r.age, r]),
+    );
     mcComparisonThs.forEach((th) => {
       th.hidden = !showCompCols;
+    });
+    scenComparisonThs.forEach((th) => {
+      th.hidden = !showScenCompCols;
     });
 
     if (mcTableActiveBanner && mcTableActivePill && mcTableActiveDesc) {
@@ -3946,7 +4323,19 @@
               activeTableCalc.finalRow.totalBalance)
           : activeTableCalc.finalRow.totalBalance,
       );
-      if (mcTableScenario === "baseline" || !mc) {
+      if (mcTableScenario === "crisis") {
+        const crisis = latestStressResults[selectedTableCrisisIdx] || latestStressResults[0];
+        mcTableActiveBanner.className = "mc-table-active-banner is-with";
+        mcTableActivePill.className = "mc-mode-pill mc-mode-pill-with";
+        mcTableActivePill.textContent = `AKTIV TABEL: HISTORISK KRISE-TEST · ${(crisis?.name || "1929").toUpperCase()}`;
+        mcTableActiveDesc.textContent = `${crisis?.desc || "Simuleret historisk krise ved FIRE-start."} Start FIRE: ${scenarioFire} · Slutreserve: ${scenarioReserve}. Se de 3 sammenligningskolonner længst til højre for forskel mod basisplanen.`;
+      } else if (mcTableScenario === "sensitivity") {
+        const label = activeTornadoPreset?.label || "Basisplan (Ingen aktive slider-ændringer)";
+        mcTableActiveBanner.className = "mc-table-active-banner is-with";
+        mcTableActivePill.className = "mc-mode-pill mc-mode-pill-with";
+        mcTableActivePill.textContent = `AKTIV TABEL: SENSITIVITET · ${label.toUpperCase()}`;
+        mcTableActiveDesc.textContent = `Tabellen viser år-for-år beregningen for dit valgte sensitivitets-scenarie sammenlignet med din oprindelige basisplan. Start FIRE: ${scenarioFire} · Slutreserve: ${scenarioReserve}.`;
+      } else if (mcTableScenario === "baseline" || !mc || !isMcScenario) {
         mcTableActiveBanner.className = "mc-table-active-banner is-without";
         mcTableActivePill.className = "mc-mode-pill mc-mode-pill-without";
         mcTableActivePill.textContent =
@@ -3976,6 +4365,8 @@
           bandsByAge.get(row.age),
           showCompCols,
           calculation.includeHousing,
+          baseRowsByAge.get(row.age),
+          showScenCompCols,
         ),
       )
       .join("");
@@ -4049,6 +4440,16 @@
 
   form.addEventListener("submit", update);
   form.addEventListener("input", (event) => {
+    if (!isApplyingTornadoSliders) {
+      baseTornadoInputs = null;
+      activeTornadoPreset = null;
+      tornadoOffsets = {
+        spendingPct: 0,
+        returnPts: 0,
+        savingsPct: 0,
+        inflationPts: 0,
+      };
+    }
     cancelActiveOptimization();
     setPlanCodeStatus("");
     hideOptimizationResult();
@@ -4154,16 +4555,78 @@
   mcTableScenarioButtons.forEach((button) => {
     button.addEventListener("click", () => {
       mcTableScenario = button.dataset.mcTableScenario || "baseline";
-      if (mcTableScenario !== "baseline" && mcChartMode === "without") {
+      const isMc = ["p10", "p50", "p90"].includes(mcTableScenario);
+      if (isMc && mcChartMode === "without") {
         mcChartMode = "compare";
       }
-      if (mcTableScenario !== "baseline" && !latestMonteCarlo) {
+      if (isMc && !latestMonteCarlo) {
         computeMonteCarlo(latestInputs || readInputs(), false);
       }
       syncMonteCarloButtons();
       update();
     });
   });
+  if (tableCrisisSelect) {
+    tableCrisisSelect.addEventListener("change", () => {
+      selectedTableCrisisIdx = Number(tableCrisisSelect.value) || 0;
+      update();
+    });
+  }
+  colGroupPills.forEach((pill) => {
+    pill.addEventListener("click", () => {
+      const grp = pill.dataset.toggleColGroup;
+      if (!grp || !mainProjectionTableWrap) return;
+      const isCurrentlyExpanded = pill.classList.contains("is-expanded");
+      const nextExpanded = !isCurrentlyExpanded;
+      pill.classList.toggle("is-expanded", nextExpanded);
+      pill.setAttribute("aria-pressed", nextExpanded ? "true" : "false");
+      mainProjectionTableWrap.setAttribute(
+        `data-collapsed-${grp}`,
+        nextExpanded ? "false" : "true",
+      );
+    });
+  });
+  if (colGroupToggleAllBtn && mainProjectionTableWrap) {
+    colGroupToggleAllBtn.addEventListener("click", () => {
+      const anyCollapsed = Array.from(colGroupPills).some(
+        (p) => !p.hidden && !p.classList.contains("is-expanded"),
+      );
+      colGroupPills.forEach((p) => {
+        const grp = p.dataset.toggleColGroup;
+        if (!grp) return;
+        p.classList.toggle("is-expanded", anyCollapsed);
+        p.setAttribute("aria-pressed", anyCollapsed ? "true" : "false");
+        mainProjectionTableWrap.setAttribute(
+          `data-collapsed-${grp}`,
+          anyCollapsed ? "false" : "true",
+        );
+      });
+    });
+  }
+  modalColGroupPills.forEach((pill) => {
+    pill.addEventListener("click", () => {
+      const grp = pill.dataset.modalColGroup;
+      if (!grp || !deepDiveModalTableWrap) return;
+      const isCurrentlyExpanded = pill.classList.contains("is-expanded");
+      const nextExpanded = !isCurrentlyExpanded;
+      pill.classList.toggle("is-expanded", nextExpanded);
+      pill.setAttribute("aria-pressed", nextExpanded ? "true" : "false");
+      deepDiveModalTableWrap.setAttribute(
+        `data-collapsed-${grp}`,
+        nextExpanded ? "false" : "true",
+      );
+    });
+  });
+  if (closeDeepDiveDialogBtn && deepDiveDetailDialog) {
+    closeDeepDiveDialogBtn.addEventListener("click", () => {
+      deepDiveDetailDialog.close();
+    });
+    deepDiveDetailDialog.addEventListener("click", (e) => {
+      if (e.target === deepDiveDetailDialog) {
+        deepDiveDetailDialog.close();
+      }
+    });
+  }
   chartScaleButtons.forEach((button) => {
     button.addEventListener("click", () => {
       chartScaleMode = button.dataset.chartScale || "linear";
