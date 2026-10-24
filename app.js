@@ -160,6 +160,9 @@
   let activeStressTestCrisis = null;
   let latestStressResults = [];
   let selectedTableCrisisIdx = 0;
+  let customAnnualReturnRates = [];
+  let latestCustomCrisisResult = null;
+  const customCrisisResetBtn = document.querySelector("#custom-crisis-reset-btn");
   let activeTornadoPreset = null;
   let baseTornadoInputs = null;
   let isApplyingTornadoSliders = false;
@@ -482,6 +485,7 @@
       freeFundsBalance: readNumber("freeFundsBalance"),
       freeFundsCostBasis: readNumber("freeFundsCostBasis"),
       askBalance: readNumber("askBalance"),
+      cashBalance: form.elements.cashBalance ? readNumber("cashBalance") : 0,
       annualRatePensionContribution: readNumber(
         "annualRatePensionContribution",
       ),
@@ -493,6 +497,9 @@
       annualAskContribution: form.elements.annualAskContribution
         ? readNumber("annualAskContribution")
         : 0,
+      annualCashContribution: form.elements.annualCashContribution
+        ? readNumber("annualCashContribution")
+        : 0,
       ageSavingsContributionLimit: readNumber("ageSavingsContributionLimit"),
       pensionTax: readNumber("pensionTax", 100),
       ratePensionContributionTaxRelief: readNumber(
@@ -502,6 +509,12 @@
       pensionWithdrawalTax: readNumber("pensionWithdrawalTax", 100),
       askTax: readNumber("askTax", 100),
       freeFundsInventoryShare: readNumber("freeFundsInventoryShare", 100),
+      cashInterestRate: form.elements.cashInterestRate
+        ? readNumber("cashInterestRate", 100)
+        : 0.015,
+      cashInterestTax: form.elements.cashInterestTax
+        ? readNumber("cashInterestTax", 100)
+        : 0.37,
       returnRate: readNumber("returnRate", 100),
       inflationRate: readNumber("inflationRate", 100),
       lifeAnnuityPayoutRate: readNumber("lifeAnnuityPayoutRate", 100),
@@ -1591,6 +1604,9 @@
     includeHousing = false,
     baseComparisonRow = null,
     showScenarioComp = false,
+    isCustomCrisis = false,
+    rowYearIdx = 0,
+    customRateVal = null,
   ) {
     const inventoryTax =
       freeFundsInventoryShare > 0 && row.phase !== "Slut"
@@ -1612,6 +1628,31 @@
     if (row.housingUnlocked && row.housingUnlocked > 0) extras.push("frigjort friværdi");
     if (extras.length > 0) {
       source = source === "—" ? extras.join(" & ") : `${source} (+ ${extras.join(", ")})`;
+    }
+
+    let returnCell = `<td class="projection-return"><span class="explainable-val" data-col-key="returnRate" data-row-age="${row.age}" tabindex="0">${returnRate}</span></td>`;
+    if (isCustomCrisis && row.phase !== "Slut") {
+      const valPct = Number.isFinite(customRateVal)
+        ? (customRateVal * 100).toFixed(1)
+        : Number.isFinite(row.averageReturnRate)
+          ? (row.averageReturnRate * 100).toFixed(1)
+          : "7.0";
+      const isNeg = Number(valPct) < 0;
+      returnCell = `
+        <td class="projection-return projection-return-editable">
+          <div class="custom-return-cell-wrap">
+            <input
+              type="number"
+              step="0.5"
+              class="custom-return-input${isNeg ? " is-negative" : ""}"
+              data-custom-year="${rowYearIdx}"
+              data-custom-age="${row.age}"
+              value="${valPct}"
+              title="Indtast årligt afkast for alder ${row.age} år"
+            />
+            <span class="custom-return-unit">%</span>
+          </div>
+        </td>`;
     }
 
     let comparisonCells = "";
@@ -1647,13 +1688,14 @@
         <td>${dateFormat.format(row.date)}</td>
         <td>${ages.format(row.age)}</td>
         <td>${row.phase}</td>
-        <td class="projection-return"><span class="explainable-val" data-col-key="returnRate" data-row-age="${row.age}" tabindex="0">${returnRate}</span></td>
+        ${returnCell}
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
         <td data-col-group="pension"><span class="explainable-val" data-col-key="lifeAnnuityDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityDepotValue)}</span></td>
         <td data-col-group="pension">${row.lifeAnnuityWithdrawal ? `<span class="explainable-val" data-col-key="lifeAnnuityWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.lifeAnnuityWithdrawal)}</span>` : "—"}</td>
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
+        <td data-col-group="free"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span></td>
         <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
@@ -1794,7 +1836,7 @@
       : fireAge;
     const pensionValue = (row) =>
       row.ratePension + row.lifeAnnuity + row.ageSavings;
-    const freeFundsValue = (row) => row.freeFunds + row.ask;
+    const freeFundsValue = (row) => row.freeFunds + row.ask + (row.cash ?? 0);
     const housingValue = (row) =>
       calculation.includeHousing ? (row.housingEquity ?? 0) : 0;
 
@@ -2223,8 +2265,11 @@
         });
       }
       if (activeCrisisPoints && activeCrisisPoints[activeIndex]) {
+        const crisisLabel = activeStressTestCrisis?.isCustom
+          ? "✏️ Brugerdefineret"
+          : `Krise (${activeStressTestCrisis.name.split(" ")[0]})`;
         items.push({
-          label: `Krise (${activeStressTestCrisis.name.split(" ")[0]})`,
+          label: crisisLabel,
           value: activeCrisisPoints[activeIndex].val,
           color: "#ef4444",
         });
@@ -3259,8 +3304,15 @@
     const results = window.FireMonteCarlo.runHistoricalStressTests(anchorInputs);
     latestStressResults = results;
 
+    const customCrisis = window.FireMonteCarlo?.simulateCustomCrisis
+      ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+      : null;
+    latestCustomCrisisResult = customCrisis;
+
+    const allCrises = customCrisis ? [...results, customCrisis] : results;
+
     if (activeStressTestCrisis) {
-      const updated = results.find((r) => r.name === activeStressTestCrisis.name);
+      const updated = allCrises.find((r) => r.name === activeStressTestCrisis.name);
       if (updated) {
         activeStressTestCrisis = updated;
         if (
@@ -3274,8 +3326,9 @@
       }
     }
 
-    grid.innerHTML = results
+    grid.innerHTML = allCrises
       .map((r, idx) => {
+        const crisisKey = r.isCustom ? "custom" : idx;
         const isActive = activeStressTestCrisis && activeStressTestCrisis.name === r.name;
         const badgeClass = r.isSolvent
           ? "scenario-delta-better"
@@ -3283,9 +3336,10 @@
         const badgeText = r.isSolvent
           ? "Overlever krisen"
           : `Udtømmes ved ${ages.format(r.depletionAge || 75)} år`;
+        const tableActionText = r.isCustom ? "✏️ Justér afkast i tabel" : "📋 Vis i hovedtabel";
 
         return `
-          <div class="stress-card${isActive ? " is-active" : ""}" data-crisis-idx="${idx}">
+          <div class="stress-card${isActive ? " is-active" : ""}${r.isCustom ? " is-custom-crisis-card" : ""}" data-crisis-idx="${crisisKey}">
             <div class="stress-card-header">
               <span class="stress-card-title">${r.name}</span>
               <span class="stress-card-badge ${badgeClass}">${badgeText}</span>
@@ -3304,22 +3358,24 @@
               </div>
             </div>
             <div class="stress-card-action">
-              <button type="button" class="stress-card-btn stress-card-btn-primary" data-stress-action="chart" data-crisis-idx="${idx}">
+              <button type="button" class="stress-card-btn stress-card-btn-primary" data-stress-action="chart" data-crisis-idx="${crisisKey}">
                 ${isActive ? "✓ På graf (Slå fra)" : "📈 Vis på formuegraf"}
               </button>
-              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="modal" data-crisis-idx="${idx}">
+              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="modal" data-crisis-idx="${crisisKey}">
                 🔍 År-for-år vindue
               </button>
-              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="table" data-crisis-idx="${idx}">
-                📋 Vis i hovedtabel
+              <button type="button" class="stress-card-btn stress-card-btn-secondary" data-stress-action="table" data-crisis-idx="${crisisKey}">
+                ${tableActionText}
               </button>
             </div>
           </div>`;
       })
       .join("");
 
-    function toggleCrisisOnChartAndDropdown(idx) {
-      const selected = results[idx];
+    function toggleCrisisOnChartAndDropdown(crisisKey) {
+      const selected = crisisKey === "custom"
+        ? latestCustomCrisisResult
+        : results[Number(crisisKey)];
       if (!selected) return;
       if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
         activeStressTestCrisis = null;
@@ -3331,9 +3387,9 @@
         }
       } else {
         activeStressTestCrisis = selected;
-        selectedTableCrisisIdx = idx;
+        selectedTableCrisisIdx = crisisKey;
         mcTableScenario = "crisis";
-        if (tableCrisisSelect) tableCrisisSelect.value = String(idx);
+        if (tableCrisisSelect) tableCrisisSelect.value = String(crisisKey);
         syncMonteCarloButtons();
         update();
         setChartView("wealth");
@@ -3348,26 +3404,28 @@
     grid.querySelectorAll(".stress-card[data-crisis-idx]").forEach((card) => {
       card.addEventListener("click", (e) => {
         if (e.target.closest("button")) return;
-        const idx = Number(card.dataset.crisisIdx);
-        toggleCrisisOnChartAndDropdown(idx);
+        const crisisKey = card.dataset.crisisIdx;
+        toggleCrisisOnChartAndDropdown(crisisKey);
       });
     });
 
     grid.querySelectorAll("[data-stress-action]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const idx = Number(btn.dataset.crisisIdx);
+        const crisisKey = btn.dataset.crisisIdx;
         const action = btn.dataset.stressAction;
-        const selected = results[idx];
+        const selected = crisisKey === "custom"
+          ? latestCustomCrisisResult
+          : results[Number(crisisKey)];
         if (!selected) return;
 
         if (action === "chart") {
-          toggleCrisisOnChartAndDropdown(idx);
+          toggleCrisisOnChartAndDropdown(crisisKey);
         } else if (action === "modal") {
-          openDeepDiveDetailModal("crisis", idx);
+          openDeepDiveDetailModal("crisis", crisisKey);
         } else if (action === "table") {
-          selectedTableCrisisIdx = idx;
-          if (tableCrisisSelect) tableCrisisSelect.value = String(idx);
+          selectedTableCrisisIdx = crisisKey;
+          if (tableCrisisSelect) tableCrisisSelect.value = String(crisisKey);
           mcTableScenario = "crisis";
           syncMonteCarloButtons();
           update();
@@ -3650,10 +3708,17 @@
     let scenCalc = latestCalculation || baseCalc;
 
     if (mode === "crisis") {
-      if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
-        latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(anchorInputs);
+      let crisis = null;
+      if (crisisIdx === "custom") {
+        crisis = latestCustomCrisisResult || (window.FireMonteCarlo?.simulateCustomCrisis
+          ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+          : null);
+      } else {
+        if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
+          latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(anchorInputs);
+        }
+        crisis = latestStressResults[Number(crisisIdx)] || latestStressResults[0];
       }
-      const crisis = latestStressResults[crisisIdx] || latestStressResults[0];
       if (!crisis || !crisis.calculation) return;
       scenCalc = crisis.calculation;
       if (deepDiveDialogHeading) deepDiveDialogHeading.textContent = `Krise-test: ${crisis.name}`;
@@ -3708,6 +3773,7 @@
         <td data-col-group="pension">${currency.format(row.ageSavings)}</td>
         <td data-col-group="free">${currency.format(row.freeFunds)}</td>
         <td data-col-group="free">${currency.format(row.ask)}</td>
+        <td data-col-group="free">${currency.format(row.cash ?? 0)}</td>
         <td><strong>${currency.format(row.totalDepotValue ?? row.totalBalance)}</strong></td>
         <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
         <td data-col-group="cashflow">${row.contribution ? currency.format(row.contribution) : "—"}</td>
@@ -4308,6 +4374,10 @@
       tableCrisisSelect.value =
         mcTableScenario === "crisis" ? String(selectedTableCrisisIdx) : "none";
     }
+    if (customCrisisResetBtn) {
+      customCrisisResetBtn.hidden =
+        mcTableScenario !== "crisis" || selectedTableCrisisIdx !== "custom";
+    }
     const baseCalcForTable =
       mcTableScenario === "sensitivity" && baseTornadoInputs
         ? calculateFire(baseTornadoInputs)
@@ -4315,10 +4385,17 @@
 
     let activeTableCalc = calculation;
     if (mcTableScenario === "crisis") {
-      if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
-        latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(baseTornadoInputs || inputs);
+      if (selectedTableCrisisIdx === "custom") {
+        latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
+          ? window.FireMonteCarlo.simulateCustomCrisis(baseTornadoInputs || inputs, customAnnualReturnRates)
+          : null;
+        activeTableCalc = latestCustomCrisisResult?.calculation || calculation;
+      } else {
+        if (!latestStressResults.length && window.FireMonteCarlo?.runHistoricalStressTests) {
+          latestStressResults = window.FireMonteCarlo.runHistoricalStressTests(baseTornadoInputs || inputs);
+        }
+        activeTableCalc = latestStressResults[Number(selectedTableCrisisIdx)]?.calculation || calculation;
       }
-      activeTableCalc = latestStressResults[selectedTableCrisisIdx]?.calculation || calculation;
     } else if (mcTableScenario === "sensitivity") {
       activeTableCalc = calculation;
     } else if (mc && mcTableScenario !== "baseline" && mc.scenarios?.[mcTableScenario]) {
@@ -4361,11 +4438,14 @@
           : activeTableCalc.finalRow.totalBalance,
       );
       if (mcTableScenario === "crisis") {
-        const crisis = latestStressResults[selectedTableCrisisIdx] || latestStressResults[0];
+        const isCustom = selectedTableCrisisIdx === "custom";
+        const crisis = isCustom
+          ? latestCustomCrisisResult
+          : (latestStressResults[Number(selectedTableCrisisIdx)] || latestStressResults[0]);
         mcTableActiveBanner.className = "mc-table-active-banner is-with";
         mcTableActivePill.className = "mc-mode-pill mc-mode-pill-with";
-        mcTableActivePill.textContent = `AKTIV TABEL: HISTORISK KRISE-TEST · ${(crisis?.name || "1929").toUpperCase()}`;
-        mcTableActiveDesc.textContent = `${crisis?.desc || "Simuleret historisk krise ved FIRE-start."} Start FIRE: ${scenarioFire} · Slutreserve: ${scenarioReserve}. Se de 3 sammenligningskolonner længst til højre for forskel mod basisplanen.`;
+        mcTableActivePill.textContent = `AKTIV TABEL: ${isCustom ? "BRUGERDEFINERET KRISE / AFKAST" : `HISTORISK KRISE-TEST · ${(crisis?.name || "1929").toUpperCase()}`}`;
+        mcTableActiveDesc.textContent = `${crisis?.desc || "Simuleret krise ved FIRE-start."} Start FIRE: ${scenarioFire} · Slutreserve: ${scenarioReserve}. ${isCustom ? 'Du kan justere det årlige afkast for ethvert år direkte i kolonnen "Afkast".' : 'Se de 3 sammenligningskolonner længst til højre for forskel mod basisplanen.'}`;
       } else if (mcTableScenario === "sensitivity") {
         const label = activeTornadoPreset?.label || "Basisplan (Ingen aktive slider-ændringer)";
         mcTableActiveBanner.className = "mc-table-active-banner is-with";
@@ -4394,8 +4474,10 @@
       }
     }
 
+    const isCustomScenario = mcTableScenario === "crisis" && selectedTableCrisisIdx === "custom";
+
     tableBody.innerHTML = activeTableCalc.planRows
-      .map((row) =>
+      .map((row, idx) =>
         rowMarkup(
           row,
           inputs.freeFundsInventoryShare,
@@ -4404,6 +4486,9 @@
           calculation.includeHousing,
           baseRowsByAge.get(row.age),
           showScenCompCols,
+          isCustomScenario,
+          idx,
+          customAnnualReturnRates[idx],
         ),
       )
       .join("");
@@ -4609,12 +4694,81 @@
       if (val === "none") {
         if (mcTableScenario === "crisis") mcTableScenario = "baseline";
         activeStressTestCrisis = null;
+      } else if (val === "custom") {
+        selectedTableCrisisIdx = "custom";
+        mcTableScenario = "crisis";
+        const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
+        latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
+          ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+          : null;
+        activeStressTestCrisis = latestCustomCrisisResult;
       } else {
         selectedTableCrisisIdx = Number(val) || 0;
         mcTableScenario = "crisis";
-        activeStressTestCrisis = latestStressResults[selectedTableCrisisIdx] || null;
+        activeStressTestCrisis = latestStressResults[Number(selectedTableCrisisIdx)] || null;
       }
       syncMonteCarloButtons();
+      update();
+      if (latestInputs) renderStressTests(latestInputs, true);
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  }
+
+  tableBody.addEventListener("change", (e) => {
+    const input = e.target.closest(".custom-return-input");
+    if (!input) return;
+    const yearIdx = Number(input.dataset.customYear);
+    const valPct = parseFloat(input.value);
+    if (!Number.isNaN(valPct)) {
+      customAnnualReturnRates[yearIdx] = valPct / 100;
+      input.classList.toggle("is-negative", valPct < 0);
+    }
+    const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
+    latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
+      ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+      : null;
+    if (activeStressTestCrisis?.isCustom) {
+      activeStressTestCrisis = latestCustomCrisisResult;
+    }
+    update();
+    if (latestInputs) renderStressTests(latestInputs, true);
+    if (latestCalculation && latestInputs) {
+      renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+    }
+    const nextInput = tableBody.querySelector(`.custom-return-input[data-custom-year="${yearIdx}"]`);
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
+    }
+  });
+
+  tableBody.addEventListener("keydown", (e) => {
+    const input = e.target.closest(".custom-return-input");
+    if (!input) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const currentYear = Number(input.dataset.customYear);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      const nextInput = tableBody.querySelector(`.custom-return-input[data-custom-year="${currentYear + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+  });
+
+  if (customCrisisResetBtn) {
+    customCrisisResetBtn.addEventListener("click", () => {
+      customAnnualReturnRates = [];
+      const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
+      latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
+        ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+        : null;
+      if (activeStressTestCrisis?.isCustom) {
+        activeStressTestCrisis = latestCustomCrisisResult;
+      }
       update();
       if (latestInputs) renderStressTests(latestInputs, true);
       if (latestCalculation && latestInputs) {

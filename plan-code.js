@@ -53,6 +53,10 @@
     "housingOwnershipShare",
     "housingUnlockShare",
     "housingUnlockAge",
+    "cashBalance",
+    "annualCashContribution",
+    "cashInterestRate",
+    "cashInterestTax",
   ]);
   const STRING_FIELDS = Object.freeze([
     "returnStrategy",
@@ -102,6 +106,10 @@
     housingUnlockShare: 0.5,
     housingUnlockAgeType: "fire",
     housingUnlockAge: 60,
+    cashBalance: 0,
+    annualCashContribution: 0,
+    cashInterestRate: 0.015,
+    cashInterestTax: 0.37,
   });
 
   function invalidFormat() {

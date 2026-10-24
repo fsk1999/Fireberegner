@@ -61,6 +61,7 @@
   const FREE_FUNDS_REALIZATION = 3;
   const FREE_FUNDS_INVENTORY = 4;
   const ASK = 5;
+  const CASH = 6;
 
   function householdMultiplier(inputs) {
     return inputs?.isCouple ? 2 : 1;
@@ -521,8 +522,8 @@
   }
 
   function allocateForPhase(capacities, desiredWithdrawal, beforeRetirement) {
+    const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK, CASH];
     if (beforeRetirement) {
-      const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK];
       const allocation = allocateWithdrawals(
         freeIndexes.map((index) => capacities[index]),
         desiredWithdrawal,
@@ -535,7 +536,6 @@
     }
 
     const pensionIndexes = [RATE_PENSION, LIFE_ANNUITY, AGE_SAVINGS];
-    const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK];
     const pensionAllocation = allocateWithdrawals(
       pensionIndexes.map((index) => capacities[index]),
       desiredWithdrawal,
@@ -662,7 +662,7 @@
     shareIncomeThreshold = SHARE_INCOME_THRESHOLD,
   ) {
     const pensionIndexes = [RATE_PENSION, LIFE_ANNUITY, AGE_SAVINGS];
-    const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK];
+    const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK, CASH];
     const pensionCapacities = pensionIndexes.map((index) => capacities[index]);
     const totalPensionCapacity = pensionCapacities.reduce(
       (total, capacity) => total + capacity,
@@ -735,7 +735,7 @@
     shareIncomeThreshold = SHARE_INCOME_THRESHOLD,
     withdrawalAfterTax = true,
   ) {
-    const amounts = [0, 0, 0, 0, 0, 0];
+    const amounts = [0, 0, 0, 0, 0, 0, 0];
     let remainingTarget = Math.max(0, desiredTarget);
     if (remainingTarget <= 0) {
       return { amounts, total: 0 };
@@ -835,6 +835,12 @@
     if (balances[ASK] > 0 && remainingTarget > 0) {
       const draw = Math.min(balances[ASK], remainingTarget);
       amounts[ASK] += draw;
+      remainingTarget = Math.max(0, remainingTarget - draw);
+    }
+
+    if (balances[CASH] > 0 && remainingTarget > 0) {
+      const draw = Math.min(balances[CASH], remainingTarget);
+      amounts[CASH] += draw;
       remainingTarget = Math.max(0, remainingTarget - draw);
     }
 
@@ -967,6 +973,7 @@
       freeFundsRealization: balances[FREE_FUNDS_REALIZATION],
       freeFundsInventory: balances[FREE_FUNDS_INVENTORY],
       ask: balances[ASK],
+      cash: balances[CASH] ?? 0,
       totalBalance,
       contribution: 0,
       withdrawal: 0,
@@ -996,6 +1003,7 @@
       taxFreeRatePensionWithdrawal: 0,
       taxableRatePensionWithdrawal: 0,
       askWithdrawal: 0,
+      cashWithdrawal: 0,
       ageSavingsWithdrawal: 0,
       withdrawalSource: "—",
       withdrawalShortfall: false,
@@ -1007,13 +1015,15 @@
     row.totalWealthWithHousing = row.totalBalance + (row.housingEquity ?? 0);
     const pensionBalance =
       row.ratePension + row.lifeAnnuityDepotValue + row.ageSavings;
-    const freeBalance = row.freeFunds + row.ask;
+    const freeStockBalance = row.freeFunds + row.ask;
+    const cashRate = values.cashReturnRate ?? 0.015;
     row.averageReturnRate =
       row.totalDepotValue > 0 &&
       Number.isFinite(row.pensionReturnRate) &&
       Number.isFinite(row.freeFundsReturnRate)
         ? (pensionBalance * row.pensionReturnRate +
-            freeBalance * row.freeFundsReturnRate) /
+            freeStockBalance * row.freeFundsReturnRate +
+            row.cash * cashRate) /
           row.totalDepotValue
         : null;
 
@@ -1040,6 +1050,8 @@
       inputs.lifeAnnuityBalance ?? 0,
       inputs.annualLifeAnnuityContribution ?? 0,
       inputs.annualAskContribution ?? 0,
+      inputs.cashBalance ?? 0,
+      inputs.annualCashContribution ?? 0,
       inputs.atpAnnualIncome ?? 0,
       inputs.efterloenAnnualIncome ?? 0,
     ];
@@ -1145,6 +1157,20 @@
       !Number.isFinite(ratePensionContributionTaxRelief) ||
       ratePensionContributionTaxRelief < 0 ||
       ratePensionContributionTaxRelief > 1
+    ) {
+      throw new Error("Skattesatser skal være mellem 0 og 100 %.");
+    }
+
+    const cashInterestRate = inputs.cashInterestRate ?? 0.015;
+    if (!Number.isFinite(cashInterestRate)) {
+      throw new Error("Renten på kontantreserve skal være et gyldigt tal.");
+    }
+
+    const cashInterestTax = inputs.cashInterestTax ?? 0.37;
+    if (
+      !Number.isFinite(cashInterestTax) ||
+      cashInterestTax < 0 ||
+      cashInterestTax > 1
     ) {
       throw new Error("Skattesatser skal være mellem 0 og 100 %.");
     }
@@ -1303,8 +1329,16 @@
     const compoundGrowthCache = anchorCache.compoundGrowth;
 
     function applyRealizedReturnMultiplier(baseReturn, year, useRealized) {
+      if (!useRealized) {
+        return baseReturn;
+      }
       if (
-        !useRealized ||
+        Array.isArray(inputs.annualReturnRates) &&
+        Number.isFinite(inputs.annualReturnRates[year])
+      ) {
+        return inputs.annualReturnRates[year];
+      }
+      if (
         !Array.isArray(inputs.annualReturnMultipliers) ||
         !Number.isFinite(inputs.annualReturnMultipliers[year])
       ) {
@@ -1361,6 +1395,18 @@
     function grossRealFreeFundsReturnFor(nominalReturn) {
       return (1 + nominalReturn) / (1 + inputs.inflationRate) - 1;
     }
+
+    function realCashReturnFor(nominalReturn, taxRate) {
+      return (
+        (1 + nominalReturn * (1 - taxRate)) /
+          (1 + inputs.inflationRate) -
+        1
+      );
+    }
+
+    const cashInterestRate = inputs.cashInterestRate ?? 0.015;
+    const cashInterestTax = inputs.cashInterestTax ?? 0.37;
+    const realCashReturn = realCashReturnFor(cashInterestRate, cashInterestTax);
 
     const netPensionReturn = inputs.returnRate * (1 - inputs.pensionTax);
     const realPensionReturn = realPensionReturnFor(inputs.returnRate);
@@ -1536,6 +1582,7 @@
           freeReturn,
         ),
         realAskReturnFor(freeReturn),
+        realCashReturn,
       ];
     }
 
@@ -1553,6 +1600,9 @@
         }
         if (index === ASK) {
           return realAskReturnFor(freeNominalReturn(year));
+        }
+        if (index === CASH) {
+          return realCashReturn;
         }
         return grossRealFreeFundsReturnFor(freeNominalReturn(year));
       });
@@ -1644,6 +1694,7 @@
       realPensionReturn,
       realAskReturn,
       grossRealFreeFundsReturn,
+      realCashReturn,
       defensiveRealPensionReturn,
       defensiveRealAskReturn,
       defensiveGrossRealFreeFundsReturn,
@@ -1662,6 +1713,7 @@
       inputs.freeFundsBalance * (1 - inventoryShare),
       inputs.freeFundsBalance * inventoryShare,
       inputs.askBalance,
+      inputs.cashBalance ?? 0,
     ];
     assertFinite(...initialBalances, inputs.freeFundsCostBasis);
 
@@ -2050,7 +2102,8 @@
           const freeWithdrawal =
             allocation.amounts[FREE_FUNDS_REALIZATION] +
             allocation.amounts[FREE_FUNDS_INVENTORY] +
-            allocation.amounts[ASK];
+            allocation.amounts[ASK] +
+            (allocation.amounts[CASH] ?? 0);
           const withdrawalSource =
             totalWithdrawal <= MONEY_TOLERANCE
               ? "—"
@@ -2103,6 +2156,7 @@
                 withdrawalSource,
                 withdrawalShortfall: shortfall,
                 askWithdrawal: allocation.amounts[ASK] ?? 0,
+                cashWithdrawal: allocation.amounts[CASH] ?? 0,
                 ageSavingsWithdrawal: allocation.amounts[AGE_SAVINGS] ?? 0,
               },
             ),
@@ -2307,7 +2361,8 @@
         lifeAnnuityVal +
         balances[AGE_SAVINGS] +
         freeFundsVal +
-        balances[ASK];
+        balances[ASK] +
+        (balances[CASH] ?? 0);
       const milestoneHousing = calculateHousingForAge(
         inputs,
         inputs.currentAge + year,
@@ -2326,6 +2381,7 @@
         freeFundsCostBasis,
         ratePensionNonDeductibleBasis,
         ask: balances[ASK],
+        cash: balances[CASH] ?? 0,
         totalBalance: totalBalanceVal,
         housingEquity: milestoneHousing.housingEquity,
         totalWealthWithHousing:
@@ -2556,6 +2612,10 @@
         ageSavingsContributionRedirected +
         askContributionRedirected +
         redirectedPensionContribution;
+      const cashContribution = contributionAtMidyear(
+        inputs.annualCashContribution ?? 0,
+        nextYear,
+      );
       const contributions = [
         pensionContributionsActive
           ? deductibleRatePensionContribution +
@@ -2566,6 +2626,7 @@
         totalFreeFundsContribution * (1 - inventoryShare),
         totalFreeFundsContribution * inventoryShare,
         askContribution,
+        cashContribution,
       ];
       contributionAtCheckpoint = contributions.reduce(
         (total, contribution) => total + contribution,

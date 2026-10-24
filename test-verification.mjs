@@ -303,7 +303,51 @@ sensitivityResults.forEach((factor) => {
 console.assert(sensitivityResults[0].swing >= sensitivityResults[sensitivityResults.length - 1].swing, "Factors must be sorted by swing descending");
 console.log("✓ Sensitivity analysis and factor ranking verified.");
 
+console.log("\n=== 14. Cash Reserve (Kontantreserve & Rente) ===");
+const cashInputs = {
+  ...baseInputs,
+  cashBalance: 250000,
+  annualCashContribution: 24000,
+  cashInterestRate: 0.02,
+  cashInterestTax: 0.37,
+};
+const cashCalc = FireCalculations.calculateFire(cashInputs);
+console.assert(cashCalc.planRows[0].cash === 250000, "Initial cash balance must match input");
+console.assert(cashCalc.planRows[1].cash > 250000, "Cash balance should grow with contribution and net bank interest");
+console.assert(cashCalc.planRows[0].totalDepotValue >= 250000, "Total depot value must include cash reserve");
+
+const cashExp = FireMathExplainer.explainTableCell({
+  colKey: "cash",
+  row: cashCalc.planRows[1],
+  prevRow: cashCalc.planRows[0],
+  calculation: cashCalc,
+  inputs: cashInputs,
+});
+console.assert(cashExp !== null, "Math explainer must not be null for cash");
+console.assert(cashExp.title.includes("Kontantreserve"), "Math explainer must explain cash reserve");
+console.assert(typeof cashExp.formula === "string", "Cash explainer must have formula");
+
+const encodedCash = FirePlanCode.encodePlan(cashInputs);
+const decodedCash = FirePlanCode.decodePlan(encodedCash);
+console.assert(decodedCash.cashBalance === 250000, "Encoded plan must preserve cashBalance");
+console.assert(decodedCash.annualCashContribution === 24000, "Encoded plan must preserve annualCashContribution");
+console.assert(Math.abs(decodedCash.cashInterestRate - 0.02) < 0.0001, "Encoded plan must preserve cashInterestRate");
+console.assert(Math.abs(decodedCash.cashInterestTax - 0.37) < 0.0001, "Encoded plan must preserve cashInterestTax");
+console.log("✓ Cash reserve, bank interest taxation, and plan persistence verified.");
+
+console.log("\n=== 15. Custom Crisis Simulation & Matrix Return Profile ===");
+const customAnnualRates = [-0.25, -0.15, 0.02, 0.08];
+const customCrisisRes = FireMonteCarlo.simulateCustomCrisis(baseInputs, customAnnualRates);
+console.assert(customCrisisRes.isCustom === true, "Must flag isCustom as true");
+console.assert(typeof customCrisisRes.name === "string" && customCrisisRes.name.includes("Brugerdefineret"), "Custom crisis must be identified");
+console.assert(Array.isArray(customCrisisRes.planRows) && customCrisisRes.planRows.length > 0, "Custom crisis must yield plan rows");
+console.assert(typeof customCrisisRes.isSolvent === "boolean", "Custom crisis must evaluate solvency");
+console.assert(Number.isFinite(customCrisisRes.finalReserve), "Custom crisis must compute numeric final reserve");
+console.log(`Custom Crisis: Solvent=${customCrisisRes.isSolvent}, MinBalance=${customCrisisRes.minBalance}, FinalReserve=${customCrisisRes.finalReserve}`);
+console.log("✓ Custom crisis simulation and matrix return profiling verified.");
+
 console.log("\n==================================");
-console.log("ALL 13 VERIFICATION SUITES PASSED!");
+console.log("ALL 15 VERIFICATION SUITES PASSED!");
 console.log("==================================");
+
 

@@ -743,25 +743,90 @@
         };
       }
 
+      case "cash": {
+        const end = row.cash ?? 0;
+        const cashRate = inputs.cashInterestRate ?? 0.015;
+        const cashTax = inputs.cashInterestTax ?? 0.37;
+        if (!prevRow) {
+          return {
+            title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
+            badge: "Sikker likviditet",
+            quickMath: `Startsaldo: ${currency.format(end)} ved planens start (${age} år)`,
+            description: "Din indtastede startopsparing i kontantreserve/bankindestående. Forrentes med en fast bankrente og fungerer som sikker buffer.",
+            formula: "Startsaldo (primo)",
+            formulaDetails: `Forrentes med ${percent.format(cashRate)} før skat. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst.`,
+            steps: [
+              { label: "Kontantreserve indtastet", value: currency.format(end), isResult: true }
+            ],
+            assumptions: [
+              { label: "Rente på kontantreserve", value: percent.format(cashRate) },
+              { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
+            ]
+          };
+        }
+        const start = prevRow.cash ?? 0;
+        const contrib = (row.phase === "Opsparing" && row.contribution > 0) ? (inputs.annualCashContribution ?? 0) : 0;
+        const withdrawal = row.cashWithdrawal ?? ((row.phase !== "Opsparing" && end < start) ? Math.max(0, start - end) : 0);
+        const netAfkast = end - start - contrib + withdrawal;
+        const quickMathParts = [`${currency.format(start)} (start)`];
+        if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indskud)`);
+        if (netAfkast !== 0) quickMathParts.push(netAfkast >= 0 ? `+ ${currency.format(netAfkast)} (netto rente)` : `− ${currency.format(Math.abs(netAfkast))} (inflationsfald)`);
+        if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (hævning)`);
+        quickMathParts.push(`= ${currency.format(end)}`);
+
+        return {
+          title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
+          badge: "Sikker likviditet",
+          quickMath: quickMathParts.join(" "),
+          description: "Kontantreserve på bankkonto eller pengemarkedskonto. Giver kursstabilitet og likviditetsbuffer, men er udsat for inflationsudhulning over tid.",
+          formula: "Ultimo = Primo + Indbetaling + Netto bankrente (efter skat & inflation) − Hævning",
+          formulaDetails: `Nominel rente ${percent.format(cashRate)} fratrukket ${percent.format(cashTax)} skat og korrigeret for ${percent.format(inflRate)} inflation.`,
+          steps: [
+            { label: "Startsaldo (primo)", value: currency.format(start) },
+            { label: "Årets kontantindbetaling", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr." },
+            { label: "Netto rente efter skat & inflation", value: netAfkast >= 0 ? `+ ${currency.format(netAfkast)}` : `− ${currency.format(Math.abs(netAfkast))}` },
+            ...(withdrawal > 0 ? [{ label: "Hævet til forbrug", value: `− ${currency.format(withdrawal)}` }] : []),
+            { label: "Slutsaldo (ultimo)", value: `= ${currency.format(end)}`, isResult: true }
+          ],
+          assumptions: [
+            { label: "Rente på kontantreserve", value: percent.format(cashRate) },
+            { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
+          ]
+        };
+      }
+
       case "totalDepotValue": {
         const depot = row.totalDepotValue;
+        const parts = [
+          `${currency.format(row.ratePension)} (rate)`,
+          `${currency.format(row.lifeAnnuityDepotValue)} (livrente)`,
+          `${currency.format(row.ageSavings)} (aldersops.)`,
+          `${currency.format(row.freeFunds)} (frie)`,
+          `${currency.format(row.ask)} (ASK)`
+        ];
+        if (row.cash > 0) parts.push(`${currency.format(row.cash)} (kontant)`);
+        const steps = [
+          { label: "Ratepension", value: currency.format(row.ratePension) },
+          { label: "Livrentedepot", value: currency.format(row.lifeAnnuityDepotValue) },
+          { label: "Aldersopsparing", value: currency.format(row.ageSavings) },
+          { label: "Frie midler (investeret)", value: currency.format(row.freeFunds) },
+          { label: "Aktiesparekonto", value: currency.format(row.ask) }
+        ];
+        if (row.cash > 0) {
+          steps.push({ label: "Kontantreserve / Bank", value: currency.format(row.cash) });
+        }
+        steps.push({ label: "Samlet depotværdi", value: `= ${currency.format(depot)}`, isResult: true });
+
         return {
           title: `Samlet depotværdi (${yearDate} · ${age} år)`,
           badge: "Finansiel formue",
-          quickMath: `${currency.format(row.ratePension)} (rate) + ${currency.format(row.lifeAnnuityDepotValue)} (livrente) + ${currency.format(row.ageSavings)} (aldersops.) + ${currency.format(row.freeFunds)} (frie) + ${currency.format(row.ask)} (ASK) = ${currency.format(depot)}`,
-          description: "Den samlede finansielle investeringsportefølje eksklusive fast ejendom. Omfatter alle likvide depoter og pensionskonti.",
-          formula: "Samlet depotværdi = Ratepension + Livrentedepot + Aldersopsparing + Frie midler + ASK",
-          formulaDetails: "Inkluderer den aktuarmæssige værdi af livrenten.",
-          steps: [
-            { label: "Ratepension", value: currency.format(row.ratePension) },
-            { label: "Livrentedepot", value: currency.format(row.lifeAnnuityDepotValue) },
-            { label: "Aldersopsparing", value: currency.format(row.ageSavings) },
-            { label: "Frie midler", value: currency.format(row.freeFunds) },
-            { label: "Aktiesparekonto", value: currency.format(row.ask) },
-            { label: "Samlet depotværdi", value: `= ${currency.format(depot)}`, isResult: true }
-          ],
+          quickMath: `${parts.join(" + ")} = ${currency.format(depot)}`,
+          description: "Den samlede finansielle investeringsportefølje og likvide reserver eksklusive fast ejendom. Omfatter alle depoter, kontantbeholdninger og pensionskonti.",
+          formula: "Samlet depotværdi = Ratepension + Livrentedepot + Aldersopsparing + Frie midler + ASK + Kontantreserve",
+          formulaDetails: "Inkluderer den aktuarmæssige værdi af livrenten samt likvide bankindeståender.",
+          steps,
           assumptions: [
-            { label: "Inkluderer bolig", value: "Nej (kun finansielle depoter)" }
+            { label: "Inkluderer bolig", value: "Nej (kun finansielle depoter og kontanter)" }
           ]
         };
       }

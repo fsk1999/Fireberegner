@@ -436,6 +436,46 @@
     });
   }
 
+  function simulateCustomCrisis(inputs, annualReturnRates) {
+    const baseline = FireCalculations.calculateFire(inputs);
+    const fireAge = baseline.fireRow
+      ? baseline.fireRow.age
+      : inputs.retirementAge;
+    const fireYear = Math.max(0, fireAge - inputs.currentAge);
+
+    const sim = FireCalculations.calculateFire({
+      ...inputs,
+      annualReturnRates,
+      lockedFireYear: fireYear,
+      lockedPensionStopYear: fireYear,
+    });
+
+    const isSolvent = Boolean(sim.isFullyFunded);
+    const finalReserve = sim.finalRow ? sim.finalRow.totalBalance : 0;
+    const minBalance = Math.min(
+      ...(sim.planRows || []).map((r) => r.totalBalance),
+      finalReserve,
+    );
+    const depletionRow = sim.planRows?.find(
+      (r) => r.age >= fireAge && r.totalBalance <= 0,
+    );
+
+    return {
+      id: "crisis-custom",
+      year: null,
+      name: "✏️ Brugerdefineret krise / afkastprofil",
+      badge: "Interaktiv Matrix",
+      desc: "Juster afkastet for ethvert enkelt år direkte i op- og nedsparingstabellen.",
+      isSolvent,
+      finalReserve,
+      minBalance: Math.max(0, minBalance),
+      depletionAge: depletionRow ? depletionRow.age : null,
+      planRows: sim.planRows || [],
+      calculation: sim,
+      isCustom: true,
+    };
+  }
+
   function calculateSensitivityAnalysis(inputs) {
     const base = FireCalculations.calculateFire(inputs);
     const baseAge = base.fireRow ? base.fireRow.age : inputs.retirementAge;
@@ -605,6 +645,7 @@
   return {
     runMonteCarlo,
     runHistoricalStressTests,
+    simulateCustomCrisis,
     calculateSensitivityAnalysis,
     HISTORICAL_CRISES,
   };
