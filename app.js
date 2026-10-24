@@ -1657,9 +1657,9 @@
         <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
+        <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="netWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.netWithdrawal)}</span>` : "—"}</td>
         <td data-col-group="cashflow">${row.contribution ? `<span class="explainable-val" data-col-key="contribution" data-row-age="${row.age}" tabindex="0">${currency.format(row.contribution)}</span>` : "—"}</td>
         <td data-col-group="cashflow">${row.withdrawal ? `<span class="explainable-val" data-col-key="withdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.withdrawal)}</span>` : "—"}</td>
-        <td>${row.withdrawal ? `<span class="explainable-val" data-col-key="netWithdrawal" data-row-age="${row.age}" tabindex="0">${currency.format(row.netWithdrawal)}</span>` : "—"}</td>
         <td data-col-group="cashflow">${inventoryTax !== "—" ? `<span class="explainable-val" data-col-key="lagerskat" data-row-age="${row.age}" tabindex="0">${inventoryTax}</span>` : "—"}</td>
         <td data-col-group="cashflow">${effectiveTax !== "—" ? `<span class="explainable-val" data-col-key="effectiveWithdrawalTaxRate" data-row-age="${row.age}" tabindex="0">${effectiveTax}</span>` : "—"}</td>
         <td data-col-group="cashflow">${source}</td>${comparisonCells}
@@ -3318,6 +3318,41 @@
       })
       .join("");
 
+    function toggleCrisisOnChartAndDropdown(idx) {
+      const selected = results[idx];
+      if (!selected) return;
+      if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
+        activeStressTestCrisis = null;
+        if (mcTableScenario === "crisis") {
+          mcTableScenario = "baseline";
+          if (tableCrisisSelect) tableCrisisSelect.value = "none";
+          syncMonteCarloButtons();
+          update();
+        }
+      } else {
+        activeStressTestCrisis = selected;
+        selectedTableCrisisIdx = idx;
+        mcTableScenario = "crisis";
+        if (tableCrisisSelect) tableCrisisSelect.value = String(idx);
+        syncMonteCarloButtons();
+        update();
+        setChartView("wealth");
+        if (chart) chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      renderStressTests(inputs, true);
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    }
+
+    grid.querySelectorAll(".stress-card[data-crisis-idx]").forEach((card) => {
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        const idx = Number(card.dataset.crisisIdx);
+        toggleCrisisOnChartAndDropdown(idx);
+      });
+    });
+
     grid.querySelectorAll("[data-stress-action]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -3327,17 +3362,7 @@
         if (!selected) return;
 
         if (action === "chart") {
-          if (activeStressTestCrisis && activeStressTestCrisis.name === selected.name) {
-            activeStressTestCrisis = null;
-          } else {
-            activeStressTestCrisis = selected;
-            setChartView("wealth");
-            if (chart) chart.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-          renderStressTests(inputs, true);
-          if (latestCalculation && latestInputs) {
-            renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
-          }
+          toggleCrisisOnChartAndDropdown(idx);
         } else if (action === "modal") {
           openDeepDiveDetailModal("crisis", idx);
         } else if (action === "table") {
@@ -3631,12 +3656,12 @@
       const crisis = latestStressResults[crisisIdx] || latestStressResults[0];
       if (!crisis || !crisis.calculation) return;
       scenCalc = crisis.calculation;
-      if (deepDiveDialogTitle) deepDiveDialogTitle.textContent = `Krise-test: ${crisis.name}`;
-      if (deepDiveDialogSubtitle) deepDiveDialogSubtitle.textContent = `${crisis.desc} · Sammenlignet år-for-år mod din basisplan.`;
+      if (deepDiveDialogHeading) deepDiveDialogHeading.textContent = `Krise-test: ${crisis.name}`;
+      if (deepDiveDialogSub) deepDiveDialogSub.textContent = `${crisis.desc} · Sammenlignet år-for-år mod din basisplan.`;
     } else {
       const label = activeTornadoPreset?.label || "Basisplan (Ingen aktive ændringer)";
-      if (deepDiveDialogTitle) deepDiveDialogTitle.textContent = `Sensitivitets-analyse: ${label}`;
-      if (deepDiveDialogSubtitle) deepDiveDialogSubtitle.textContent = "Detaljeret år-for-år sammenligning af det valgte sensitivitets-scenarie mod din oprindelige basisplan.";
+      if (deepDiveDialogHeading) deepDiveDialogHeading.textContent = `Sensitivitets-analyse: ${label}`;
+      if (deepDiveDialogSub) deepDiveDialogSub.textContent = "Detaljeret år-for-år sammenligning af det valgte sensitivitets-scenarie mod din oprindelige basisplan.";
     }
 
     const baseEnd = baseCalc.finalRow?.totalBalance ?? 0;
@@ -3656,29 +3681,40 @@
     }
 
     const baseByAge = new Map((baseCalc.planRows || []).map((r) => [r.age, r]));
+    const invShare = anchorInputs.freeFundsInventoryShare || 0;
     deepDiveModalTbody.innerHTML = (scenCalc.planRows || []).map((row) => {
       const bRow = baseByAge.get(row.age);
       const bBal = bRow ? bRow.totalBalance : row.totalBalance;
       const diff = row.totalBalance - bBal;
       const diffColor = diff > 0 ? "#166534" : diff < 0 ? "#b91c1c" : "inherit";
-      const retText = row.EffectiveReturnRate !== undefined ? percent.format(row.EffectiveReturnRate) : "—";
-      const totalPension = row.ratePension + row.lifeAnnuity + row.ageSavings;
-      return `<tr>
+      const retText = Number.isFinite(row.averageReturnRate) ? percent.format(row.averageReturnRate) : "—";
+      const inventoryTax = invShare > 0 && row.phase !== "Slut" ? currency.format(row.annualFreeFundsTax) : "—";
+      const effectiveTax = row.withdrawal ? percent.format(row.effectiveWithdrawalTaxRate) : "—";
+      let source = row.withdrawalSource || "—";
+      const extras = [];
+      if (row.publicPensionNet > 0) extras.push("folkepension");
+      if (row.atpGross > 0) extras.push("ATP");
+      if (row.efterloenGross > 0) extras.push("efterløn");
+      if (extras.length > 0) {
+        source = source === "—" ? extras.join(" & ") : `${source} (+ ${extras.join(", ")})`;
+      }
+      return `<tr data-phase="${row.phase}">
         <td>${ages.format(row.age)} år</td>
-        <td><span class="phase-pill ${phaseClass(row.phase)}">${row.phase}</span></td>
+        <td>${row.phase}</td>
         <td>${retText}</td>
         <td data-col-group="pension">${currency.format(row.ratePension)}</td>
-        <td data-col-group="pension">${currency.format(row.lifeAnnuity)}</td>
+        <td data-col-group="pension">${currency.format(row.lifeAnnuityDepotValue ?? row.lifeAnnuity ?? 0)}</td>
+        <td data-col-group="pension">${row.lifeAnnuityWithdrawal ? currency.format(row.lifeAnnuityWithdrawal) : "—"}</td>
         <td data-col-group="pension">${currency.format(row.ageSavings)}</td>
-        <td data-col-group="pension"><strong>${currency.format(totalPension)}</strong></td>
         <td data-col-group="free">${currency.format(row.freeFunds)}</td>
         <td data-col-group="free">${currency.format(row.ask)}</td>
-        <td><strong>${currency.format(row.totalBalance)}</strong></td>
-        <td data-col-group="cashflow">${currency.format(row.totalContribution)}</td>
-        <td data-col-group="cashflow">${currency.format(row.netSpendingNeed)}</td>
-        <td data-col-group="cashflow">${currency.format(row.publicPensionNet)}</td>
-        <td data-col-group="cashflow">${currency.format(row.privatePensionNet)}</td>
-        <td data-col-group="cashflow">${currency.format(row.freePhaseWithdrawalNet)}</td>
+        <td><strong>${currency.format(row.totalDepotValue ?? row.totalBalance)}</strong></td>
+        <td>${row.withdrawal ? currency.format(row.netWithdrawal) : "—"}</td>
+        <td data-col-group="cashflow">${row.contribution ? currency.format(row.contribution) : "—"}</td>
+        <td data-col-group="cashflow">${row.withdrawal ? currency.format(row.withdrawal) : "—"}</td>
+        <td data-col-group="cashflow">${inventoryTax}</td>
+        <td data-col-group="cashflow">${effectiveTax}</td>
+        <td data-col-group="cashflow">${source}</td>
         <td data-col-group="comparison">${currency.format(bBal)}</td>
         <td data-col-group="comparison"><strong>${currency.format(row.totalBalance)}</strong></td>
         <td data-col-group="comparison" style="color:${diffColor};font-weight:700;">${diff >= 0 ? "+" : ""}${currency.format(diff)}</td>
@@ -4268,8 +4304,9 @@
       housingColPill.hidden = !calculation.includeHousing;
     }
 
-    if (tableCrisisPickerWrap) {
-      tableCrisisPickerWrap.hidden = mcTableScenario !== "crisis";
+    if (tableCrisisSelect) {
+      tableCrisisSelect.value =
+        mcTableScenario === "crisis" ? String(selectedTableCrisisIdx) : "none";
     }
     const baseCalcForTable =
       mcTableScenario === "sensitivity" && baseTornadoInputs
@@ -4568,52 +4605,88 @@
   });
   if (tableCrisisSelect) {
     tableCrisisSelect.addEventListener("change", () => {
-      selectedTableCrisisIdx = Number(tableCrisisSelect.value) || 0;
+      const val = tableCrisisSelect.value;
+      if (val === "none") {
+        if (mcTableScenario === "crisis") mcTableScenario = "baseline";
+        activeStressTestCrisis = null;
+      } else {
+        selectedTableCrisisIdx = Number(val) || 0;
+        mcTableScenario = "crisis";
+        activeStressTestCrisis = latestStressResults[selectedTableCrisisIdx] || null;
+      }
+      syncMonteCarloButtons();
       update();
+      if (latestInputs) renderStressTests(latestInputs, true);
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
     });
   }
+
+  function setColGroupExpanded(wrap, pills, pillAttr, grp, expanded) {
+    if (!wrap || !grp) return;
+    wrap.setAttribute(`data-collapsed-${grp}`, expanded ? "false" : "true");
+    pills.forEach((p) => {
+      if (p.dataset[pillAttr] !== grp) return;
+      p.classList.toggle("is-expanded", expanded);
+      p.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+  }
+  function isColGroupExpanded(wrap, grp) {
+    return wrap?.getAttribute(`data-collapsed-${grp}`) !== "true";
+  }
+
   colGroupPills.forEach((pill) => {
     pill.addEventListener("click", () => {
       const grp = pill.dataset.toggleColGroup;
-      if (!grp || !mainProjectionTableWrap) return;
-      const isCurrentlyExpanded = pill.classList.contains("is-expanded");
-      const nextExpanded = !isCurrentlyExpanded;
-      pill.classList.toggle("is-expanded", nextExpanded);
-      pill.setAttribute("aria-pressed", nextExpanded ? "true" : "false");
-      mainProjectionTableWrap.setAttribute(
-        `data-collapsed-${grp}`,
-        nextExpanded ? "false" : "true",
+      setColGroupExpanded(
+        mainProjectionTableWrap, colGroupPills, "toggleColGroup", grp,
+        !isColGroupExpanded(mainProjectionTableWrap, grp),
+      );
+    });
+  });
+  document.querySelectorAll("[data-super-toggle]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const grp = th.dataset.superToggle;
+      setColGroupExpanded(
+        mainProjectionTableWrap, colGroupPills, "toggleColGroup", grp,
+        !isColGroupExpanded(mainProjectionTableWrap, grp),
       );
     });
   });
   if (colGroupToggleAllBtn && mainProjectionTableWrap) {
     colGroupToggleAllBtn.addEventListener("click", () => {
-      const anyCollapsed = Array.from(colGroupPills).some(
-        (p) => !p.hidden && !p.classList.contains("is-expanded"),
+      const groups = colGroupPills
+        .filter((p) => !p.hidden)
+        .map((p) => p.dataset.toggleColGroup);
+      const anyCollapsed = groups.some(
+        (g) => !isColGroupExpanded(mainProjectionTableWrap, g),
       );
-      colGroupPills.forEach((p) => {
-        const grp = p.dataset.toggleColGroup;
-        if (!grp) return;
-        p.classList.toggle("is-expanded", anyCollapsed);
-        p.setAttribute("aria-pressed", anyCollapsed ? "true" : "false");
-        mainProjectionTableWrap.setAttribute(
-          `data-collapsed-${grp}`,
-          anyCollapsed ? "false" : "true",
-        );
-      });
+      groups.forEach((g) =>
+        setColGroupExpanded(
+          mainProjectionTableWrap, colGroupPills, "toggleColGroup", g, anyCollapsed,
+        ),
+      );
+      colGroupToggleAllBtn.textContent = anyCollapsed
+        ? "Kompakt visning (Fold detaljer sammen)"
+        : "Fold alle grupper ud";
     });
   }
   modalColGroupPills.forEach((pill) => {
     pill.addEventListener("click", () => {
       const grp = pill.dataset.modalColGroup;
-      if (!grp || !deepDiveModalTableWrap) return;
-      const isCurrentlyExpanded = pill.classList.contains("is-expanded");
-      const nextExpanded = !isCurrentlyExpanded;
-      pill.classList.toggle("is-expanded", nextExpanded);
-      pill.setAttribute("aria-pressed", nextExpanded ? "true" : "false");
-      deepDiveModalTableWrap.setAttribute(
-        `data-collapsed-${grp}`,
-        nextExpanded ? "false" : "true",
+      setColGroupExpanded(
+        deepDiveModalTableWrap, modalColGroupPills, "modalColGroup", grp,
+        !isColGroupExpanded(deepDiveModalTableWrap, grp),
+      );
+    });
+  });
+  document.querySelectorAll("[data-modal-super-toggle]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const grp = th.dataset.modalSuperToggle;
+      setColGroupExpanded(
+        deepDiveModalTableWrap, modalColGroupPills, "modalColGroup", grp,
+        !isColGroupExpanded(deepDiveModalTableWrap, grp),
       );
     });
   });

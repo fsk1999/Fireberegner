@@ -4246,9 +4246,135 @@ th.housing-col {
   display: none !important;
 }
 
+/* Super-Header Row for Column Groups */
+.col-group-superheader th.super-th {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.col-group-superheader th.super-th-static {
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.col-group-superheader th.super-th-interactive {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.col-group-superheader th.super-th-pension {
+  background: #fefce8;
+  color: #854d0e;
+  border-bottom-color: #eab308;
+}
+
+.col-group-superheader th.super-th-free {
+  background: #f0f9ff;
+  color: #075985;
+  border-bottom-color: #0ea5e9;
+}
+
+.col-group-superheader th.super-th-housing {
+  background: #fff7ed;
+  color: #9a3412;
+  border-bottom-color: #f97316;
+}
+
+.col-group-superheader th.super-th-cashflow {
+  background: #f0fdf4;
+  color: #166534;
+  border-bottom-color: #22c55e;
+}
+
+.col-group-superheader th.super-th-comp {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-bottom-color: #8b5cf6;
+}
+
+.col-group-superheader th.super-th-interactive:hover {
+  filter: brightness(0.95);
+}
+
+.super-th-chevron {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+/* Inline Folkepension Optimizer inside Public Pension section */
+.optimizer-card-inline {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.optimizer-card-inline .optimizer-header {
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.optimizer-card-inline .optimizer-header-title h3 {
+  font-size: 14px;
+}
+
+.optimizer-card-inline .optimizer-metrics-row {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.optimizer-card-inline .optimizer-metric-box {
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.optimizer-card-inline .optimizer-metric-value {
+  font-size: 16px;
+}
+
+.optimizer-advice-disclosure {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.optimizer-advice-disclosure summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.optimizer-advice-disclosure .optimizer-advice-grid {
+  margin-top: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.optimizer-advice-disclosure .advice-card {
+  padding: 10px 12px;
+}
+
 /* Deep Dive Detail Modal */
 .deep-dive-detail-dialog {
-  width: min(1240px, 95vw);
+  width: min(1280px, 96vw);
+  max-width: 1280px;
   max-height: 90vh;
 }
 
@@ -4279,6 +4405,14 @@ th.housing-col {
   font-size: 15px;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+.deep-dive-kpi-val.is-pos {
+  color: #059669 !important;
+}
+
+.deep-dive-kpi-val.is-neg {
+  color: #dc2626 !important;
 }
 
 .deep-dive-kpi-card small {

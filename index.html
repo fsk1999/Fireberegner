@@ -994,6 +994,65 @@
                     <span class="input-suffix"><input name="efterloenYears" type="number" min="0" max="10" value="0" /><b>år</b></span>
                   </label>
                 </div>
+
+                <section id="folkepension-optimizer-card" class="optimizer-card optimizer-card-inline">
+                  <div class="optimizer-header">
+                    <div class="optimizer-badge">
+                      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
+                      <span>Folkepension &amp; Modregnings-Assistent</span>
+                    </div>
+                    <div class="optimizer-header-title">
+                      <h3>Optimer dine udbetalinger mod modregning i pensionstillæg</h3>
+                      <p>Når du modtager ratepension og livrente, modregnes der op til 30,9 % (enlig) eller 16 % (par) i dit pensionstillæg over bundgrænsen.</p>
+                    </div>
+                  </div>
+                  <div class="optimizer-body">
+                    <div class="optimizer-metrics-row">
+                      <div class="optimizer-metric-box">
+                        <span class="optimizer-metric-label">Samlet tabt folkepension</span>
+                        <strong id="optimizer-lost-total" class="optimizer-metric-value text-danger">0 kr.</strong>
+                        <small id="optimizer-lost-desc">Modregnet i pensionstillæg over hele perioden</small>
+                      </div>
+                      <div class="optimizer-metric-box">
+                        <span class="optimizer-metric-label">Gns. modregning pr. år</span>
+                        <strong id="optimizer-lost-annual" class="optimizer-metric-value">0 kr.</strong>
+                        <small>I dine år som folkepensionist</small>
+                      </div>
+                      <div class="optimizer-metric-box">
+                        <span class="optimizer-metric-label">Udbetalt folkepension</span>
+                        <strong id="optimizer-received-total" class="optimizer-metric-value text-success">0 kr.</strong>
+                        <small id="optimizer-received-desc">Samlet udbetalt til dig efter modregning</small>
+                      </div>
+                    </div>
+
+                    <details class="optimizer-advice-disclosure">
+                      <summary>💡 Se 3 konkrete råd til at undgå modregning</summary>
+                      <div class="optimizer-advice-grid">
+                        <div class="advice-card">
+                          <div class="advice-icon">💡</div>
+                          <div class="advice-content">
+                            <strong>1. Hæv ASK &amp; Aldersopsparing først</strong>
+                            <p>Udbetalinger fra <strong>Aktiesparekonto</strong> og <strong>Aldersopsparing</strong> tæller <strong>0 kr.</strong> i modregningen! Hæver du disse før din ratepension påbegyndes, bevarer du dit fulde pensionstillæg i de første pensionsår.</p>
+                          </div>
+                        </div>
+                        <div class="advice-card">
+                          <div class="advice-icon">⏳</div>
+                          <div class="advice-content">
+                            <strong>2. Stræk Ratepensionen over 15–20 år</strong>
+                            <p>En ratepension udbetalt over 20–25 år i stedet for 10 år holder den årlige skattepligtige udbetaling lavere, så mere af beløbet holdes under bundgrænsen (ca. 95.800 kr. for enlige / 191.900 kr. for par i 2026).</p>
+                          </div>
+                        </div>
+                        <div class="advice-card">
+                          <div class="advice-icon">📈</div>
+                          <div class="advice-content">
+                            <strong>3. Udnyt progressionsgrænsen på frie midler</strong>
+                            <p>Realiserede aktieavancer på frie midler under progressionsgrænsen (79.400 kr. enlig / 158.800 kr. par) modregnes ikke på samme måde som almindelig personlig pensionsindkomst.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                </section>
               </details>
 
               <details
@@ -1718,15 +1777,6 @@
                     <button
                       type="button"
                       class="mc-segment-btn"
-                      data-mc-table-scenario="crisis"
-                      aria-pressed="false"
-                    >
-                      <span class="mc-badge mc-badge-p10">Stress-test</span>
-                      <span id="mc-table-crisis-btn-label">Historisk Krise</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="mc-segment-btn"
                       data-mc-table-scenario="sensitivity"
                       id="mc-table-sensitivity-btn"
                       aria-pressed="false"
@@ -1735,13 +1785,14 @@
                       <span>Aktivt Scenarie</span>
                     </button>
                   </div>
-                  <div id="table-crisis-picker-wrap" class="table-crisis-picker-wrap" hidden>
-                    <label for="table-crisis-select">Vælg krise:</label>
+                  <div id="table-crisis-picker-wrap" class="table-crisis-picker-wrap">
+                    <label for="table-crisis-select">Historisk krise:</label>
                     <select id="table-crisis-select" class="table-crisis-select">
-                      <option value="0">1929 Wall Street Krakket</option>
-                      <option value="1">1973 Oliekrisen (Stagflation)</option>
-                      <option value="2">2000 Dot-Com Boblen</option>
-                      <option value="3">2008 Den Globale Finanskrise</option>
+                      <option value="none">Ingen krise (Basisscenarie)</option>
+                      <option value="0">⚡ 1929 Wall Street Krakket</option>
+                      <option value="1">⚡ 1973 Oliekrisen (Stagflation)</option>
+                      <option value="2">⚡ 2000 Dot-Com Boblen</option>
+                      <option value="3">⚡ 2008 Den Globale Finanskrise</option>
                     </select>
                   </div>
                   <label class="mc-table-compare-toggle">
@@ -1755,7 +1806,7 @@
                 </div>
 
                 <div class="col-group-toolbar" aria-label="Fold kolonnegrupper ud eller sammen">
-                  <span class="col-group-toolbar-label">Overgrupper (klik for at folde ud/sammen):</span>
+                  <span class="col-group-toolbar-label">Overgrupper (klik på knap eller tabel-toprække for at folde ud/sammen):</span>
                   <div class="col-group-pills">
                     <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="pension" aria-expanded="true">
                       <span class="col-group-chevron">▾</span>
@@ -1795,6 +1846,29 @@
               <div class="table-wrap" id="main-projection-table-wrap">
                 <table>
                   <thead>
+                    <tr class="col-group-superheader">
+                      <th colspan="4" class="super-th super-th-static">Basisinfo</th>
+                      <th colspan="4" class="super-th super-th-interactive super-th-pension" data-col-group="pension" data-super-toggle="pension" title="Klik for at folde Pension sammen">
+                        <span>🏛️ Pension</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                      <th colspan="2" class="super-th super-th-interactive super-th-free" data-col-group="free" data-super-toggle="free" title="Klik for at folde Frie midler sammen">
+                        <span>💼 Frie midler</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                      <th colspan="1" class="super-th super-th-static">Total</th>
+                      <th colspan="2" class="super-th super-th-interactive super-th-housing housing-col" data-col-group="housing" data-super-toggle="housing" title="Klik for at folde Bolig sammen" hidden>
+                        <span>🏠 Bolig &amp; Friværdi</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                      <th colspan="1" class="super-th super-th-static">Forbrug</th>
+                      <th colspan="5" class="super-th super-th-interactive super-th-cashflow" data-col-group="cashflow" data-super-toggle="cashflow" title="Klik for at folde Cashflow & Skat sammen">
+                        <span>💸 Cashflow &amp; Skat</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                      <th colspan="5" class="super-th super-th-interactive super-th-comp mc-comp-col" data-col-group="comparison" data-super-toggle="comparison" title="Klik for at folde Sammenligning sammen" hidden>
+                        <span>📊 Monte Carlo Sammenligning</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                      <th colspan="3" class="super-th super-th-interactive super-th-comp scen-comp-col" data-col-group="comparison" data-super-toggle="comparison" title="Klik for at folde Sammenligning sammen" hidden>
+                        <span>📊 Scenarie Sammenligning</span> <span class="super-th-chevron">▾</span>
+                      </th>
+                    </tr>
                     <tr>
                       <th>Dato</th>
                       <th>Alder</th>
@@ -1809,9 +1883,9 @@
                       <th>Samlet depotværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Friværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Samlet formue (inkl. bolig)</th>
+                      <th>Netto-udb.</th>
                       <th data-col-group="cashflow">Indbetaling</th>
                       <th data-col-group="cashflow">Brutto-udb.</th>
-                      <th>Netto-udb.</th>
                       <th data-col-group="cashflow">Lagerskat</th>
                       <th data-col-group="cashflow">Effektiv skat</th>
                       <th data-col-group="cashflow">Udb. fra</th>
@@ -1904,61 +1978,6 @@
                 </div>
               </div>
             </details>
-          </section>
-
-          <section id="folkepension-optimizer-card" class="optimizer-card">
-            <div class="optimizer-header">
-              <div class="optimizer-badge">
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
-                <span>Folkepension &amp; Modregnings-Assistent</span>
-              </div>
-              <div class="optimizer-header-title">
-                <h3>Optimer dine udbetalinger mod modregning i pensionstillæg</h3>
-                <p>Når du modtager ratepension og livrente, modregnes der op til 30,9 % (enlig) eller 16 % (par) i dit pensionstillæg over bundgrænsen. Se dit tab og konkrete råd til optimering.</p>
-              </div>
-            </div>
-            <div class="optimizer-body">
-              <div class="optimizer-metrics-row">
-                <div class="optimizer-metric-box">
-                  <span class="optimizer-metric-label">Samlet tabt folkepension</span>
-                  <strong id="optimizer-lost-total" class="optimizer-metric-value text-danger">0 kr.</strong>
-                  <small id="optimizer-lost-desc">Modregnet i pensionstillæg over hele perioden</small>
-                </div>
-                <div class="optimizer-metric-box">
-                  <span class="optimizer-metric-label">Gns. modregning pr. år</span>
-                  <strong id="optimizer-lost-annual" class="optimizer-metric-value">0 kr.</strong>
-                  <small>I dine år som folkepensionist</small>
-                </div>
-                <div class="optimizer-metric-box">
-                  <span class="optimizer-metric-label">Udbetalt folkepension</span>
-                  <strong id="optimizer-received-total" class="optimizer-metric-value text-success">0 kr.</strong>
-                  <small id="optimizer-received-desc">Samlet udbetalt til dig efter modregning</small>
-                </div>
-              </div>
-
-              <div class="optimizer-advice-grid">
-                <div class="advice-card">
-                  <div class="advice-icon">💡</div>
-                  <div class="advice-content">
-                    <strong>1. Hæv ASK &amp; Aldersopsparing først</strong>
-                    <p>Udbetalinger fra <strong>Aktiesparekonto</strong> og <strong>Aldersopsparing</strong> tæller <strong>0 kr.</strong> i modregningen! Hæver du disse før din ratepension påbegyndes, bevarer du dit fulde pensionstillæg i de første pensionsår.</p>
-                  </div>
-                </div>
-                <div class="advice-card">
-                  <div class="advice-icon">⏳</div>
-                  <div class="advice-content">
-                    <strong>2. Stræk Ratepensionen over 15–20 år</strong>
-                    <p>En ratepension udbetalt over 20–25 år i stedet for 10 år holder den årlige skattepligtige udbetaling lavere, så mere af beløbet holdes under bundgrænsen (ca. 95.800 kr. for enlige / 191.900 kr. for par i 2026).</p>
-                  </div>
-                </div>
-                <div class="advice-card">
-                  <div class="advice-icon">📈</div>
-                  <div class="advice-content">
-                    <strong>3. Udnyt progressionsgrænsen på frie midler</strong>
-                    <p>Realiserede aktieavancer på frie midler under progressionsgrænsen (79.400 kr. enlig / 158.800 kr. par) modregnes ikke på samme måde som almindelig personlig pensionsindkomst.</p>
-                  </div>
-                </div>
-              </div>
           </section>
 
           <section id="deep-dive-card" class="optimizer-card">
@@ -2486,6 +2505,23 @@
         <div class="table-wrap deep-dive-modal-table-wrap" id="deep-dive-modal-table-wrap">
           <table>
             <thead>
+              <tr class="col-group-superheader">
+                <th colspan="3" class="super-th super-th-static">Basisinfo</th>
+                <th colspan="4" class="super-th super-th-interactive super-th-pension" data-col-group="pension" data-modal-super-toggle="pension" title="Klik for at folde Pension sammen">
+                  <span>🏛️ Pension</span> <span class="super-th-chevron">▾</span>
+                </th>
+                <th colspan="2" class="super-th super-th-interactive super-th-free" data-col-group="free" data-modal-super-toggle="free" title="Klik for at folde Frie midler sammen">
+                  <span>💼 Frie midler</span> <span class="super-th-chevron">▾</span>
+                </th>
+                <th colspan="1" class="super-th super-th-static">Total</th>
+                <th colspan="1" class="super-th super-th-static">Forbrug</th>
+                <th colspan="5" class="super-th super-th-interactive super-th-cashflow" data-col-group="cashflow" data-modal-super-toggle="cashflow" title="Klik for at folde Cashflow &amp; Skat sammen">
+                  <span>💸 Cashflow &amp; Skat</span> <span class="super-th-chevron">▾</span>
+                </th>
+                <th colspan="3" class="super-th super-th-interactive super-th-comp" data-col-group="comparison" data-modal-super-toggle="comparison" title="Klik for at folde Sammenligning sammen">
+                  <span>📊 Sammenligning mod Basisplan</span> <span class="super-th-chevron">▾</span>
+                </th>
+              </tr>
               <tr>
                 <th>Alder</th>
                 <th>Fase</th>
@@ -2497,9 +2533,9 @@
                 <th data-col-group="free">Frie midler</th>
                 <th data-col-group="free">Aktiesparekonto</th>
                 <th>Samlet depotværdi</th>
+                <th>Netto-udb.</th>
                 <th data-col-group="cashflow">Indbetaling</th>
                 <th data-col-group="cashflow">Brutto-udb.</th>
-                <th>Netto-udb.</th>
                 <th data-col-group="cashflow">Lagerskat</th>
                 <th data-col-group="cashflow">Effektiv skat</th>
                 <th data-col-group="cashflow">Udb. fra</th>
@@ -2532,11 +2568,11 @@
       <p class="math-tooltip-hint">💡 Højreklik for fuld formel og forklaring</p>
     </div>
 
-    <script src="./life-annuity.js?v=20260905-2"></script>
-    <script src="./calculations.js?v=20260905-3"></script>
-    <script src="./monte-carlo.js"></script>
-    <script src="./math-explainer.js"></script>
-    <script src="./plan-code.js?v=20260905-1"></script>
-    <script src="./app.js?v=20260905-3"></script>
+    <script src="./life-annuity.js?v=20261024-4"></script>
+    <script src="./calculations.js?v=20261024-4"></script>
+    <script src="./monte-carlo.js?v=20261024-4"></script>
+    <script src="./math-explainer.js?v=20261024-4"></script>
+    <script src="./plan-code.js?v=20261024-4"></script>
+    <script src="./app.js?v=20261024-4"></script>
   </body>
 </html>
