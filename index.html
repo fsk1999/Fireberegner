@@ -1450,60 +1450,110 @@
             <h2 id="timeline-heading" class="visually-hidden">
               Dit økonomiske livsforløb
             </h2>
-            <div class="chart-view-selector" role="tablist" aria-label="Vælg grafvisning">
-              <button
-                type="button"
-                class="chart-view-tab is-active"
-                data-chart-view="wealth"
-                role="tab"
-                aria-selected="true"
-                aria-controls="wealth-chart-view"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 17V3m0 14h14M3 13l4-4 4 2 5-6" />
-                </svg>
-                <span>1. Formueudvikling</span>
-              </button>
-              <button
-                type="button"
-                class="chart-view-tab"
-                data-chart-view="cashflow"
-                role="tab"
-                aria-selected="false"
-                aria-controls="cashflow-chart-view"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 17h14M4 14V9m4 5V5m4 9v-6m4 6v-3" />
-                </svg>
-                <span>2. Årligt Cashflow &amp; Hævninger</span>
-              </button>
-              <button
-                type="button"
-                class="chart-view-tab"
-                data-chart-view="tax"
-                role="tab"
-                aria-selected="false"
-                aria-controls="tax-chart-view"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M10 2L3 6v2h14V6L10 2ZM4 10v6m4-6v6m4-6v6m4-6v6M2 18h16" />
-                </svg>
-                <span>3. Skat &amp; Afgifter</span>
-              </button>
-              <button
-                type="button"
-                class="chart-view-tab"
-                data-chart-view="solvency"
-                role="tab"
-                aria-selected="false"
-                aria-controls="solvency-chart-view"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="10" cy="10" r="7" />
-                  <path d="M10 6v4l2.5 2.5" />
-                </svg>
-                <span>4. Solvens over tid</span>
-              </button>
+            <!-- Cockpit Live KPI Strip: Dynamic metrics for hovered/current year -->
+            <div id="cockpit-kpi-strip" class="cockpit-kpi-strip" aria-label="Nøgletal for valgt år">
+              <div class="cockpit-kpi-item">
+                <span class="cockpit-kpi-label">Alder &amp; År</span>
+                <strong id="kpi-age" class="cockpit-kpi-val">—</strong>
+              </div>
+              <div class="cockpit-kpi-item">
+                <span class="cockpit-kpi-label">Samlet formue</span>
+                <strong id="kpi-wealth" class="cockpit-kpi-val">—</strong>
+              </div>
+              <div class="cockpit-kpi-item">
+                <span class="cockpit-kpi-label">Årligt netto</span>
+                <strong id="kpi-net-income" class="cockpit-kpi-val">—</strong>
+              </div>
+              <div class="cockpit-kpi-item">
+                <span class="cockpit-kpi-label">Effektiv skat</span>
+                <strong id="kpi-tax-rate" class="cockpit-kpi-val">—</strong>
+              </div>
+              <div class="cockpit-kpi-item">
+                <span class="cockpit-kpi-label">Likviditetsbuffer</span>
+                <strong id="kpi-buffer-years" class="cockpit-kpi-val">—</strong>
+              </div>
+              <div class="cockpit-kpi-item cockpit-kpi-phase">
+                <span class="cockpit-kpi-label">Fase</span>
+                <strong id="kpi-phase-badge" class="cockpit-kpi-val">—</strong>
+              </div>
+            </div>
+
+            <!-- Modulær Multi-Pane Vælger (åbn/luk delgrafer i samme vindue) -->
+            <div class="cockpit-toolbar">
+              <div class="cockpit-pane-chips" role="group" aria-label="Aktivér eller skjul delgrafer i overblikket">
+                <span class="cockpit-toolbar-label">Grafer i overblik:</span>
+                <button
+                  type="button"
+                  class="cockpit-chip is-active"
+                  data-pane="wealth"
+                  aria-pressed="true"
+                  title="Vis eller skjul formueudvikling"
+                >
+                  <span class="cockpit-chip-indicator" aria-hidden="true"></span>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M2 14V2m0 12h12M2 10l3.5-4 3 2 4.5-5" />
+                  </svg>
+                  <span>1. Formue</span>
+                </button>
+                <button
+                  type="button"
+                  class="cockpit-chip is-active"
+                  data-pane="cashflow"
+                  aria-pressed="true"
+                  title="Vis eller skjul årligt cashflow &amp; udbetalinger"
+                >
+                  <span class="cockpit-chip-indicator" aria-hidden="true"></span>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M2 14h12M3 11V7m3 4V4m3 7V6m3 5V9" />
+                  </svg>
+                  <span>2. Cashflow</span>
+                </button>
+                <button
+                  type="button"
+                  class="cockpit-chip"
+                  data-pane="tax"
+                  aria-pressed="false"
+                  title="Vis eller skjul skat &amp; afgifter"
+                >
+                  <span class="cockpit-chip-indicator" aria-hidden="true"></span>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M8 1L2 4v2h12V4L8 1ZM3 8v5m3-5v5m4-5v5m3-5v5M1 15h14" />
+                  </svg>
+                  <span>3. Skat</span>
+                </button>
+                <button
+                  type="button"
+                  class="cockpit-chip"
+                  data-pane="solvency"
+                  aria-pressed="false"
+                  title="Vis eller skjul likviditet &amp; solvens"
+                >
+                  <span class="cockpit-chip-indicator" aria-hidden="true"></span>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <circle cx="8" cy="8" r="6" />
+                    <path d="M8 5v3l2 2" />
+                  </svg>
+                  <span>4. Solvens</span>
+                </button>
+              </div>
+              <div class="cockpit-pane-actions">
+                <button
+                  type="button"
+                  id="cockpit-layout-reset-btn"
+                  class="cockpit-action-btn"
+                  title="Gendan standard overblik med Formue + Cashflow"
+                >
+                  Standard layout
+                </button>
+                <button
+                  type="button"
+                  id="cockpit-all-panes-btn"
+                  class="cockpit-action-btn"
+                  title="Åbn alle 4 grafer samtidigt i vinduet"
+                >
+                  Åbn alle 4
+                </button>
+              </div>
             </div>
             <div class="timeline-viewport">
               <div class="timeline-plot">
@@ -1578,6 +1628,11 @@
                             Logaritmisk
                           </button>
                         </div>
+                        <div class="pane-view-mode-selector" data-pane="wealth" role="group" aria-label="Visningsform for formue">
+                          <button type="button" class="pane-mode-btn is-active" data-pane="wealth" data-mode="area" title="Areal med bløde gradienter">Areal</button>
+                          <button type="button" class="pane-mode-btn" data-pane="wealth" data-mode="line" title="Rene kurvelinjer">Linjer</button>
+                        </div>
+                        <button type="button" class="pane-close-btn" data-close-pane="wealth" title="Luk formuegrafen">✕</button>
                       </div>
                     </div>
 
@@ -1818,11 +1873,19 @@
                   </div>
                   </div><!-- End #wealth-chart-view -->
 
-                  <div id="cashflow-chart-view" class="chart-view-pane" hidden>
+                  <div id="cashflow-chart-view" class="chart-view-pane">
                     <div class="chart-view-header">
                       <div class="chart-view-header-title">
                         <span class="mc-toolbar-kicker">Likviditetsstrømme år for år</span>
                         <strong>Hvor kommer pengene fra? (Opsparing vs. Udbetalinger fra depoter &amp; folkepension)</strong>
+                      </div>
+                      <div class="chart-view-header-actions">
+                        <div class="pane-view-mode-selector" data-pane="cashflow" role="group" aria-label="Visningsform for cashflow">
+                          <button type="button" class="pane-mode-btn is-active" data-pane="cashflow" data-mode="stream" title="Flod/Areal: Bløde harmoniske lag">Flod/Areal</button>
+                          <button type="button" class="pane-mode-btn" data-pane="cashflow" data-mode="bar" title="Søjler: Traditionelle stablede søjler">Søjler</button>
+                          <button type="button" class="pane-mode-btn" data-pane="cashflow" data-mode="line" title="Linjer: Rene kurver">Linjer</button>
+                        </div>
+                        <button type="button" class="pane-close-btn" data-close-pane="cashflow" title="Luk cashflow-grafen">✕</button>
                       </div>
                     </div>
                     <div id="cashflow-chart" class="wealth-chart"></div>
@@ -1848,6 +1911,14 @@
                       <div class="chart-view-header-title">
                         <span class="mc-toolbar-kicker">Skattebetalinger år for år</span>
                         <strong>Hvor mange penge afleveres til Skat? (PAL, Aktieavance, Lagerskat, Pensionsskat &amp; Modregning)</strong>
+                      </div>
+                      <div class="chart-view-header-actions">
+                        <div class="pane-view-mode-selector" data-pane="tax" role="group" aria-label="Visningsform for skat">
+                          <button type="button" class="pane-mode-btn is-active" data-pane="tax" data-mode="stream" title="Flod/Areal: Bløde harmoniske lag">Flod/Areal</button>
+                          <button type="button" class="pane-mode-btn" data-pane="tax" data-mode="bar" title="Søjler: Traditionelle stablede søjler">Søjler</button>
+                          <button type="button" class="pane-mode-btn" data-pane="tax" data-mode="line" title="Linjer: Rene kurver">Linjer</button>
+                        </div>
+                        <button type="button" class="pane-close-btn" data-close-pane="tax" title="Luk skattegrafen">✕</button>
                       </div>
                     </div>
                     <div id="tax-chart" class="wealth-chart"></div>
@@ -1875,6 +1946,11 @@
                           <svg viewBox="0 0 20 20" aria-hidden="true" style="width:14px;height:14px;"><path d="M3 17V3h14v14H3Zm4-4h2v2H7v-2Zm0-6h2v2H7V7Zm4 6h2v2h-2v-2Zm0-6h2v2h-2V7Z"/></svg>
                           <span>Kør Monte Carlo for frisk kurve</span>
                         </button>
+                        <div class="pane-view-mode-selector" data-pane="solvency" role="group" aria-label="Visningsform for solvens">
+                          <button type="button" class="pane-mode-btn is-active" data-pane="solvency" data-mode="area" title="Areal: Sikkerhedszoner">Areal</button>
+                          <button type="button" class="pane-mode-btn" data-pane="solvency" data-mode="line" title="Linje: Ren kurve">Linje</button>
+                        </div>
+                        <button type="button" class="pane-close-btn" data-close-pane="solvency" title="Luk solvensgrafen">✕</button>
                       </div>
                     </div>
                     <div id="solvency-chart" class="wealth-chart"></div>

@@ -36,6 +36,33 @@
   const solvencyChart = document.querySelector("#solvency-chart");
   const runSolvencyMcBtn = document.querySelector("#run-solvency-mc-btn");
   let currentChartView = "wealth";
+  const defaultActivePanes = ["wealth", "cashflow"];
+  let activeChartPanes = new Set(defaultActivePanes);
+  try {
+    const savedPanes = localStorage.getItem("fire_active_chart_panes");
+    if (savedPanes) {
+      const parsed = JSON.parse(savedPanes);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        activeChartPanes = new Set(parsed);
+      }
+    }
+  } catch (_e) {}
+
+  let chartPaneViewModes = {
+    wealth: "area",
+    cashflow: "stream",
+    tax: "stream",
+    solvency: "area",
+  };
+  try {
+    const savedModes = localStorage.getItem("fire_chart_pane_modes");
+    if (savedModes) {
+      chartPaneViewModes = { ...chartPaneViewModes, ...JSON.parse(savedModes) };
+    }
+  } catch (_e) {}
+
+  const chartHoverUpdaters = {};
+  const chartHoverClearers = {};
 
   const autoCalculateToggle = document.querySelector("#auto-calculate-toggle");
   const manualRecalculateBtn = document.querySelector("#manual-recalculate-btn");
@@ -1845,6 +1872,153 @@
     return `${forward} ${backward} Z`;
   }
 
+  function smoothPointsToCubic(pts) {
+    if (!pts || pts.length === 0) return "";
+    if (pts.length === 1) return `M ${pts[0].x},${pts[0].y}`;
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+      const cp1x = (Number(p1.x) + (Number(p2.x) - Number(p0.x)) * 0.18).toFixed(2);
+      const cp1y = (Number(p1.y) + (Number(p2.y) - Number(p0.y)) * 0.18).toFixed(2);
+      const cp2x = (Number(p2.x) - (Number(p3.x) - Number(p1.x)) * 0.18).toFixed(2);
+      const cp2y = (Number(p2.y) - (Number(p3.y) - Number(p1.y)) * 0.18).toFixed(2);
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  }
+
+  function smoothAreaBetweenPaths(upperPts, lowerPts) {
+    if (!upperPts || upperPts.length === 0 || !lowerPts || lowerPts.length === 0) return "";
+    const forwardD = smoothPointsToCubic(upperPts);
+    const reversedLower = [...lowerPts].reverse();
+    let backwardCubic = "";
+    for (let i = 0; i < reversedLower.length - 1; i++) {
+      const p0 = i > 0 ? reversedLower[i - 1] : reversedLower[i];
+      const p1 = reversedLower[i];
+      const p2 = reversedLower[i + 1];
+      const p3 = i + 2 < reversedLower.length ? reversedLower[i + 2] : p2;
+      const cp1x = (Number(p1.x) + (Number(p2.x) - Number(p0.x)) * 0.18).toFixed(2);
+      const cp1y = (Number(p1.y) + (Number(p2.y) - Number(p0.y)) * 0.18).toFixed(2);
+      const cp2x = (Number(p2.x) - (Number(p3.x) - Number(p1.x)) * 0.18).toFixed(2);
+      const cp2y = (Number(p2.y) - (Number(p3.y) - Number(p1.y)) * 0.18).toFixed(2);
+      backwardCubic += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return `${forwardD} L ${reversedLower[0].x},${reversedLower[0].y}${backwardCubic} Z`;
+  }
+
+  function smoothAreaPath(pts, baseline) {
+    if (!pts || pts.length === 0) return "";
+    const lineD = smoothPointsToCubic(pts);
+    return `${lineD} L ${pts[pts.length - 1].x},${baseline} L ${pts[0].x},${baseline} Z`;
+  }
+
+  function updateCockpitKpiStrip(calculation, inputs, targetAge) {
+    const kpiAge = document.querySelector("#kpi-age");
+    const kpiWealth = document.querySelector("#kpi-wealth");
+    const kpiNetIncome = document.querySelector("#kpi-net-income");
+    const kpiTaxRate = document.querySelector("#kpi-tax-rate");
+    const kpiBufferYears = document.querySelector("#kpi-buffer-years");
+    const kpiPhaseBadge = document.querySelector("#kpi-phase-badge");
+    if (!kpiAge || !calculation) return;
+
+    const rows = calculation.planRows;
+    if (!rows || rows.length === 0) return;
+
+    let targetRow = null;
+    if (targetAge !== undefined && targetAge !== null) {
+      targetRow = rows.find((r) => r.age === targetAge);
+    }
+    if (!targetRow) {
+      targetRow = calculation.fireRow || rows[0];
+    }
+    if (!targetRow) return;
+
+    const year = targetRow.date.getFullYear();
+    kpiAge.textContent = `${targetRow.age} år (${year})`;
+
+    const totalWealth = calculation.includeHousing
+      ? (targetRow.totalWealthWithHousing ?? targetRow.totalBalance)
+      : targetRow.totalBalance;
+    kpiWealth.textContent = `${currency.format(totalWealth)}`;
+
+    const isAccumulation = targetRow.phase === "Opsparing";
+    if (isAccumulation) {
+      const savings = Math.max(0, targetRow.contribution || 0);
+      kpiNetIncome.textContent = `+${currency.format(savings)} / år`;
+    } else {
+      const pensionTaxRate = inputs?.pensionWithdrawalTax ?? 0.38;
+      const free = Math.max(0, (targetRow.freeFundsWithdrawal || 0) - (targetRow.withdrawalTax || 0));
+      const ask = Math.max(0, targetRow.askWithdrawal || 0);
+      const ageSavings = Math.max(0, targetRow.ageSavingsWithdrawal || 0);
+      const rate = Math.max(0, (targetRow.taxFreeRatePensionWithdrawal || 0) + (targetRow.taxableRatePensionWithdrawal || 0) * (1 - pensionTaxRate));
+      const life = Math.max(0, (targetRow.lifeAnnuityWithdrawal || 0) * (1 - pensionTaxRate));
+      const pub = Math.max(0, targetRow.publicPensionNet || 0);
+      const atp = Math.max(0, ((targetRow.atpGross || 0) + (targetRow.efterloenGross || 0)) * (1 - pensionTaxRate));
+      const housing = Math.max(0, targetRow.housingUnlocked || 0);
+      const netTotal = free + ask + ageSavings + rate + life + pub + atp + housing;
+      kpiNetIncome.textContent = `${currency.format(netTotal)} / år`;
+    }
+
+    // Effective Tax
+    const palTax = Math.max(0, Math.round(((targetRow.ratePension || 0) + (targetRow.ageSavings || 0) + (targetRow.lifeAnnuityDepotValue || 0)) * (targetRow.pensionReturnRate ?? inputs?.pensionReturnRate ?? 0.05) * (inputs?.pensionTax ?? 0.153)));
+    const shareTax = Math.max(0, targetRow.withdrawalTax || 0);
+    const askTax = Math.max(0, targetRow.annualFreeFundsTax || 0);
+    const pensionTax = Math.max(0, (targetRow.pensionWithdrawalTax || 0) + Math.round(((targetRow.atpGross || 0) + (targetRow.efterloenGross || 0)) * (inputs?.pensionWithdrawalTax ?? 0.38)));
+    const totalTaxes = palTax + shareTax + askTax + pensionTax;
+    const grossIncomeOrGrowth = Math.max(1, (targetRow.grossWithdrawal || targetRow.desiredWithdrawal || inputs?.desiredAnnualWithdrawal || 1) + totalTaxes);
+    const effTaxRate = Math.min(100, Math.max(0, (totalTaxes / grossIncomeOrGrowth) * 100));
+    kpiTaxRate.textContent = `${effTaxRate.toFixed(1)} %`;
+
+    // Liquidity Buffer in Years
+    const liquidBuffer = (targetRow.cashReserve || targetRow.cashBuffer || 0) + (targetRow.freeFunds || 0) + (targetRow.ask || 0);
+    const annualNeed = Math.max(1, inputs?.desiredAnnualWithdrawal || targetRow.desiredWithdrawal || 1);
+    const bufferYears = liquidBuffer / annualNeed;
+    kpiBufferYears.textContent = `${bufferYears.toFixed(1)} år`;
+
+    // Phase Badge
+    const pensionStopAge = calculation.pensionStopRow?.age ?? inputs?.retirementAge ?? 69;
+    const fireAge = calculation.fireRow?.age ?? inputs?.retirementAge ?? 69;
+    let phaseName = targetRow.phase || "Opsparing";
+    if (targetRow.age < pensionStopAge) {
+      phaseName = "Opsparing";
+    } else if (targetRow.age < fireAge) {
+      phaseName = "Frie midler";
+    } else if (targetRow.age < (inputs?.publicPensionAge ?? 69)) {
+      phaseName = "FIRE Brofase";
+    } else {
+      phaseName = "Pension";
+    }
+    kpiPhaseBadge.textContent = phaseName;
+  }
+
+  function syncAllChartsToAge(targetAge, sourcePaneKey) {
+    activeChartPanes.forEach((paneKey) => {
+      const updater = chartHoverUpdaters[paneKey];
+      if (typeof updater === "function") {
+        updater(targetAge, paneKey === sourcePaneKey);
+      }
+    });
+    if (latestCalculation && latestInputs) {
+      updateCockpitKpiStrip(latestCalculation, latestInputs, targetAge);
+    }
+  }
+
+  function clearAllChartsHover() {
+    activeChartPanes.forEach((paneKey) => {
+      const clearer = chartHoverClearers[paneKey];
+      if (typeof clearer === "function") {
+        clearer();
+      }
+    });
+    if (latestCalculation && latestInputs) {
+      const defaultAge = latestCalculation.fireRow ? latestCalculation.fireRow.age : latestCalculation.planRows[0].age;
+      updateCockpitKpiStrip(latestCalculation, latestInputs, defaultAge);
+    }
+  }
+
   function setPhaseWidth(element, years, totalYears) {
     element.hidden = years <= 0;
     const percentage = years > 0 ? (years / totalYears) * 100 : 0;
@@ -2245,12 +2419,13 @@
           <path class="chart-line-mc-p10" d="${pointPath(mcP10Points)}" />
           <path class="chart-line-mc-p50" d="${pointPath(mcP50Points)}" />`
       : "";
-    const withoutAreaLayers = showWithoutOnChart
-      ? `
+    const withoutAreaLayers =
+      showWithoutOnChart && chartPaneViewModes.wealth !== "line"
+        ? `
           <path class="chart-area-pension" d="${areaPath(pensionPoints, plotBottom)}" />
           <path class="chart-area-free-funds" d="${areaPath(freeFundsPoints, plotBottom)}" />
           ${calculation.includeHousing ? `<path class="chart-area-housing" d="${areaPath(housingPoints, plotBottom)}" />` : ""}`
-      : "";
+        : "";
     const withoutLineLayers = showWithoutOnChart
       ? `
           <path class="chart-line-pension" d="${pointPath(pensionPoints)}" />
@@ -2320,7 +2495,7 @@
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
-    function showYear(index) {
+    function showYear(index, showTooltip = true) {
       activeIndex = Math.max(0, Math.min(rows.length - 1, index));
       const row = rows[activeIndex];
       const pensionPoint = pensionPoints[activeIndex];
@@ -2420,6 +2595,13 @@
         hoverCrisisPoint.setAttribute("cy", Number(activeCrisisPoints[activeIndex].y));
       }
 
+      if (!showTooltip) {
+        tooltip.style.display = "none";
+        hoverLayer.style.display = "block";
+        return;
+      }
+      tooltip.style.display = "block";
+
       tooltip.setAttribute("transform", `translate(${tooltipX} ${tooltipY})`);
 
       const currentPhase =
@@ -2459,6 +2641,15 @@
       hoverLayer.style.display = "block";
     }
 
+    // Register wealth chart in multi-chart hover coordinator
+    chartHoverUpdaters["wealth"] = (age, showTooltip) => {
+      const idx = rows.findIndex((r) => r.age === age);
+      if (idx !== -1) showYear(idx, showTooltip);
+    };
+    chartHoverClearers["wealth"] = () => {
+      if (hoverLayer) hoverLayer.style.display = "none";
+    };
+
     function showPointerYear(event) {
       const rect = svg.getBoundingClientRect();
       const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
@@ -2467,25 +2658,24 @@
         Math.min(1, (viewBoxX - margin.left) / plotWidth),
       );
       const targetAge = minAge + progress * (maxAge - minAge);
-      const nearestIndex = rows.reduce(
-        (bestIndex, row, index) =>
-          Math.abs(row.age - targetAge) <
-          Math.abs(rows[bestIndex].age - targetAge)
-            ? index
-            : bestIndex,
-        0,
+      const nearestRow = rows.reduce(
+        (bestRow, row) =>
+          Math.abs(row.age - targetAge) < Math.abs(bestRow.age - targetAge)
+            ? row
+            : bestRow,
+        rows[0],
       );
-      showYear(nearestIndex);
+      syncAllChartsToAge(nearestRow.age, "wealth");
     }
 
     hoverTarget.addEventListener("pointermove", showPointerYear);
     hoverTarget.addEventListener("pointerdown", showPointerYear);
     hoverTarget.addEventListener("pointerleave", () => {
-      hoverLayer.style.display = "none";
+      clearAllChartsHover();
     });
     hoverTarget.addEventListener("focus", () => showYear(activeIndex));
     hoverTarget.addEventListener("blur", () => {
-      hoverLayer.style.display = "none";
+      clearAllChartsHover();
     });
     hoverTarget.addEventListener("keydown", (event) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
@@ -2493,11 +2683,12 @@
       }
       event.preventDefault();
       if (event.key === "Home") {
-        showYear(0);
+        syncAllChartsToAge(rows[0].age, "wealth");
       } else if (event.key === "End") {
-        showYear(rows.length - 1);
+        syncAllChartsToAge(rows[rows.length - 1].age, "wealth");
       } else {
-        showYear(activeIndex + (event.key === "ArrowRight" ? 1 : -1));
+        const nextIdx = Math.max(0, Math.min(rows.length - 1, activeIndex + (event.key === "ArrowRight" ? 1 : -1)));
+        syncAllChartsToAge(rows[nextIdx].age, "wealth");
       }
     });
 
@@ -2578,6 +2769,27 @@
       };
     });
 
+    // Compute cumulative layer stacks for stream flow
+    data.forEach((d) => {
+      d.layerBottoms = {};
+      d.layerTops = {};
+      let cur = 0;
+      if (d.isAccumulation) {
+        d.savingsBottom = 0;
+        d.savingsTop = d.savings;
+        cur = d.savings;
+      } else {
+        d.savingsBottom = 0;
+        d.savingsTop = 0;
+      }
+      const streamKeys = ["free", "ask", "ageSavings", "rate", "life", "pub", "atp", "housing"];
+      streamKeys.forEach((key) => {
+        d.layerBottoms[key] = cur;
+        cur += d[key] || 0;
+        d.layerTops[key] = cur;
+      });
+    });
+
     const maxVal = Math.max(
       ...data.map((d) => Math.max(d.stackTotal, d.target)),
       100_000,
@@ -2616,40 +2828,86 @@
       })
       .join("");
 
-    // Bar rendering
-    const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
-    const barsSvg = data
-      .map((d) => {
-        const x = xForAge(d.age) - barWidth / 2;
-        if (d.isAccumulation) {
-          if (d.savings <= 0) return "";
-          const h = (d.savings / yMax) * plotHeight;
-          const y = plotBottom - h;
-          return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="#2563eb" rx="2.5" />`;
-        }
+    const mode = chartPaneViewModes.cashflow || "stream";
+    let chartVisualLayers = "";
 
-        const segments = [
-          { val: d.free, fill: "#10b981" },
-          { val: d.ask, fill: "#06b6d4" },
-          { val: d.ageSavings, fill: "#8b5cf6" },
-          { val: d.rate, fill: "#f59e0b" },
-          { val: d.life, fill: "#ec4899" },
-          { val: d.pub, fill: "#6366f1" },
-          { val: d.atp, fill: "#14b8a6" },
-          { val: d.housing, fill: "#84cc16" },
-        ];
+    const streamDefinitions = [
+      { key: "free", label: "Frie midler", fill: "url(#cf-grad-free)", stroke: "#10b981", color: "#10b981" },
+      { key: "ask", label: "ASK", fill: "url(#cf-grad-ask)", stroke: "#06b6d4", color: "#06b6d4" },
+      { key: "ageSavings", label: "Aldersopsparing", fill: "url(#cf-grad-age)", stroke: "#8b5cf6", color: "#8b5cf6" },
+      { key: "rate", label: "Ratepension", fill: "url(#cf-grad-rate)", stroke: "#f59e0b", color: "#f59e0b" },
+      { key: "life", label: "Livrente", fill: "url(#cf-grad-life)", stroke: "#ec4899", color: "#ec4899" },
+      { key: "pub", label: "Folkepension", fill: "url(#cf-grad-pub)", stroke: "#6366f1", color: "#6366f1" },
+      { key: "atp", label: "ATP & Efterløn", fill: "url(#cf-grad-atp)", stroke: "#14b8a6", color: "#14b8a6" },
+      { key: "housing", label: "Frigjort friværdi", fill: "url(#cf-grad-housing)", stroke: "#84cc16", color: "#84cc16" },
+    ];
 
-        let curY = plotBottom;
-        return segments
-          .map((seg) => {
-            if (seg.val <= 0) return "";
-            const h = (seg.val / yMax) * plotHeight;
-            curY -= h;
-            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
-          })
-          .join("");
-      })
-      .join("");
+    if (mode === "stream") {
+      // 1. Accumulation savings layer
+      const savUpper = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.savingsTop).toFixed(2) }));
+      const savLower = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: plotBottom.toFixed(2) }));
+      const savArea = smoothAreaBetweenPaths(savUpper, savLower);
+      const savLine = smoothPointsToCubic(savUpper);
+      let streamPaths = `
+        <path d="${savArea}" fill="url(#cf-grad-savings)" opacity="0.9" />
+        <path d="${savLine}" fill="none" stroke="#2563eb" stroke-width="1.8" />
+      `;
+
+      // 2. Drawdown stream layers
+      streamDefinitions.forEach((def) => {
+        const uPts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.layerTops[def.key]).toFixed(2) }));
+        const lPts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.layerBottoms[def.key]).toFixed(2) }));
+        const aPath = smoothAreaBetweenPaths(uPts, lPts);
+        const lPath = smoothPointsToCubic(uPts);
+        streamPaths += `
+          <path d="${aPath}" fill="${def.fill}" opacity="0.92" />
+          <path d="${lPath}" fill="none" stroke="${def.stroke}" stroke-width="1.5" stroke-opacity="0.8" />
+        `;
+      });
+      chartVisualLayers = streamPaths;
+    } else if (mode === "line") {
+      // Line mode: Pure cubic curves
+      const savPts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.savings).toFixed(2) }));
+      let linePaths = `<path d="${smoothPointsToCubic(savPts)}" fill="none" stroke="#2563eb" stroke-width="2.5" />`;
+      streamDefinitions.forEach((def) => {
+        const pts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d[def.key] || 0).toFixed(2) }));
+        linePaths += `<path d="${smoothPointsToCubic(pts)}" fill="none" stroke="${def.stroke}" stroke-width="2" />`;
+      });
+      chartVisualLayers = linePaths;
+    } else {
+      // Bar mode: Stacked rects
+      const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
+      chartVisualLayers = data
+        .map((d) => {
+          const x = xForAge(d.age) - barWidth / 2;
+          if (d.isAccumulation) {
+            if (d.savings <= 0) return "";
+            const h = (d.savings / yMax) * plotHeight;
+            const y = plotBottom - h;
+            return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="#2563eb" rx="2.5" />`;
+          }
+          const segments = [
+            { val: d.free, fill: "#10b981" },
+            { val: d.ask, fill: "#06b6d4" },
+            { val: d.ageSavings, fill: "#8b5cf6" },
+            { val: d.rate, fill: "#f59e0b" },
+            { val: d.life, fill: "#ec4899" },
+            { val: d.pub, fill: "#6366f1" },
+            { val: d.atp, fill: "#14b8a6" },
+            { val: d.housing, fill: "#84cc16" },
+          ];
+          let curY = plotBottom;
+          return segments
+            .map((seg) => {
+              if (seg.val <= 0) return "";
+              const h = (seg.val / yMax) * plotHeight;
+              curY -= h;
+              return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
+            })
+            .join("");
+        })
+        .join("");
+    }
 
     // Desired withdrawal target line
     const targetPoints = data
@@ -2660,8 +2918,15 @@
       }));
     const targetPath =
       targetPoints.length > 0
-        ? `M ${targetPoints.map((p) => `${p.x} ${p.y}`).join(" L ")}`
+        ? smoothPointsToCubic(targetPoints)
         : "";
+
+    const targetBadgeSvg = targetPoints.length > 0
+      ? `<g transform="translate(${width - margin.right - 110}, ${Number(targetPoints[targetPoints.length - 1].y) - 11})">
+          <rect width="105" height="20" rx="4" fill="#ef4444" fill-opacity="0.14" stroke="#ef4444" stroke-width="1" />
+          <text x="52" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#ef4444">Mål: ${compactNumber.format(inputs.desiredAnnualWithdrawal)} kr.</text>
+        </g>`
+      : "";
 
     cashflowChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Årligt cashflow og udbetalingskilder fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
@@ -2669,18 +2934,56 @@
           <clipPath id="cf-plot-clip">
             <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
           </clipPath>
+          <linearGradient id="cf-grad-savings" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.85" />
+            <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.45" />
+          </linearGradient>
+          <linearGradient id="cf-grad-free" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#059669" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-ask" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#0891b2" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-age" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-rate" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#d97706" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-life" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ec4899" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#db2777" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-pub" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-atp" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#0d9488" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-housing" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#84cc16" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#65a30d" stop-opacity="0.5" />
+          </linearGradient>
         </defs>
         <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
         <g clip-path="url(#cf-plot-clip)">
           ${gridLines}
-          ${barsSvg}
-          ${targetPath ? `<path d="${targetPath}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 3" fill="none" />` : ""}
+          ${chartVisualLayers}
+          ${targetPath ? `<path d="${targetPath}" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="5 4" fill="none" />` : ""}
+          ${targetBadgeSvg}
         </g>
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis cashflow for et bestemt år" />
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
+          <circle class="chart-hover-point-total" cx="0" cy="0" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="2" />
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
@@ -2689,16 +2992,29 @@
     const hoverTarget = svg.querySelector(".chart-hover-target");
     const hoverLayer = svg.querySelector(".chart-hover-layer");
     const hoverLine = svg.querySelector(".chart-hover-line");
+    const hoverPointTotal = svg.querySelector(".chart-hover-point-total");
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
-    function showCfYear(index) {
+    function showCfYear(index, showTooltip = true) {
       activeIndex = Math.max(0, Math.min(data.length - 1, index));
       const d = data[activeIndex];
       const x = xForAge(d.age);
+      const totalY = yForValue(d.stackTotal);
 
       hoverLine.setAttribute("x1", x);
       hoverLine.setAttribute("x2", x);
+      if (hoverPointTotal) {
+        hoverPointTotal.setAttribute("cx", x);
+        hoverPointTotal.setAttribute("cy", totalY);
+      }
+
+      if (!showTooltip) {
+        tooltip.style.display = "none";
+        hoverLayer.style.display = "block";
+        return;
+      }
+      tooltip.style.display = "block";
 
       const items = [];
       if (d.isAccumulation) {
@@ -2802,7 +3118,16 @@
       hoverLayer.style.display = "block";
     }
 
-    hoverTarget.addEventListener("mousemove", (event) => {
+    // Register cashflow chart in multi-chart hover coordinator
+    chartHoverUpdaters["cashflow"] = (age, showTooltip) => {
+      const idx = data.findIndex((d) => d.age === age);
+      if (idx !== -1) showCfYear(idx, showTooltip);
+    };
+    chartHoverClearers["cashflow"] = () => {
+      if (hoverLayer) hoverLayer.style.display = "none";
+    };
+
+    hoverTarget.addEventListener("pointermove", (event) => {
       const rect = svg.getBoundingClientRect();
       const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
       const progress = Math.max(
@@ -2810,23 +3135,23 @@
         Math.min(1, (viewBoxX - margin.left) / plotWidth),
       );
       const targetAge = minAge + progress * (maxAge - minAge);
-      const nearestIndex = data.reduce(
-        (bestIndex, d, index) =>
-          Math.abs(d.age - targetAge) <
-          Math.abs(data[bestIndex].age - targetAge)
-            ? index
-            : bestIndex,
-        0,
+      const nearestD = data.reduce(
+        (bestD, d) =>
+          Math.abs(d.age - targetAge) < Math.abs(bestD.age - targetAge)
+            ? d
+            : bestD,
+        data[0],
       );
-      showCfYear(nearestIndex);
+      syncAllChartsToAge(nearestD.age, "cashflow");
     });
-    hoverTarget.addEventListener("mouseleave", () => {
-      hoverLayer.style.display = "none";
+    hoverTarget.addEventListener("pointerleave", () => {
+      clearAllChartsHover();
     });
     hoverTarget.addEventListener("focus", () => showCfYear(activeIndex));
     hoverTarget.addEventListener("blur", () => {
-      hoverLayer.style.display = "none";
+      clearAllChartsHover();
     });
+
     showCfYear(0);
     hoverLayer.style.display = "none";
   }
@@ -2913,6 +3238,19 @@
       };
     });
 
+    // Compute cumulative layer stacks for tax stream
+    taxData.forEach((d) => {
+      d.layerBottoms = {};
+      d.layerTops = {};
+      let cur = 0;
+      const taxKeys = ["palTax", "shareTax", "askTax", "pensionTax", "offsetTax"];
+      taxKeys.forEach((key) => {
+        d.layerBottoms[key] = cur;
+        cur += d[key] || 0;
+        d.layerTops[key] = cur;
+      });
+    });
+
     const maxVal = Math.max(...taxData.map((d) => d.totalTax), 20_000);
     const magnitude = 10 ** Math.max(3, Math.floor(Math.log10(maxVal)));
     const yMax = Math.ceil(maxVal / magnitude) * magnitude;
@@ -2948,37 +3286,68 @@
       })
       .join("");
 
-    // Bar rendering
-    const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
-    const barsSvg = taxData
-      .map((d) => {
-        const x = xForAge(d.age) - barWidth / 2;
-        const segments = [
-          { val: d.palTax, fill: "#8b5cf6" },
-          { val: d.shareTax, fill: "#f59e0b" },
-          { val: d.askTax, fill: "#06b6d4" },
-          { val: d.pensionTax, fill: "#ef4444" },
-          { val: d.offsetTax, fill: "#ec4899" },
-        ];
+    const mode = chartPaneViewModes.tax || "stream";
+    let chartVisualLayers = "";
 
-        let curY = plotBottom;
-        return segments
-          .map((seg) => {
-            if (seg.val <= 0) return "";
-            const h = (seg.val / yMax) * plotHeight;
-            curY -= h;
-            return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
-          })
-          .join("");
-      })
-      .join("");
+    const taxDefinitions = [
+      { key: "palTax", label: "PAL-skat", fill: "url(#tax-grad-pal)", stroke: "#8b5cf6", color: "#8b5cf6" },
+      { key: "shareTax", label: "Aktieskat", fill: "url(#tax-grad-share)", stroke: "#f59e0b", color: "#f59e0b" },
+      { key: "askTax", label: "ASK skat", fill: "url(#tax-grad-ask)", stroke: "#06b6d4", color: "#06b6d4" },
+      { key: "pensionTax", label: "Pensionsskat", fill: "url(#tax-grad-pension)", stroke: "#ef4444", color: "#ef4444" },
+      { key: "offsetTax", label: "Modregning", fill: "url(#tax-grad-offset)", stroke: "#ec4899", color: "#ec4899" },
+    ];
+
+    if (mode === "stream") {
+      let streamPaths = "";
+      taxDefinitions.forEach((def) => {
+        const uPts = taxData.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.layerTops[def.key]).toFixed(2) }));
+        const lPts = taxData.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.layerBottoms[def.key]).toFixed(2) }));
+        const aPath = smoothAreaBetweenPaths(uPts, lPts);
+        const lPath = smoothPointsToCubic(uPts);
+        streamPaths += `
+          <path d="${aPath}" fill="${def.fill}" opacity="0.9" />
+          <path d="${lPath}" fill="none" stroke="${def.stroke}" stroke-width="1.5" stroke-opacity="0.8" />
+        `;
+      });
+      chartVisualLayers = streamPaths;
+    } else if (mode === "line") {
+      let linePaths = "";
+      taxDefinitions.forEach((def) => {
+        const pts = taxData.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d[def.key] || 0).toFixed(2) }));
+        linePaths += `<path d="${smoothPointsToCubic(pts)}" fill="none" stroke="${def.stroke}" stroke-width="2" />`;
+      });
+      chartVisualLayers = linePaths;
+    } else {
+      const barWidth = Math.max(4, Math.min(18, (plotWidth / rows.length) * 0.72));
+      chartVisualLayers = taxData
+        .map((d) => {
+          const x = xForAge(d.age) - barWidth / 2;
+          const segments = [
+            { val: d.palTax, fill: "#8b5cf6" },
+            { val: d.shareTax, fill: "#f59e0b" },
+            { val: d.askTax, fill: "#06b6d4" },
+            { val: d.pensionTax, fill: "#ef4444" },
+            { val: d.offsetTax, fill: "#ec4899" },
+          ];
+          let curY = plotBottom;
+          return segments
+            .map((seg) => {
+              if (seg.val <= 0) return "";
+              const h = (seg.val / yMax) * plotHeight;
+              curY -= h;
+              return `<rect x="${x}" y="${curY}" width="${barWidth}" height="${h}" fill="${seg.fill}" rx="2" />`;
+            })
+            .join("");
+        })
+        .join("");
+    }
 
     // Total tax line across years
     const totalLinePoints = taxData.map((d) => ({
       x: xForAge(d.age).toFixed(2),
       y: yForValue(d.totalTax).toFixed(2),
     }));
-    const totalLinePath = `M ${totalLinePoints.map((p) => `${p.x} ${p.y}`).join(" L ")}`;
+    const totalLinePath = smoothPointsToCubic(totalLinePoints);
 
     taxChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Skat og afgifter over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
@@ -2986,11 +3355,31 @@
           <clipPath id="tax-plot-clip">
             <rect x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
           </clipPath>
+          <linearGradient id="tax-grad-pal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="tax-grad-share" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#d97706" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="tax-grad-ask" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#0891b2" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="tax-grad-pension" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#dc2626" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="tax-grad-offset" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ec4899" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#c026d3" stop-opacity="0.5" />
+          </linearGradient>
         </defs>
         <rect class="chart-plot-surface" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" rx="10" />
         <g clip-path="url(#tax-plot-clip)">
           ${gridLines}
-          ${barsSvg}
+          ${chartVisualLayers}
           <path d="${totalLinePath}" stroke="#1e293b" stroke-width="2.5" fill="none" />
         </g>
         ${yAxisLabels}
@@ -3011,7 +3400,7 @@
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
-    function showTaxYear(index) {
+    function showTaxYear(index, showTooltip = true) {
       activeIndex = Math.max(0, Math.min(taxData.length - 1, index));
       const d = taxData[activeIndex];
       const x = xForAge(d.age);
@@ -3021,6 +3410,13 @@
       hoverLine.setAttribute("x2", x);
       hoverPointTotal.setAttribute("cx", x);
       hoverPointTotal.setAttribute("cy", totalY);
+
+      if (!showTooltip) {
+        tooltip.style.display = "none";
+        hoverLayer.style.display = "block";
+        return;
+      }
+      tooltip.style.display = "block";
 
       const items = [];
       if (d.palTax > 0)
@@ -3091,7 +3487,16 @@
       hoverLayer.style.display = "block";
     }
 
-    hoverTarget.addEventListener("mousemove", (event) => {
+    // Register tax chart in multi-chart hover coordinator
+    chartHoverUpdaters["tax"] = (age, showTooltip) => {
+      const idx = taxData.findIndex((d) => d.age === age);
+      if (idx !== -1) showTaxYear(idx, showTooltip);
+    };
+    chartHoverClearers["tax"] = () => {
+      if (hoverLayer) hoverLayer.style.display = "none";
+    };
+
+    hoverTarget.addEventListener("pointermove", (event) => {
       const rect = svg.getBoundingClientRect();
       const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
       const progress = Math.max(
@@ -3099,23 +3504,23 @@
         Math.min(1, (viewBoxX - margin.left) / plotWidth),
       );
       const targetAge = minAge + progress * (maxAge - minAge);
-      const nearestIndex = taxData.reduce(
-        (bestIndex, d, index) =>
-          Math.abs(d.age - targetAge) <
-          Math.abs(taxData[bestIndex].age - targetAge)
-            ? index
-            : bestIndex,
-        0,
+      const nearestD = taxData.reduce(
+        (bestD, d) =>
+          Math.abs(d.age - targetAge) < Math.abs(bestD.age - targetAge)
+            ? d
+            : bestD,
+        taxData[0],
       );
-      showTaxYear(nearestIndex);
+      syncAllChartsToAge(nearestD.age, "tax");
     });
-    hoverTarget.addEventListener("mouseleave", () => {
-      hoverLayer.style.display = "none";
+    hoverTarget.addEventListener("pointerleave", () => {
+      clearAllChartsHover();
     });
     hoverTarget.addEventListener("focus", () => showTaxYear(activeIndex));
     hoverTarget.addEventListener("blur", () => {
-      hoverLayer.style.display = "none";
+      clearAllChartsHover();
     });
+
     showTaxYear(0);
     hoverLayer.style.display = "none";
   }
@@ -3206,13 +3611,9 @@
       x: xForAge(b.age).toFixed(2),
       y: yForRate(b.solvencyRate).toFixed(2),
     }));
-    const linePath = `M ${points.map((p) => `${p.x} ${p.y}`).join(" L ")}`;
-    const areaPoints = [
-      { x: margin.left, y: plotBottom },
-      ...points,
-      { x: points[points.length - 1].x, y: plotBottom },
-    ];
-    const areaPath = `M ${areaPoints.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`;
+    const linePath = smoothPointsToCubic(points);
+    const isAreaMode = (chartPaneViewModes.solvency || "area") !== "line";
+    const areaSvg = isAreaMode ? `<path d="${smoothAreaPath(points, plotBottom)}" fill="url(#solvency-grad)" />` : "";
 
     solvencyChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Solvens-sandsynlighed over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
@@ -3229,7 +3630,7 @@
         <g clip-path="url(#solvency-plot-clip)">
           ${zonesSvg}
           ${gridLines}
-          <path d="${areaPath}" fill="url(#solvency-grad)" />
+          ${areaSvg}
           <path d="${linePath}" stroke="#6366f1" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </g>
         ${yAxisLabels}
@@ -3250,7 +3651,7 @@
     const tooltip = svg.querySelector(".chart-tooltip");
     let activeIndex = 0;
 
-    function showSolvencyYear(index) {
+    function showSolvencyYear(index, showTooltip = true) {
       activeIndex = Math.max(0, Math.min(bands.length - 1, index));
       const b = bands[activeIndex];
       const x = xForAge(b.age);
@@ -3260,6 +3661,13 @@
       hoverLine.setAttribute("x2", x);
       hoverPoint.setAttribute("cx", x);
       hoverPoint.setAttribute("cy", y);
+
+      if (!showTooltip) {
+        tooltip.style.display = "none";
+        hoverLayer.style.display = "block";
+        return;
+      }
+      tooltip.style.display = "block";
 
       let statusColor = "#10b981";
       let statusText = "Meget sikker (≥ 90 %)";
@@ -3326,7 +3734,16 @@
       hoverLayer.style.display = "block";
     }
 
-    hoverTarget.addEventListener("mousemove", (event) => {
+    // Register solvency chart in multi-chart hover coordinator
+    chartHoverUpdaters["solvency"] = (age, showTooltip) => {
+      const idx = bands.findIndex((b) => b.age === age);
+      if (idx !== -1) showSolvencyYear(idx, showTooltip);
+    };
+    chartHoverClearers["solvency"] = () => {
+      if (hoverLayer) hoverLayer.style.display = "none";
+    };
+
+    hoverTarget.addEventListener("pointermove", (event) => {
       const rect = svg.getBoundingClientRect();
       const viewBoxX = ((event.clientX - rect.left) / rect.width) * width;
       const progress = Math.max(
@@ -3334,23 +3751,23 @@
         Math.min(1, (viewBoxX - margin.left) / plotWidth),
       );
       const targetAge = minAge + progress * (maxAge - minAge);
-      const nearestIndex = bands.reduce(
-        (bestIndex, b, index) =>
-          Math.abs(b.age - targetAge) <
-          Math.abs(bands[bestIndex].age - targetAge)
-            ? index
-            : bestIndex,
-        0,
+      const nearestB = bands.reduce(
+        (bestB, b) =>
+          Math.abs(b.age - targetAge) < Math.abs(bestB.age - targetAge)
+            ? b
+            : bestB,
+        bands[0],
       );
-      showSolvencyYear(nearestIndex);
+      syncAllChartsToAge(nearestB.age, "solvency");
     });
-    hoverTarget.addEventListener("mouseleave", () => {
-      hoverLayer.style.display = "none";
+    hoverTarget.addEventListener("pointerleave", () => {
+      clearAllChartsHover();
     });
     hoverTarget.addEventListener("focus", () => showSolvencyYear(activeIndex));
     hoverTarget.addEventListener("blur", () => {
-      hoverLayer.style.display = "none";
+      clearAllChartsHover();
     });
+
     showSolvencyYear(0);
     hoverLayer.style.display = "none";
   }
@@ -4275,21 +4692,56 @@
   function renderActiveChart(calculation, inputs, mc) {
     if (!calculation || !inputs) return;
     const activeMc = mc || latestMonteCarlo;
-    switch (currentChartView) {
-      case "cashflow":
-        renderCashflowChart(calculation, inputs);
-        break;
-      case "tax":
-        renderTaxChart(calculation, inputs);
-        break;
-      case "solvency":
-        renderSolvencyChart(calculation, inputs, activeMc);
-        break;
-      case "wealth":
-      default:
-        renderChart(calculation, inputs, activeMc);
-        break;
-    }
+
+    // Synchronize pane visibility in the DOM with activeChartPanes
+    Object.entries(chartViewPanes).forEach(([name, pane]) => {
+      if (pane) {
+        if (activeChartPanes.has(name)) {
+          pane.removeAttribute("hidden");
+        } else {
+          pane.setAttribute("hidden", "");
+        }
+      }
+    });
+
+    // Synchronize cockpit chip buttons
+    const chips = document.querySelectorAll(".cockpit-chip[data-pane]");
+    chips.forEach((chip) => {
+      const pane = chip.dataset.pane;
+      const isActive = activeChartPanes.has(pane);
+      chip.classList.toggle("is-active", isActive);
+      chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    // Synchronize pane view mode buttons
+    document.querySelectorAll(".pane-mode-btn").forEach((btn) => {
+      const pane = btn.dataset.pane;
+      const mode = btn.dataset.mode;
+      const isActive = chartPaneViewModes[pane] === mode;
+      btn.classList.toggle("is-active", isActive);
+    });
+
+    // Render all active chart panes
+    activeChartPanes.forEach((pane) => {
+      switch (pane) {
+        case "wealth":
+          renderChart(calculation, inputs, activeMc);
+          break;
+        case "cashflow":
+          renderCashflowChart(calculation, inputs);
+          break;
+        case "tax":
+          renderTaxChart(calculation, inputs);
+          break;
+        case "solvency":
+          renderSolvencyChart(calculation, inputs, activeMc);
+          break;
+      }
+    });
+
+    // Update Live KPI Strip for default FIRE age
+    const defaultAge = calculation.fireRow ? calculation.fireRow.age : calculation.planRows[0].age;
+    updateCockpitKpiStrip(calculation, inputs, defaultAge);
   }
 
   function render(calculation, inputs) {
@@ -5198,19 +5650,16 @@
   });
   function setChartView(viewName) {
     currentChartView = viewName;
+    if (!activeChartPanes.has(viewName)) {
+      activeChartPanes.add(viewName);
+      try {
+        localStorage.setItem("fire_active_chart_panes", JSON.stringify([...activeChartPanes]));
+      } catch (_e) {}
+    }
     chartViewTabs.forEach((tab) => {
       const isActive = tab.dataset.chartView === viewName;
       tab.classList.toggle("is-active", isActive);
       tab.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
-    Object.entries(chartViewPanes).forEach(([name, pane]) => {
-      if (pane) {
-        if (name === viewName) {
-          pane.removeAttribute("hidden");
-        } else {
-          pane.setAttribute("hidden", "");
-        }
-      }
     });
     if (latestCalculation && latestInputs) {
       renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
@@ -5221,6 +5670,87 @@
       setChartView(tab.dataset.chartView || "wealth");
     });
   });
+
+  // Cockpit multi-pane toggle chips
+  document.querySelectorAll(".cockpit-chip[data-pane]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const pane = chip.dataset.pane;
+      if (!pane) return;
+      if (activeChartPanes.has(pane)) {
+        if (activeChartPanes.size <= 1) return; // Keep at least one pane visible
+        activeChartPanes.delete(pane);
+      } else {
+        activeChartPanes.add(pane);
+      }
+      try {
+        localStorage.setItem("fire_active_chart_panes", JSON.stringify([...activeChartPanes]));
+      } catch (_e) {}
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  });
+
+  // Cockpit Reset layout (Wealth + Cashflow)
+  const resetLayoutBtn = document.querySelector("#cockpit-layout-reset-btn");
+  if (resetLayoutBtn) {
+    resetLayoutBtn.addEventListener("click", () => {
+      activeChartPanes = new Set(["wealth", "cashflow"]);
+      try {
+        localStorage.setItem("fire_active_chart_panes", JSON.stringify([...activeChartPanes]));
+      } catch (_e) {}
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  }
+
+  // Cockpit Open All 4 Panes
+  const allPanesBtn = document.querySelector("#cockpit-all-panes-btn");
+  if (allPanesBtn) {
+    allPanesBtn.addEventListener("click", () => {
+      activeChartPanes = new Set(["wealth", "cashflow", "tax", "solvency"]);
+      try {
+        localStorage.setItem("fire_active_chart_panes", JSON.stringify([...activeChartPanes]));
+      } catch (_e) {}
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  }
+
+  // Pane close buttons
+  document.querySelectorAll(".pane-close-btn[data-close-pane]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const pane = btn.dataset.closePane;
+      if (!pane || activeChartPanes.size <= 1) return;
+      activeChartPanes.delete(pane);
+      try {
+        localStorage.setItem("fire_active_chart_panes", JSON.stringify([...activeChartPanes]));
+      } catch (_e) {}
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  });
+
+  // Pane view mode switcher buttons
+  document.querySelectorAll(".pane-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const pane = btn.dataset.pane;
+      const mode = btn.dataset.mode;
+      if (!pane || !mode) return;
+      chartPaneViewModes[pane] = mode;
+      try {
+        localStorage.setItem("fire_chart_pane_modes", JSON.stringify(chartPaneViewModes));
+      } catch (_e) {}
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+    });
+  });
+
   if (runSolvencyMcBtn) {
     runSolvencyMcBtn.addEventListener("click", runMonteCarloSimulation);
   }
