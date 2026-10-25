@@ -566,7 +566,37 @@
 
       case "freeFunds": {
         const end = row.freeFunds;
+        const cashBal = row.cash ?? 0;
+        const totalLiquid = end + cashBal;
+        const cashShare = row.cashShare ?? (totalLiquid > 0 ? cashBal / totalLiquid : 0);
+        const cashSharePct = (cashShare * 100).toFixed(1).replace(/\.0$/, "");
+        const stockSharePct = ((1 - cashShare) * 100).toFixed(1).replace(/\.0$/, "");
+        const hasCashAllocation = cashBal > 0 || cashShare > 0.0001;
+
         if (!prevRow) {
+          if (hasCashAllocation) {
+            return {
+              title: `Frie midler (Aktiedepot) (${yearDate} · ${age} år)`,
+              badge: "Investeret aktiedel",
+              quickMath: `Aktiedepot: ${currency.format(end)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)})`,
+              description: `Dine investerede frie midler på aktiedepotet ved planens start. Ud af dine samlede frie midler på ${currency.format(totalLiquid)} er ${stockSharePct} % (${currency.format(end)}) investeret i aktier for at opnå investeringsafkast, mens de resterende ${cashSharePct} % (${currency.format(cashBal)}) er allokeret til en sikker kontantreserve i banken (se kolonnen 'Kontantreserve'). Tilsammen giver de to beløb præcis dine indtastede frie midler på ${currency.format(totalLiquid)}.`,
+              formula: `Aktiedepot = Samlede frie midler − Kontantreserve i banken\n= ${currency.format(totalLiquid)} − ${currency.format(cashBal)} (${cashSharePct} %) = ${currency.format(end)} (${stockSharePct} %)`,
+              formulaDetails: `Dine indtastede frie midler (${currency.format(totalLiquid)}) opdeles automatisk i en investeret aktiedel (${currency.format(end)}) og en likvid kontantreserve i banken (${currency.format(cashBal)}).`,
+              steps: [
+                { label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) },
+                { label: `Fratrukket kontantreserve i banken (${cashSharePct} %)`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Kontantreserve' som likviditetsbuffer" },
+                { label: `Investeret i aktiedepot (${stockSharePct} %)`, value: `= ${currency.format(end)}`, isResult: true }
+              ],
+              assumptions: [
+                { label: "Indtastede frie midler", value: currency.format(totalLiquid) },
+                { label: "Kontantreserve i banken (start)", value: `${currency.format(cashBal)} (${cashSharePct} %)` },
+                { label: "Investeret i aktier (start)", value: `${currency.format(end)} (${stockSharePct} %)` },
+                { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
+                { label: "Aktieskattesatser", value: "27 % / 42 %" }
+              ]
+            };
+          }
+
           return {
             title: `Frie midler (${yearDate} · ${age} år)`,
             badge: "Likvid formue",
@@ -655,6 +685,7 @@
           returnExampleNote: "Regneeksemplet viser forrentningen af startformue og indbetaling samt beskatningsprincippet.",
           steps,
           assumptions: [
+            ...(row.cash > 0 ? [{ label: "Samlet fri formue (aktier + bank)", value: `${currency.format(end + row.cash)} (heraf ${currency.format(row.cash)} kontant)` }] : []),
             { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
             { label: "Aktieskattesatser", value: "27 % / 42 %" },
             { label: "Status for par", value: inputs.isCouple ? "Gift/Samlevende (Dobbelt bundgrænse)" : "Enlig" }

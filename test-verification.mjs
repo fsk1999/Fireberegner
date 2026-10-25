@@ -491,6 +491,18 @@ const expCashMilestone = FireMathExplainer.explainKeyMetric({
   inputs: test250kInputs10,
 });
 console.assert(expCashMilestone !== null, "Math explainer must explain cash-glide-milestone");
+
+const expInitialFreeFunds = FireMathExplainer.explainTableCell({
+  colKey: "freeFunds",
+  row: row0_5,
+  prevRow: null,
+  calculation: calc250k5,
+  inputs: test250kInputs5,
+});
+console.assert(expInitialFreeFunds !== null, "Math explainer must explain initial free funds cell");
+console.assert(expInitialFreeFunds.quickMath.includes("237.500"), "QuickMath must show 237.500 kr. stock depot");
+console.assert(expInitialFreeFunds.steps.some((s) => s.label.includes("Fratrukket kontantreserve") && s.value.includes("12.500")), "Steps must show 12.500 kr. deducted for cash reserve");
+console.assert(expInitialFreeFunds.steps.some((s) => s.label.includes("Indtastede samlede frie midler") && s.value.includes("250.000")), "Steps must show 250.000 kr. total free funds");
 console.log("✓ Cash reserve explanations and exact sync calculations verified.");
 
 console.log("\n==================================");
