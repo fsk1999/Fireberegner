@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem("fire-theme-preference") || "auto";
+          var m = document.querySelector('meta[name="color-scheme"]');
+          if (t === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+            if (m) m.content = "dark";
+          } else if (t === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+            if (m) m.content = "light";
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+            if (m) m.content = "light dark";
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta
       name="description"
       content="Beregn din FIRE-alder og følg din opsparing og nedsparing år for år."
@@ -36,6 +55,52 @@
               aria-live="polite"
               hidden
             ></p>
+            <div class="theme-switcher" role="radiogroup" aria-label="Visuelt farvetema">
+              <button
+                type="button"
+                id="theme-btn-light"
+                class="theme-btn"
+                role="radio"
+                aria-checked="false"
+                data-theme-val="light"
+                title="Lyst tema"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <circle cx="8" cy="8" r="3.2" />
+                  <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
+                </svg>
+                <span>Lys</span>
+              </button>
+              <button
+                type="button"
+                id="theme-btn-dark"
+                class="theme-btn"
+                role="radio"
+                aria-checked="false"
+                data-theme-val="dark"
+                title="Mørkt tema"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M13.5 9.8A6 6 0 1 1 6.2 2.5a4.8 4.8 0 0 0 7.3 7.3z" />
+                </svg>
+                <span>Mørk</span>
+              </button>
+              <button
+                type="button"
+                id="theme-btn-auto"
+                class="theme-btn is-active"
+                role="radio"
+                aria-checked="true"
+                data-theme-val="auto"
+                title="Auto (følger Windows / systemstandard)"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="8" rx="1.5" />
+                  <path d="M5 14h6M8 11v3" />
+                </svg>
+                <span>Auto</span>
+              </button>
+            </div>
             <div class="plan-code-toolbar-actions">
               <button
                 id="save-plan-code"

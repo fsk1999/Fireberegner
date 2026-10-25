@@ -5969,6 +5969,82 @@
   renderHousingState();
   syncCashBalanceFromShare();
 
+  function initThemeSwitcher() {
+    const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+    const themeButtons = document.querySelectorAll(".theme-switcher .theme-btn");
+    const systemDarkQuery = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+    function getStoredTheme() {
+      try {
+        return localStorage.getItem("fire-theme-preference") || "auto";
+      } catch {
+        return "auto";
+      }
+    }
+
+    function applyTheme(theme, save = true) {
+      if (save) {
+        try {
+          if (theme === "auto") {
+            localStorage.removeItem("fire-theme-preference");
+          } else {
+            localStorage.setItem("fire-theme-preference", theme);
+          }
+        } catch (e) {
+          console.warn("Could not save theme preference:", e);
+        }
+      }
+
+      if (theme === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+        if (metaColorScheme) metaColorScheme.content = "dark";
+      } else if (theme === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+        if (metaColorScheme) metaColorScheme.content = "light";
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        if (metaColorScheme) metaColorScheme.content = "light dark";
+      }
+
+      themeButtons.forEach((btn) => {
+        const val = btn.getAttribute("data-theme-val");
+        const isActive = val === theme;
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-checked", isActive ? "true" : "false");
+        if (val === "auto" && systemDarkQuery) {
+          const currentSys = systemDarkQuery.matches ? "mørk" : "lys";
+          btn.setAttribute("title", `Auto (følger Windows / systemstandard – aktuelt ${currentSys})`);
+        }
+      });
+    }
+
+    themeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const selected = btn.getAttribute("data-theme-val");
+        if (selected) {
+          applyTheme(selected, true);
+        }
+      });
+    });
+
+    if (systemDarkQuery) {
+      systemDarkQuery.addEventListener("change", () => {
+        if (getStoredTheme() === "auto") {
+          applyTheme("auto", false);
+        }
+      });
+    }
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === "fire-theme-preference") {
+        applyTheme(e.newValue || "auto", false);
+      }
+    });
+
+    applyTheme(getStoredTheme(), false);
+  }
+
   updateCalcModeUi();
+  initThemeSwitcher();
   update();
 })();
