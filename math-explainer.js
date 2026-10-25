@@ -1249,19 +1249,137 @@
       }
 
       case "effectiveWithdrawalTaxRate": {
-        const rate = row.effectiveWithdrawalTaxRate ?? 0;
+        const gross = row.withdrawal ?? 0;
+        const freeWithdrawal = row.freeFundsWithdrawal ?? 0;
+        const cashWithdrawal = row.cashWithdrawal ?? 0;
+        const freeGain = row.realizedFreeFundsGain ?? 0;
+        const freeCostBasis = Math.max(0, freeWithdrawal - freeGain);
+        const freeTax = row.withdrawalTax ?? 0;
+
+        const isCouple = inputs.isCouple ?? false;
+        const shareThreshold = isCouple ? 158800 : 79400;
+        const gain27 = Math.min(freeGain, shareThreshold);
+        const tax27 = Math.round(gain27 * 0.27);
+        const gain42 = Math.max(0, freeGain - shareThreshold);
+        const tax42 = Math.round(gain42 * 0.42);
+
+        const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.37;
+        const taxableRate = row.taxableRatePensionWithdrawal ?? 0;
+        const taxFreeRate = row.taxFreeRatePensionWithdrawal ?? 0;
+        const rateTotal = taxableRate + taxFreeRate;
+        const rateTax = Math.round(taxableRate * pensionTaxRate);
+
+        const lifeTotal = row.lifeAnnuityWithdrawal ?? 0;
+        const lifeTax = Math.round(lifeTotal * pensionTaxRate);
+
+        const ageSavingsWithdrawal = row.ageSavingsWithdrawal ?? 0;
+        const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + cashWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
+
+        const totalPensionTax = rateTax + lifeTax;
+        const totalTax = freeTax + totalPensionTax;
+        const net = row.netWithdrawal ?? (gross - totalTax);
+        const rate = row.effectiveWithdrawalTaxRate ?? (gross > 0 ? totalTax / gross : 0);
+
+        const returnExample = buildWithdrawalExample({ row, prevRow, inputs, calculation });
+
+        const steps = [
+          { label: "1. Samlet udbetalingsskat i alt", value: currency.format(totalTax) }
+        ];
+
+        if (freeTax > 0 || freeWithdrawal > 0) {
+          steps.push({
+            label: "• Aktieindkomstskat af Frie Midler (aktier)",
+            value: currency.format(freeTax),
+            isSub: true
+          });
+          if (freeGain > 0) {
+            steps.push({
+              label: `  - Heraf realiseret aktiegevinst (${currency.format(freeGain)}) modregnet købesum (${currency.format(freeCostBasis)})`,
+              value: `${currency.format(tax27)}${tax42 > 0 ? ` + ${currency.format(tax42)}` : ""}`,
+              isSub: true
+            });
+          }
+        }
+        if (cashWithdrawal > 0) {
+          steps.push({
+            label: "• Skat på Frie Midler (kontant)",
+            value: "0 kr. (0 % skat ved hævning fra bankkonto)",
+            isSub: true
+          });
+        }
+        if (askWithdrawal > 0) {
+          steps.push({
+            label: "• Skat på Aktiesparekonto (ASK)",
+            value: "0 kr. (0 % skat ved udbetaling — 17 % lagerskat afregnes løbende)",
+            isSub: true
+          });
+        }
+        if (ageSavingsWithdrawal > 0) {
+          steps.push({
+            label: "• Skat på Aldersopsparing",
+            value: "0 kr. (100 % skattefri udbetaling)",
+            isSub: true
+          });
+        }
+        if (rateTax > 0) {
+          steps.push({
+            label: `• Pensionsskat på Ratepension (${percent.format(pensionTaxRate)})`,
+            value: currency.format(rateTax),
+            isSub: true
+          });
+        }
+        if (lifeTax > 0) {
+          steps.push({
+            label: `• Pensionsskat på Livrente (${percent.format(pensionTaxRate)})`,
+            value: currency.format(lifeTax),
+            isSub: true
+          });
+        }
+
+        steps.push({ label: "2. Samlet brutto-hævning fra depoter", value: currency.format(gross) });
+        if (freeWithdrawal > 0) {
+          steps.push({ label: "• Hævet fra Frie Midler (aktier)", value: currency.format(freeWithdrawal), isSub: true });
+        }
+        if (cashWithdrawal > 0) {
+          steps.push({ label: "• Hævet fra Frie Midler (kontant)", value: currency.format(cashWithdrawal), isSub: true });
+        }
+        if (askWithdrawal > 0) {
+          steps.push({ label: "• Hævet fra Aktiesparekonto", value: currency.format(askWithdrawal), isSub: true });
+        }
+        if (ageSavingsWithdrawal > 0) {
+          steps.push({ label: "• Hævet fra Aldersopsparing", value: currency.format(ageSavingsWithdrawal), isSub: true });
+        }
+        if (rateTotal > 0) {
+          steps.push({ label: "• Hævet fra Ratepension", value: currency.format(rateTotal), isSub: true });
+        }
+        if (lifeTotal > 0) {
+          steps.push({ label: "• Hævet fra Livrente", value: currency.format(lifeTotal), isSub: true });
+        }
+
+        steps.push({ label: "3. Netto udbetalt til forbrug", value: currency.format(net) });
+
+        steps.push({
+          label: "Effektiv gennemsnitlig skatteprocent",
+          value: `${currency.format(totalTax)} ÷ ${currency.format(gross)} = ${percent.format(rate)}`,
+          isResult: true
+        });
+
         return {
           title: `Effektiv skat på udbetaling (${yearDate} · ${age} år)`,
           badge: "Skatteprocent",
-          quickMath: `${percent.format(rate)} af årets udbetaling betales i skat`,
-          description: "Den gennemsnitlige skatteprocent på tværs af alle årets hævninger. En blanding af skattefri aldersopsparing, Frie Midler (aktier) (kun skat af gevinst) og pensionsmidler giver ofte en effektiv skat langt under topskatten.",
+          quickMath: totalTax > 0
+            ? `${currency.format(totalTax)} i skat af ${currency.format(gross)} brutto = ${percent.format(rate)} effektiv skat`
+            : `0 kr. i skat af ${currency.format(gross)} brutto = 0,0 % effektiv skat`,
+          description: `Den effektive skat er kun ${percent.format(rate)}, fordi skatten kun beregnes af reel aktiegevinst (din egen opsparing/købesum beskattes ikke) og pensionsmidler, mens hævninger fra Frie Midler (kontant), ASK og Aldersopsparing er 100 % skattefrie ved udbetaling.`,
           formula: "Effektiv skat = Samlet udbetalingsskat / Samlet brutto-udbetaling",
-          formulaDetails: "Viser hvor skatteeffektivt din portefølje udbetales i praksis.",
-          steps: [
-            { label: "Effektiv gennemsnitlig skatteprocent", value: percent.format(rate), isResult: true }
-          ],
+          formulaDetails: `${currency.format(totalTax)} (samlet skat) ÷ ${currency.format(gross)} (brutto hævet) = ${percent.format(rate)}.`,
+          returnExample,
+          steps,
           assumptions: [
-            { label: "Pensionsskat", value: percent.format(inputs.pensionWithdrawalTax ?? 0.37) }
+            { label: "Pensionsskat", value: percent.format(pensionTaxRate) },
+            { label: "Lav aktieskat (op til progressionsgrænsen)", value: "27 %" },
+            { label: "Høj aktieskat (over progressionsgrænsen)", value: "42 %" },
+            { label: "Progressionsgrænse (aktieindkomst)", value: currency.format(shareThreshold) },
           ]
         };
       }

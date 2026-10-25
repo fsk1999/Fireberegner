@@ -34,6 +34,12 @@
     proportional: "proportional",
     taxOptimal: "taxOptimal",
   });
+  const FREE_FUNDS_WITHDRAWAL_STRATEGY = Object.freeze({
+    cashFirst: "cashFirst",
+    taxOptimal: "taxOptimal",
+    proportional: "proportional",
+    stocksFirst: "stocksFirst",
+  });
   const DEFAULT_DEFENSIVE_RETURN_RATE = 0.04;
   const DEFAULT_RETURN_DECLINE_YEARS = 10;
   const DEFAULT_RETURN_RECOVERY_YEARS = 15;
@@ -133,6 +139,15 @@
 
   function withdrawalStrategy(inputs) {
     return inputs?.withdrawalStrategy ?? WITHDRAWAL_STRATEGY.proportional;
+  }
+
+  function freeFundsWithdrawalStrategy(inputs) {
+    if (inputs?.freeFundsWithdrawalStrategy) {
+      return inputs.freeFundsWithdrawalStrategy;
+    }
+    return inputs?.withdrawalStrategy === WITHDRAWAL_STRATEGY.taxOptimal
+      ? FREE_FUNDS_WITHDRAWAL_STRATEGY.taxOptimal
+      : FREE_FUNDS_WITHDRAWAL_STRATEGY.proportional;
   }
 
   function freeFundsInventoryShare(inputs) {
@@ -708,6 +723,7 @@
     pensionWithdrawalTax,
     taxFreeRatePensionAllowance = 0,
     shareIncomeThreshold = SHARE_INCOME_THRESHOLD,
+    freeFundsStrategy = FREE_FUNDS_WITHDRAWAL_STRATEGY.proportional,
   ) {
     const pensionIndexes = [RATE_PENSION, LIFE_ANNUITY, AGE_SAVINGS];
     const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK, CASH];
@@ -748,28 +764,129 @@
       0,
       desiredNetWithdrawal - pensionNetWithdrawal,
     );
-    const freeCapacities = freeIndexes.map((index) => capacities[index]);
-    const totalFreeCapacity = freeCapacities.reduce(
-      (total, capacity) => total + capacity,
-      0,
-    );
-    const freeGrossWithdrawal = grossWithdrawalForNetTarget(
+    const freeAllocation = allocateFreeFundsWithdrawal(
+      balances,
+      capacities,
       remainingNetWithdrawal,
-      freeCapacities[0],
-      totalFreeCapacity,
-      balances[FREE_FUNDS_REALIZATION],
       freeFundsCostBasis,
       shareIncomeThreshold,
-    );
-    const freeAllocation = allocateWithdrawals(
-      freeCapacities,
-      freeGrossWithdrawal,
+      freeFundsStrategy,
+      true,
     );
 
     return {
       amounts: [...pensionAllocation.amounts, ...freeAllocation.amounts],
       total: pensionAllocation.total + freeAllocation.total,
     };
+  }
+
+  function allocateFreeFundsWithdrawal(
+    balances,
+    capacities,
+    targetNet,
+    freeFundsCostBasis,
+    shareIncomeThreshold,
+    strategy = FREE_FUNDS_WITHDRAWAL_STRATEGY.taxOptimal,
+    withdrawalAfterTax = true,
+  ) {
+    const amounts = [0, 0, 0, 0]; // [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK, CASH]
+    let rem = Math.max(0, targetNet);
+    if (rem <= 0) return { amounts, total: 0 };
+
+    if (strategy === FREE_FUNDS_WITHDRAWAL_STRATEGY.proportional) {
+      const freeIndexes = [FREE_FUNDS_REALIZATION, FREE_FUNDS_INVENTORY, ASK, CASH];
+      const freeCapacities = freeIndexes.map((index) => capacities[index]);
+      const totalFreeCapacity = freeCapacities.reduce((t, c) => t + c, 0);
+      const freeGross = grossWithdrawalForNetTarget(
+        rem,
+        freeCapacities[0],
+        totalFreeCapacity,
+        balances[FREE_FUNDS_REALIZATION],
+        freeFundsCostBasis,
+        shareIncomeThreshold,
+      );
+      const alloc = allocateWithdrawals(freeCapacities, freeGross);
+      return { amounts: alloc.amounts, total: alloc.total };
+    }
+
+    const realizationBalance = balances[FREE_FUNDS_REALIZATION];
+    const gainShare = realizationBalance > 0
+      ? Math.max(0, (realizationBalance - freeFundsCostBasis) / realizationBalance)
+      : 0;
+
+    const drawFromRealization = (maxLimit, isHighTier = false) => {
+      const available = Math.max(0, realizationBalance - amounts[0]);
+      if (available <= 0 || rem <= 0) return;
+      const cap = Math.min(available, maxLimit);
+      if (!withdrawalAfterTax || gainShare <= CALCULATION_TOLERANCE) {
+        const draw = Math.min(cap, rem);
+        amounts[0] += draw;
+        rem = Math.max(0, rem - draw);
+      } else {
+        const taxRate = isHighTier ? SHARE_INCOME_HIGH_RATE : SHARE_INCOME_LOW_RATE;
+        const netPerGross = 1 - taxRate * gainShare;
+        const maxNet = cap * netPerGross;
+        if (rem <= maxNet + MONEY_TOLERANCE) {
+          const draw = Math.min(cap, rem / netPerGross);
+          amounts[0] += draw;
+          rem = 0;
+        } else {
+          amounts[0] += cap;
+          rem = Math.max(0, rem - maxNet);
+        }
+      }
+    };
+
+    const drawFromCash = () => {
+      if (balances[CASH] > 0 && rem > 0) {
+        const draw = Math.min(balances[CASH], rem);
+        amounts[3] += draw;
+        rem = Math.max(0, rem - draw);
+      }
+    };
+
+    const drawFromAsk = () => {
+      if (balances[ASK] > 0 && rem > 0) {
+        const draw = Math.min(balances[ASK], rem);
+        amounts[2] += draw;
+        rem = Math.max(0, rem - draw);
+      }
+    };
+
+    const drawFromInventory = () => {
+      if (balances[FREE_FUNDS_INVENTORY] > 0 && rem > 0) {
+        const draw = Math.min(balances[FREE_FUNDS_INVENTORY], rem);
+        amounts[1] += draw;
+        rem = Math.max(0, rem - draw);
+      }
+    };
+
+    if (strategy === FREE_FUNDS_WITHDRAWAL_STRATEGY.cashFirst) {
+      drawFromCash();
+      drawFromAsk();
+      drawFromInventory();
+      const maxGrossLow = gainShare > CALCULATION_TOLERANCE ? shareIncomeThreshold / gainShare : realizationBalance;
+      drawFromRealization(maxGrossLow, false);
+      drawFromRealization(realizationBalance, true);
+    } else if (strategy === FREE_FUNDS_WITHDRAWAL_STRATEGY.stocksFirst) {
+      const maxGrossLow = gainShare > CALCULATION_TOLERANCE ? shareIncomeThreshold / gainShare : realizationBalance;
+      drawFromRealization(maxGrossLow, false);
+      drawFromRealization(realizationBalance, true);
+      drawFromInventory();
+      drawFromAsk();
+      drawFromCash();
+    } else {
+      // taxOptimal (default)
+      const maxGrossLow = gainShare > CALCULATION_TOLERANCE ? shareIncomeThreshold / gainShare : realizationBalance;
+      drawFromRealization(maxGrossLow, false);
+      drawFromInventory();
+      drawFromAsk();
+      drawFromCash();
+      drawFromRealization(realizationBalance, true);
+    }
+
+    const total = amounts.reduce((sum, v) => sum + v, 0);
+    return { amounts, total };
   }
 
   function allocateTaxOptimalWithdrawal(
@@ -782,6 +899,7 @@
     taxFreeRatePensionAllowance = 0,
     shareIncomeThreshold = SHARE_INCOME_THRESHOLD,
     withdrawalAfterTax = true,
+    freeFundsStrategy = FREE_FUNDS_WITHDRAWAL_STRATEGY.taxOptimal,
   ) {
     const amounts = [0, 0, 0, 0, 0, 0, 0];
     let remainingTarget = Math.max(0, desiredTarget);
@@ -833,99 +951,20 @@
       }
     }
 
-    const realizationBalance = balances[FREE_FUNDS_REALIZATION];
-    const gainShare =
-      realizationBalance > 0
-        ? Math.max(
-            0,
-            (realizationBalance - freeFundsCostBasis) / realizationBalance,
-          )
-        : 0;
-
-    if (realizationBalance > 0 && remainingTarget > 0) {
-      if (gainShare <= CALCULATION_TOLERANCE) {
-        const draw = Math.min(realizationBalance, remainingTarget);
-        amounts[FREE_FUNDS_REALIZATION] += draw;
-        remainingTarget = Math.max(0, remainingTarget - draw);
-      } else {
-        const maxGrossAtLowRate = Math.min(
-          realizationBalance,
-          shareIncomeThreshold / gainShare,
-        );
-        if (!withdrawalAfterTax) {
-          const draw = Math.min(maxGrossAtLowRate, remainingTarget);
-          amounts[FREE_FUNDS_REALIZATION] += draw;
-          remainingTarget = Math.max(0, remainingTarget - draw);
-        } else {
-          const netPerGrossLow = 1 - SHARE_INCOME_LOW_RATE * gainShare;
-          const maxNetAtLowRate = maxGrossAtLowRate * netPerGrossLow;
-          if (remainingTarget <= maxNetAtLowRate + MONEY_TOLERANCE) {
-            const draw = Math.min(
-              maxGrossAtLowRate,
-              remainingTarget / netPerGrossLow,
-            );
-            amounts[FREE_FUNDS_REALIZATION] += draw;
-            remainingTarget = 0;
-          } else {
-            amounts[FREE_FUNDS_REALIZATION] += maxGrossAtLowRate;
-            remainingTarget = Math.max(0, remainingTarget - maxNetAtLowRate);
-          }
-        }
-      }
-    }
-
-    if (balances[FREE_FUNDS_INVENTORY] > 0 && remainingTarget > 0) {
-      const draw = Math.min(balances[FREE_FUNDS_INVENTORY], remainingTarget);
-      amounts[FREE_FUNDS_INVENTORY] += draw;
-      remainingTarget = Math.max(0, remainingTarget - draw);
-    }
-
-    if (balances[ASK] > 0 && remainingTarget > 0) {
-      const draw = Math.min(balances[ASK], remainingTarget);
-      amounts[ASK] += draw;
-      remainingTarget = Math.max(0, remainingTarget - draw);
-    }
-
-    if (balances[CASH] > 0 && remainingTarget > 0) {
-      const draw = Math.min(balances[CASH], remainingTarget);
-      amounts[CASH] += draw;
-      remainingTarget = Math.max(0, remainingTarget - draw);
-    }
-
-    if (!beforeRetirement && remainingTarget > 0) {
-      const remainingAgeSavings = Math.max(
-        0,
-        balances[AGE_SAVINGS] - amounts[AGE_SAVINGS],
+    if (remainingTarget > 0) {
+      const freeAlloc = allocateFreeFundsWithdrawal(
+        balances,
+        capacities,
+        remainingTarget,
+        freeFundsCostBasis,
+        shareIncomeThreshold,
+        freeFundsStrategy,
+        withdrawalAfterTax,
       );
-      if (remainingAgeSavings > 0) {
-        const draw = Math.min(remainingAgeSavings, remainingTarget);
-        amounts[AGE_SAVINGS] += draw;
-        remainingTarget = Math.max(0, remainingTarget - draw);
-      }
-    }
-
-    const remainingRealization = Math.max(
-      0,
-      realizationBalance - amounts[FREE_FUNDS_REALIZATION],
-    );
-    if (remainingRealization > 0 && remainingTarget > 0) {
-      if (!withdrawalAfterTax || gainShare <= CALCULATION_TOLERANCE) {
-        const draw = Math.min(remainingRealization, remainingTarget);
-        amounts[FREE_FUNDS_REALIZATION] += draw;
-        remainingTarget = Math.max(0, remainingTarget - draw);
-      } else {
-        const netPerGrossHigh = 1 - SHARE_INCOME_HIGH_RATE * gainShare;
-        const draw =
-          netPerGrossHigh > CALCULATION_TOLERANCE
-            ? Math.min(
-                remainingRealization,
-                remainingTarget / netPerGrossHigh,
-              )
-            : remainingRealization;
-        const deliveredNet = draw * netPerGrossHigh;
-        amounts[FREE_FUNDS_REALIZATION] += draw;
-        remainingTarget = Math.max(0, remainingTarget - deliveredNet);
-      }
+      amounts[FREE_FUNDS_REALIZATION] += freeAlloc.amounts[0];
+      amounts[FREE_FUNDS_INVENTORY] += freeAlloc.amounts[1];
+      amounts[ASK] += freeAlloc.amounts[2];
+      amounts[CASH] += freeAlloc.amounts[3];
     }
 
     const total = amounts.reduce((sum, value) => sum + value, 0);
@@ -2112,6 +2151,7 @@
               ? lifeAnnuityWithdrawal - lifeAnnuityWithdrawalTax
               : lifeAnnuityWithdrawal),
         );
+        const freeStrategy = freeFundsWithdrawalStrategy(inputs);
         const allocateCurrentWithdrawal = (withdrawalCapacities) => {
           if (withdrawalStrategy(inputs) === WITHDRAWAL_STRATEGY.taxOptimal) {
             return allocateTaxOptimalWithdrawal(
@@ -2124,6 +2164,7 @@
               taxFreeRatePensionAllowance,
               selectedShareIncomeThreshold,
               inputs.withdrawalAfterTax !== false,
+              freeStrategy,
             );
           }
           return inputs.withdrawalAfterTax
@@ -2136,6 +2177,7 @@
                 pensionWithdrawalTax,
                 taxFreeRatePensionAllowance,
                 selectedShareIncomeThreshold,
+                freeStrategy,
               )
             : allocateForPhase(
                 withdrawalCapacities,
@@ -2215,22 +2257,28 @@
             allocation.amounts[RATE_PENSION] +
             allocation.amounts[AGE_SAVINGS] +
             lifeAnnuityWithdrawal;
-          const freeWithdrawal =
+          const stockDraw =
             allocation.amounts[FREE_FUNDS_REALIZATION] +
-            allocation.amounts[FREE_FUNDS_INVENTORY] +
-            allocation.amounts[ASK] +
-            (allocation.amounts[CASH] ?? 0);
-          const withdrawalSource =
-            totalWithdrawal <= MONEY_TOLERANCE
-              ? "—"
-              : beforeRetirement
-                ? "Frie Midler (aktier)"
-                : pensionWithdrawal > MONEY_TOLERANCE &&
-                    freeWithdrawal > MONEY_TOLERANCE
-                  ? "Pension + Frie Midler (aktier)"
-                  : freeWithdrawal > MONEY_TOLERANCE
-                    ? "Frie Midler (aktier)"
-                    : "Pension";
+            allocation.amounts[FREE_FUNDS_INVENTORY];
+          const cashDraw = allocation.amounts[CASH] ?? 0;
+          const askDraw = allocation.amounts[ASK] ?? 0;
+
+          let withdrawalSource = "—";
+          if (totalWithdrawal > MONEY_TOLERANCE) {
+            const parts = [];
+            if (pensionWithdrawal > MONEY_TOLERANCE) parts.push("Pension");
+            if (stockDraw > MONEY_TOLERANCE && cashDraw > MONEY_TOLERANCE) {
+              parts.push("Frie Midler (aktier & kontant)");
+            } else if (stockDraw > MONEY_TOLERANCE) {
+              parts.push("Frie Midler (aktier)");
+            } else if (cashDraw > MONEY_TOLERANCE) {
+              parts.push("Frie Midler (kontant)");
+            }
+            if (askDraw > MONEY_TOLERANCE && parts.length === 0) {
+              parts.push("ASK");
+            }
+            withdrawalSource = parts.join(" + ") || "Frie Midler";
+          }
 
           rows.push(
             createRow(
@@ -3942,6 +3990,8 @@
     FREE_FUNDS_TAXATION,
     RETURN_STRATEGY,
     WITHDRAWAL_STRATEGY,
+    FREE_FUNDS_WITHDRAWAL_STRATEGY,
+    freeFundsWithdrawalStrategy,
     PUBLIC_PENSION_2026,
     strategyReturnRate,
     householdMultiplier,

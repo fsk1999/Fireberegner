@@ -63,6 +63,7 @@
   const STRING_FIELDS = Object.freeze([
     "returnStrategy",
     "withdrawalStrategy",
+    "freeFundsWithdrawalStrategy",
     "housingType",
     "housingUnlockAgeType",
     "cashShareStrategy",
@@ -97,6 +98,7 @@
     returnVolatility: 0.15,
     monteCarloRuns: 500,
     withdrawalStrategy: "proportional",
+    freeFundsWithdrawalStrategy: "cashFirst",
     isCouple: false,
     includeFolkepension: false,
     includeHousing: false,
@@ -236,6 +238,12 @@
     const invalidWithdrawalStrategy = !["proportional", "taxOptimal"].includes(
       inputs.withdrawalStrategy,
     );
+    const invalidFreeFundsStrategy = ![
+      "cashFirst",
+      "taxOptimal",
+      "proportional",
+      "stocksFirst",
+    ].includes(inputs.freeFundsWithdrawalStrategy);
     const invalidHousingType = !["owner", "coop", "rent"].includes(
       inputs.housingType,
     );
@@ -248,6 +256,7 @@
       invalidBoolean ||
       invalidStrategy ||
       invalidWithdrawalStrategy ||
+      invalidFreeFundsStrategy ||
       invalidHousingType ||
       invalidHousingUnlockAgeType
     ) {

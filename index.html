@@ -284,6 +284,21 @@
                       <option value="taxOptimal">Skatteoptimeret (27 % først)</option>
                     </select>
                   </label>
+                  <label class="field">
+                    <span
+                      >Hæverækkefølge (Frie Midler)
+                      <i
+                        title="Vælg hvordan dine frie midler hæves i FIRE-fasen:&#10;• Kontant først: Hæver 100 % fra Frie Midler (kontant) før der sælges aktier.&#10;• Skatteoptimeret: Sælger aktier op til 27 % aktieskat hvert år og supplerer med kontant og ASK.&#10;• Forholdsmæssig: Hæver jævnt fra alle frie midler i forhold til saldo.&#10;• Aktier først: Sælger aktier før kontantreserven for at bevare kontantbufferen."
+                        >i</i
+                      ></span
+                    >
+                    <select name="freeFundsWithdrawalStrategy">
+                      <option value="cashFirst" selected>Frie Midler (kontant) først (Brug kontanter før aktiesalg)</option>
+                      <option value="taxOptimal">Skatteoptimeret (27 % aktieskat først, derefter kontant/ASK)</option>
+                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra aktier og kontanter)</option>
+                      <option value="stocksFirst">Frie Midler (aktier) først (Bevar kontantreserve)</option>
+                    </select>
+                  </label>
                 </div>
               </fieldset>
 
@@ -819,6 +834,23 @@
                     <p id="optimization-note"></p>
                   </footer>
                 </section>
+                <div class="optimization-strategy-subcard" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+                  <header class="optimization-header" style="margin-bottom: 0.75rem;">
+                    <div>
+                      <p>Udbetalingsoptimering i FIRE</p>
+                      <h4 style="margin: 0; font-size: 1rem; color: var(--text-main);">Hæverækkefølge for frie midler &amp; likviditet</h4>
+                    </div>
+                  </header>
+                  <label class="field">
+                    <span>Vælg hvordan dine frie midler og kontantreserve skal hæves i FIRE-fasen:</span>
+                    <select name="freeFundsWithdrawalStrategyOpt" data-sync-with="freeFundsWithdrawalStrategy">
+                      <option value="cashFirst" selected>Frie Midler (kontant) først (Brug kontanter før aktiesalg)</option>
+                      <option value="taxOptimal">Skatteoptimeret (27 % aktieskat først, derefter kontant/ASK)</option>
+                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra aktier og kontanter)</option>
+                      <option value="stocksFirst">Frie Midler (aktier) først (Bevar kontantreserve)</option>
+                    </select>
+                  </label>
+                </div>
               </details>
 
               <details

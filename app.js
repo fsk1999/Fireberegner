@@ -613,6 +613,7 @@
         form.elements.redirectPensionContributionsToFreeFunds.checked,
       isCouple: form.elements.isCouple?.checked ?? false,
       withdrawalStrategy: form.elements.withdrawalStrategy?.value || "proportional",
+      freeFundsWithdrawalStrategy: form.elements.freeFundsWithdrawalStrategy?.value || "cashFirst",
       includeFolkepension: form.elements.includeFolkepension?.checked ?? false,
       folkepensionAge: form.elements.folkepensionAge
         ? readNumber("folkepensionAge")
@@ -826,6 +827,9 @@
     }
     if (form.elements.cashShareTargetRange && form.elements.cashShareTarget) {
       form.elements.cashShareTargetRange.value = form.elements.cashShareTarget.value;
+    }
+    if (form.elements.freeFundsWithdrawalStrategyOpt && form.elements.freeFundsWithdrawalStrategy) {
+      form.elements.freeFundsWithdrawalStrategyOpt.value = form.elements.freeFundsWithdrawalStrategy.value;
     }
     if (Array.isArray(inputs.annualCashShares)) {
       customAnnualCashShares = [...inputs.annualCashShares];
@@ -5765,6 +5769,18 @@
     });
     cashShareTargetInput.addEventListener("input", () => {
       cashShareTargetRange.value = cashShareTargetInput.value;
+    });
+  }
+
+  const freeFundsStratInput = form.elements.freeFundsWithdrawalStrategy;
+  const freeFundsStratOptInput = form.elements.freeFundsWithdrawalStrategyOpt;
+  if (freeFundsStratInput && freeFundsStratOptInput) {
+    freeFundsStratInput.addEventListener("change", () => {
+      freeFundsStratOptInput.value = freeFundsStratInput.value;
+    });
+    freeFundsStratOptInput.addEventListener("change", () => {
+      freeFundsStratInput.value = freeFundsStratOptInput.value;
+      freeFundsStratInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }
 
