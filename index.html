@@ -1553,7 +1553,33 @@
                 >
                   Åbn alle 4
                 </button>
+                <button
+                  type="button"
+                  id="cockpit-insights-toggle-btn"
+                  class="cockpit-insights-toggle-btn is-active"
+                  aria-pressed="true"
+                  title="Slå økonomiske insights og handlingsforslag til eller fra"
+                >
+                  <span class="insights-sparkle-icon" aria-hidden="true">💡</span>
+                  <span>Økonomiske Insights</span>
+                  <span id="cockpit-insights-badge" class="cockpit-insights-count-badge">0</span>
+                </button>
               </div>
+            </div>
+            <div id="cockpit-insights-drawer" class="cockpit-insights-drawer">
+              <div class="insights-drawer-header" id="insights-drawer-header">
+                <div class="insights-drawer-title">
+                  <span class="insights-drawer-icon" aria-hidden="true">💡</span>
+                  <strong>Økonomiske Insights &amp; Handlingsforslag</strong>
+                  <span id="insights-summary-pill" class="insights-summary-pill">Beregner...</span>
+                </div>
+                <div class="insights-drawer-actions">
+                  <button type="button" id="insights-drawer-collapse-btn" class="insights-collapse-btn" title="Minimér eller fold insights ud">
+                    <span id="insights-collapse-label">Skjul detaljer</span> <span class="insights-chevron">▴</span>
+                  </button>
+                </div>
+              </div>
+              <div id="insights-cards-grid" class="insights-cards-grid"></div>
             </div>
             <div class="timeline-viewport">
               <div class="timeline-plot">

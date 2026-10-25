@@ -64,6 +64,25 @@
   const chartHoverUpdaters = {};
   const chartHoverClearers = {};
 
+  let insightsEnabled = true;
+  try {
+    const savedInsights = localStorage.getItem("fire_insights_enabled");
+    if (savedInsights !== null) {
+      insightsEnabled = savedInsights === "true";
+    }
+  } catch (_e) {}
+  let activeFocusedInsightId = null;
+  let currentCalculationInsights = [];
+
+  const cockpitInsightsToggleBtn = document.querySelector("#cockpit-insights-toggle-btn");
+  const cockpitInsightsBadge = document.querySelector("#cockpit-insights-badge");
+  const cockpitInsightsDrawer = document.querySelector("#cockpit-insights-drawer");
+  const insightsCardsGrid = document.querySelector("#insights-cards-grid");
+  const insightsSummaryPill = document.querySelector("#insights-summary-pill");
+  const insightsDrawerCollapseBtn = document.querySelector("#insights-drawer-collapse-btn");
+  const insightsCollapseLabel = document.querySelector("#insights-collapse-label");
+  const insightsDrawerHeader = document.querySelector("#insights-drawer-header");
+
   const autoCalculateToggle = document.querySelector("#auto-calculate-toggle");
   const manualRecalculateBtn = document.querySelector("#manual-recalculate-btn");
   const uncalculatedBadge = document.querySelector("#uncalculated-badge");
@@ -1821,10 +1840,34 @@
         </td>`;
     }
 
+    let insightBadgeHtml = "";
+    if (insightsEnabled && currentCalculationInsights && currentCalculationInsights.length > 0) {
+      const matching = currentCalculationInsights.filter(
+        (ins) => row.age === ins.ageStart || (ins.ageEnd && row.age === ins.ageEnd),
+      );
+      if (matching.length > 0) {
+        insightBadgeHtml = matching
+          .map(
+            (ins) =>
+              `<span class="matrix-insight-pill matrix-insight-${ins.type}" data-insight-id="${ins.id}" data-insight-age="${ins.ageStart}" title="${ins.title}: ${ins.badgeText}. Klik for handlingsforslag">💡 ${ins.badgeText}</span>`,
+          )
+          .join("");
+      }
+    }
+
+    const isRowInsightActive =
+      activeFocusedInsightId &&
+      currentCalculationInsights.some(
+        (ins) =>
+          ins.id === activeFocusedInsightId &&
+          row.age >= ins.ageStart &&
+          row.age <= (ins.ageEnd || ins.ageStart),
+      );
+
     return `
-      <tr data-phase="${row.phase}" data-row-age="${row.age}">
+      <tr data-phase="${row.phase}" data-row-age="${row.age}" class="${isRowInsightActive ? "has-insight-active" : ""}">
         <td><span class="explainable-val row-date-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${dateFormat.format(row.date)}</span></td>
-        <td><span class="explainable-val row-age-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${ages.format(row.age)}</span></td>
+        <td><span class="explainable-val row-age-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${ages.format(row.age)}</span>${insightBadgeHtml}</td>
         <td>${row.phase}</td>
         ${returnCell}
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
@@ -1992,6 +2035,308 @@
       phaseName = "Pension";
     }
     kpiPhaseBadge.textContent = phaseName;
+  }
+
+  function analyzeFinancialPlan(calculation, inputs) {
+    if (!calculation || !calculation.planRows || calculation.planRows.length === 0) {
+      return [];
+    }
+
+    const insights = [];
+    const rows = calculation.planRows;
+    const pubAge = inputs?.publicPensionAge ?? 69;
+    const fireAge = calculation.fireRow?.age ?? null;
+    const desiredWithdrawal = inputs?.desiredAnnualWithdrawal ?? inputs?.annualLivingCosts ?? 360000;
+
+    // 1. Modregningsfælde i Folkepensionstillæg (Clawback)
+    const clawbackRows = rows.filter((r) => {
+      if (r.age < pubAge || r.phase === "Slut") return false;
+      const fullPublicPension = 186000;
+      const clawback = Math.max(0, fullPublicPension - (r.publicPensionGross || 0));
+      return clawback > 4000;
+    });
+
+    if (clawbackRows.length > 0) {
+      const minAge = clawbackRows[0].age;
+      const maxAge = clawbackRows[clawbackRows.length - 1].age;
+      const maxOffset = Math.max(
+        ...clawbackRows.map((r) => Math.max(0, 186000 - (r.publicPensionGross || 0)))
+      );
+      insights.push({
+        id: "insight-clawback",
+        type: "clawback",
+        title: "Modregning i folkepensionens tillæg",
+        ageStart: minAge,
+        ageEnd: maxAge,
+        badgeText: "Modregning",
+        description: `Mellem ${minAge} og ${maxAge} år modregnes dine private pensionsudbetalinger (ratepension/livrente) i folkepensionens pensionstillæg med op til ${currency.format(maxOffset)}/år.`,
+        consequenceText: `⚠️ Op til ${currency.format(maxOffset)} tabes årligt i offentlige ydelser pga. samspilsproblemet.`,
+        proposalText: `Udtøm ratepensionen i brofasen (${Math.max(60, inputs?.currentAge || 35)}–${pubAge - 1} år) inden folkepensionsalderen, eller flyt fremtidige midler til Aldersopsparing og Aktiesparekonto, som ikke modregnes.`,
+      });
+    }
+
+    // 2. Skatteklippe & Aktieskat over progressionsgrænsen (Tax cliff)
+    const taxCliffRows = rows.filter((r) => {
+      if (r.phase === "Slut") return false;
+      const isRetirement = r.phase !== "Opsparing";
+      const highFreeWithdrawal = (r.freeFundsWithdrawal || 0) > 70000;
+      const highTax = (r.withdrawalTax || 0) > 20000 || (r.annualFreeFundsTax || 0) > 25000;
+      return isRetirement && (highFreeWithdrawal || highTax);
+    });
+
+    if (taxCliffRows.length > 0) {
+      const minAge = taxCliffRows[0].age;
+      const maxAge = taxCliffRows[taxCliffRows.length - 1].age;
+      insights.push({
+        id: "insight-tax",
+        type: "tax",
+        title: "Aktiebeskatning ved progressionsgrænsen (42 %)",
+        ageStart: minAge,
+        ageEnd: maxAge,
+        badgeText: "Skatteklippe 42 %",
+        description: `I perioden ${minAge}–${maxAge} år overstiger dine hævninger eller realiserede gevinster progressionsgrænsen (67.500 kr. for enlige / 135.000 kr. for par), hvilket udløser 42 % i skat i stedet for 27 %.`,
+        consequenceText: "⚠️ Merbeskatning på 15 procentpoint af den øverste del af aktieindkomsten.",
+        proposalText: "Udnyt Aktiesparekontoen fuldt ud (flad lagerskat på 17 %), spred salg af frie aktier over flere kalenderår, og brug skattefri aldersopsparing til at holde dig under progressionsgrænsen.",
+      });
+    }
+
+    // 3. Sekvensrisiko i den tidlige FIRE-fase (Sequence of returns risk)
+    if (fireAge !== null && fireAge < pubAge) {
+      const earlyFireRows = rows.filter((r) => r.age >= fireAge && r.age < Math.min(fireAge + 4, pubAge));
+      const hasLowBuffer = earlyFireRows.some((r) => {
+        const liquid = (r.cashReserve || r.cashBuffer || r.cash || 0) + (r.freeFunds || 0) * 0.2;
+        return liquid < desiredWithdrawal * 1.5;
+      });
+
+      if (hasLowBuffer || earlyFireRows.length > 0) {
+        const startAge = fireAge;
+        const endAge = Math.min(fireAge + 3, pubAge - 1);
+        insights.push({
+          id: "insight-sequence",
+          type: "sequence",
+          title: "Sekvensrisiko i brofasen (Sequence of Returns)",
+          ageStart: startAge,
+          ageEnd: endAge,
+          badgeText: "Sekvensrisiko",
+          description: `I de første 3–4 år af din FIRE-tilbagetrækning (${startAge}–${endAge} år) er porteføljen mest sårbar over for et større markedskrak, fordi faste hævninger kan tvinge dig til at sælge aktier i bund.`,
+          consequenceText: "⚠️ Et tidligt børskrak kan reducere porteføljens levetid markant pga. tvangssalg med tab.",
+          proposalText: `Opbyg en likviditetsbuffer på 2–3 års leveomkostninger (${currency.format(desiredWithdrawal * 2)}–${currency.format(desiredWithdrawal * 3)}) i kontanter/korte obligationer umiddelbart op til FIRE som stødpude mod kriser.`,
+        });
+      }
+    }
+
+    // 4. Coast-FIRE & Ubalanceret opsparing (Optimization)
+    const midAccumulationAge = Math.min((inputs?.currentAge || 35) + 5, fireAge || 55);
+    const midRow = rows.find((r) => r.age === midAccumulationAge);
+    const pensionDepotAtMid = midRow ? (midRow.ratePension || 0) + (midRow.lifeAnnuityDepotValue || 0) + (midRow.ageSavings || 0) : 0;
+    const finalBalance = calculation.finalRow ? calculation.finalRow.totalBalance : 0;
+
+    if (pensionDepotAtMid > 1800000 || finalBalance > 4000000) {
+      const optStartAge = Math.min((inputs?.currentAge || 35) + 3, fireAge ? Math.max((inputs?.currentAge || 35) + 1, fireAge - 5) : 50);
+      insights.push({
+        id: "insight-optimization",
+        type: "optimization",
+        title: "Coast-FIRE & Opsparingsallokering",
+        ageStart: optStartAge,
+        ageEnd: fireAge || 58,
+        badgeText: "Coast-FIRE",
+        description: `Din pensionsformue vil via renters rente alene vokse tilstrækkeligt til at dække alderdommen efter ${pubAge} år. Yderligere indbetalinger til låst pension binder unødig likviditet.`,
+        consequenceText: "💡 Mulighed for at fremrykke din FIRE-alder ved at kanalisere opsparing væk fra låst pension.",
+        proposalText: "Overvej at minimere eller stoppe nye pensionsindbetalinger (Coast-FIRE) og flyt det månedlige sparebeløb til Aktiesparekonto og frie midler for at styrke din brofase.",
+      });
+    }
+
+    // 5. Cash Drag i akkumuleringsfasen (Cash Drag)
+    const accumRows = rows.filter((r) => r.phase === "Opsparing");
+    const highCashRow = accumRows.find((r) => {
+      const cashVal = r.cash || r.cashReserve || 0;
+      const freeVal = r.freeFunds || 1;
+      return cashVal > 250000 && (cashVal / freeVal > 0.25) && (fireAge ? fireAge - r.age > 3 : true);
+    });
+
+    if (highCashRow) {
+      insights.push({
+        id: "insight-cashdrag",
+        type: "cashdrag",
+        title: "Cash Drag i opsparingsfasen",
+        ageStart: highCashRow.age,
+        ageEnd: fireAge ? Math.max(highCashRow.age + 1, fireAge - 3) : highCashRow.age + 5,
+        badgeText: "Cash Drag",
+        description: `Du fastholder en høj kontantreserve (${currency.format(highCashRow.cash || 250000)}) i en fase med lang tidshorisont. Kontanter forrentes under inflationen og taber købekraft.`,
+        consequenceText: "⚠️ Tabt renters rente på 4–6 % årligt i forhold til globale aktieindeks.",
+        proposalText: "Hold kontantreserven nede på 3–6 måneders nødopsparing nu, og begynd først opskalering til stor kontantbuffer 2–3 år før tilbagetrækning.",
+      });
+    }
+
+    return insights;
+  }
+
+  function renderInsightsDrawer(insights) {
+    if (!cockpitInsightsBadge || !insightsCardsGrid || !insightsSummaryPill) return;
+
+    cockpitInsightsBadge.textContent = String(insights.length);
+    insightsSummaryPill.textContent = `${insights.length} aktive observationer`;
+
+    if (!insightsEnabled) {
+      if (cockpitInsightsDrawer) cockpitInsightsDrawer.setAttribute("hidden", "");
+      if (cockpitInsightsToggleBtn) {
+        cockpitInsightsToggleBtn.classList.remove("is-active");
+        cockpitInsightsToggleBtn.setAttribute("aria-pressed", "false");
+      }
+      return;
+    }
+
+    if (cockpitInsightsDrawer) {
+      cockpitInsightsDrawer.removeAttribute("hidden");
+    }
+    if (cockpitInsightsToggleBtn) {
+      cockpitInsightsToggleBtn.classList.add("is-active");
+      cockpitInsightsToggleBtn.setAttribute("aria-pressed", "true");
+    }
+
+    if (insights.length === 0) {
+      insightsCardsGrid.innerHTML = `
+        <div class="insight-card insight-card-type-optimization" style="grid-column: 1 / -1;">
+          <div class="insight-card-header">
+            <span class="insight-badge" style="background: rgba(16, 185, 129, 0.15); color: #059669;">Optimeret plan</span>
+          </div>
+          <div class="insight-card-body">
+            <h5>Ingen kritiske modregnings- eller skattefælder fundet</h5>
+            <p>Din økonomiske plan har en sund fordeling mellem frie midler og pensioner uden voldsom modregning eller sekvensrisiko.</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    insightsCardsGrid.innerHTML = insights
+      .map((ins) => {
+        const isHighlighted = activeFocusedInsightId === ins.id;
+        const periodText = ins.ageEnd && ins.ageEnd !== ins.ageStart ? `${ins.ageStart}–${ins.ageEnd} år` : `${ins.ageStart} år`;
+        return `
+          <div class="insight-card insight-card-type-${ins.type}${isHighlighted ? " is-highlighted" : ""}" data-insight-id="${ins.id}" data-age-start="${ins.ageStart}">
+            <div class="insight-card-header">
+              <span class="insight-badge">${ins.badgeText}</span>
+              <span class="insight-period-tag">Alder ${periodText}</span>
+            </div>
+            <div class="insight-card-body">
+              <h5>${ins.title}</h5>
+              <p>${ins.description}</p>
+              <div class="insight-consequence${ins.type === "optimization" ? " is-positive" : ""}">${ins.consequenceText}</div>
+              <div class="insight-proposal">
+                <strong>💡 Handlingsforslag:</strong> ${ins.proposalText}
+              </div>
+            </div>
+            <div class="insight-card-actions">
+              <button type="button" class="insight-focus-btn" data-focus-age="${ins.ageStart}" data-insight-id="${ins.id}">
+                Fokusér i grafer &amp; tabel →
+              </button>
+            </div>
+          </div>`;
+      })
+      .join("");
+  }
+
+  function buildChartInsightPinsSvg(insights, minAge, maxAge, margin, plotWidth, plotHeight) {
+    if (!insightsEnabled || !insights || insights.length === 0) return "";
+    return insights
+      .map((ins) => {
+        if (ins.ageStart < minAge || ins.ageStart > maxAge) return "";
+        const progress = (ins.ageStart - minAge) / Math.max(1, maxAge - minAge);
+        const x = margin.left + progress * plotWidth;
+        const pinY = margin.top + 14;
+        const isFocused = activeFocusedInsightId === ins.id;
+        return `
+          <g class="chart-insight-pin${isFocused ? " is-focused" : ""}" data-insight-id="${ins.id}" data-insight-age="${ins.ageStart}" transform="translate(${x} 0)" role="button" tabindex="0">
+            <title>${ins.title} (${ins.badgeText}) - Alder ${ins.ageStart} år: Klik for handlingsforslag</title>
+            <line x1="0" y1="${margin.top}" x2="0" y2="${margin.top + plotHeight}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3" opacity="${isFocused ? "0.9" : "0.55"}" />
+            <circle class="chart-insight-pin-circle" cx="0" cy="${pinY}" r="11" />
+            <text class="chart-insight-pin-text" x="0" y="${pinY + 3.5}">💡</text>
+          </g>`;
+      })
+      .join("");
+  }
+
+  function attachChartInsightPinEvents(container) {
+    if (!container) return;
+    container.querySelectorAll(".chart-insight-pin").forEach((pin) => {
+      pin.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = pin.dataset.insightId;
+        const ins = currentCalculationInsights.find((i) => i.id === id);
+        if (ins) {
+          focusAndHighlightInsight(ins);
+        }
+      });
+    });
+  }
+
+  function focusAndHighlightInsight(insight) {
+    if (!insight) return;
+    activeFocusedInsightId = insight.id;
+
+    // 1. Ensure drawer is visible and expanded
+    if (cockpitInsightsDrawer) {
+      cockpitInsightsDrawer.removeAttribute("hidden");
+      cockpitInsightsDrawer.classList.remove("is-collapsed");
+      if (insightsCollapseLabel) insightsCollapseLabel.textContent = "Skjul detaljer";
+      const chevron = cockpitInsightsDrawer.querySelector(".insights-chevron");
+      if (chevron) chevron.textContent = "▴";
+    }
+
+    // 2. Highlight card in drawer and scroll into view
+    document.querySelectorAll(".insight-card").forEach((card) => {
+      const match = card.dataset.insightId === insight.id;
+      card.classList.toggle("is-highlighted", match);
+      if (match) {
+        card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    });
+
+    // 3. Highlight rows in Op- og nedsparingsmatrice
+    if (tableBody) {
+      tableBody.querySelectorAll("tr[data-row-age]").forEach((tr) => {
+        const rowAge = Number(tr.dataset.rowAge);
+        const match = Number.isFinite(rowAge) && rowAge >= insight.ageStart && rowAge <= (insight.ageEnd || insight.ageStart);
+        tr.classList.toggle("has-insight-active", match);
+      });
+      const firstRow = tableBody.querySelector(`tr[data-row-age="${insight.ageStart}"]`);
+      if (firstRow) {
+        firstRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    // 4. Highlight pins across charts
+    document.querySelectorAll(".chart-insight-pin").forEach((p) => {
+      p.classList.toggle("is-focused", p.dataset.insightId === insight.id);
+    });
+
+    // 5. Synchronize all charts and Live KPI strip to insight.ageStart
+    syncAllChartsToAge(insight.ageStart);
+  }
+
+  function toggleInsightsEnabled(forceState) {
+    insightsEnabled = forceState !== undefined ? Boolean(forceState) : !insightsEnabled;
+    try {
+      localStorage.setItem("fire_insights_enabled", String(insightsEnabled));
+    } catch (_e) {}
+
+    if (cockpitInsightsToggleBtn) {
+      cockpitInsightsToggleBtn.classList.toggle("is-active", insightsEnabled);
+      cockpitInsightsToggleBtn.setAttribute("aria-pressed", String(insightsEnabled));
+    }
+
+    if (cockpitInsightsDrawer) {
+      if (insightsEnabled) {
+        cockpitInsightsDrawer.removeAttribute("hidden");
+      } else {
+        cockpitInsightsDrawer.setAttribute("hidden", "");
+      }
+    }
+
+    if (latestCalculation && latestInputs) {
+      renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      render(latestCalculation, latestInputs);
+    }
   }
 
   function syncAllChartsToAge(targetAge, sourcePaneKey) {
@@ -2437,6 +2782,15 @@
       ? `<path class="chart-line-crisis" d="${pointPath(activeCrisisPoints)}" />`
       : "";
 
+    const insightsPinsSvg = buildChartInsightPinsSvg(
+      currentCalculationInsights,
+      minAge,
+      maxAge,
+      margin,
+      plotWidth,
+      plotHeight,
+    );
+
     chart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pension og frie midler fra ${ages.format(minAge)} til ${ages.format(maxAge)} år" aria-describedby="wealth-chart-description">
         <desc id="wealth-chart-description">Grafen viser formueudviklingen med og uden Monte Carlo-simulering for hvert år.</desc>
@@ -2470,6 +2824,7 @@
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis beløb for et bestemt år" />
+        <g class="chart-insights-layer">${insightsPinsSvg}</g>
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
           <circle class="chart-hover-point-pension" cx="0" cy="0" r="4.5" ${showWithoutOnChart ? "" : 'style="display:none"'} />
@@ -2480,6 +2835,8 @@
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
+
+    attachChartInsightPinEvents(chart);
 
     const svg = chart.querySelector("svg");
     const hoverTarget = svg.querySelector(".chart-hover-target");
@@ -2928,6 +3285,15 @@
         </g>`
       : "";
 
+    const insightsPinsSvg = buildChartInsightPinsSvg(
+      currentCalculationInsights,
+      minAge,
+      maxAge,
+      margin,
+      plotWidth,
+      plotHeight,
+    );
+
     cashflowChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Årligt cashflow og udbetalingskilder fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
         <defs>
@@ -2981,12 +3347,15 @@
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis cashflow for et bestemt år" />
+        <g class="chart-insights-layer">${insightsPinsSvg}</g>
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
           <circle class="chart-hover-point-total" cx="0" cy="0" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="2" />
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
+
+    attachChartInsightPinEvents(cashflowChart);
 
     const svg = cashflowChart.querySelector("svg");
     const hoverTarget = svg.querySelector(".chart-hover-target");
@@ -3349,6 +3718,15 @@
     }));
     const totalLinePath = smoothPointsToCubic(totalLinePoints);
 
+    const insightsPinsSvg = buildChartInsightPinsSvg(
+      currentCalculationInsights,
+      minAge,
+      maxAge,
+      margin,
+      plotWidth,
+      plotHeight,
+    );
+
     taxChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Skat og afgifter over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
         <defs>
@@ -3385,12 +3763,15 @@
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis skat for et bestemt år" />
+        <g class="chart-insights-layer">${insightsPinsSvg}</g>
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
           <circle class="chart-hover-point-total" cx="0" cy="0" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.5" />
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
+
+    attachChartInsightPinEvents(taxChart);
 
     const svg = taxChart.querySelector("svg");
     const hoverTarget = svg.querySelector(".chart-hover-target");
@@ -3615,6 +3996,15 @@
     const isAreaMode = (chartPaneViewModes.solvency || "area") !== "line";
     const areaSvg = isAreaMode ? `<path d="${smoothAreaPath(points, plotBottom)}" fill="url(#solvency-grad)" />` : "";
 
+    const insightsPinsSvg = buildChartInsightPinsSvg(
+      currentCalculationInsights,
+      minAge,
+      maxAge,
+      margin,
+      plotWidth,
+      plotHeight,
+    );
+
     solvencyChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Solvens-sandsynlighed over tid fra ${ages.format(minAge)} til ${ages.format(maxAge)} år">
         <defs>
@@ -3636,12 +4026,15 @@
         ${yAxisLabels}
         ${yearAxis}
         <rect class="chart-hover-target" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}" tabindex="0" role="img" aria-label="Vis solvens for en bestemt alder" />
+        <g class="chart-insights-layer">${insightsPinsSvg}</g>
         <g class="chart-hover-layer" style="display: none" aria-hidden="true">
           <line class="chart-hover-line" x1="0" x2="0" y1="${margin.top}" y2="${plotBottom}" />
           <circle class="chart-hover-point-solvency" cx="0" cy="0" r="5" fill="#6366f1" stroke="#ffffff" stroke-width="2" />
           <g class="chart-tooltip"></g>
         </g>
       </svg>`;
+
+    attachChartInsightPinEvents(solvencyChart);
 
     const svg = solvencyChart.querySelector("svg");
     const hoverTarget = svg.querySelector(".chart-hover-target");
@@ -4808,6 +5201,8 @@
 
     renderPhases(calculation, inputs);
     renderMonteCarloComparison(calculation, inputs, mc);
+    currentCalculationInsights = analyzeFinancialPlan(calculation, inputs);
+    renderInsightsDrawer(currentCalculationInsights);
     renderActiveChart(calculation, inputs, mc);
     renderFolkepensionOptimizer(calculation, inputs);
     renderCashGlidePreview(calculation, inputs);
@@ -5514,6 +5909,16 @@
   });
 
   tableBody.addEventListener("click", (e) => {
+    const insightPill = e.target.closest(".matrix-insight-pill");
+    if (insightPill) {
+      e.stopPropagation();
+      const id = insightPill.dataset.insightId;
+      const ins = currentCalculationInsights.find((i) => i.id === id);
+      if (ins) {
+        focusAndHighlightInsight(ins);
+      }
+      return;
+    }
     const pill = e.target.closest(".cash-share-pill");
     if (pill) {
       isCustomCashMode = true;
@@ -5750,6 +6155,53 @@
       }
     });
   });
+
+  // Cockpit Insights Toggle Button
+  if (cockpitInsightsToggleBtn) {
+    cockpitInsightsToggleBtn.addEventListener("click", () => {
+      toggleInsightsEnabled();
+    });
+  }
+
+  // Insights Drawer Collapse Button & Header
+  if (insightsDrawerCollapseBtn) {
+    insightsDrawerCollapseBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleDrawerCollapse();
+    });
+  }
+  if (insightsDrawerHeader) {
+    insightsDrawerHeader.addEventListener("click", (e) => {
+      if (e.target.closest(".insights-collapse-btn")) return;
+      toggleDrawerCollapse();
+    });
+  }
+  function toggleDrawerCollapse() {
+    if (!cockpitInsightsDrawer) return;
+    const isNowCollapsed = cockpitInsightsDrawer.classList.toggle("is-collapsed");
+    if (insightsCollapseLabel) {
+      insightsCollapseLabel.textContent = isNowCollapsed ? "Vis detaljer" : "Skjul detaljer";
+    }
+    const chevron = cockpitInsightsDrawer.querySelector(".insights-chevron");
+    if (chevron) {
+      chevron.textContent = isNowCollapsed ? "▾" : "▴";
+    }
+  }
+
+  // Insights Cards Grid Click Delegation (Focus button or card click)
+  if (insightsCardsGrid) {
+    insightsCardsGrid.addEventListener("click", (e) => {
+      const focusBtn = e.target.closest(".insight-focus-btn");
+      const card = e.target.closest(".insight-card");
+      const id = focusBtn?.dataset.insightId || card?.dataset.insightId;
+      if (id) {
+        const ins = currentCalculationInsights.find((i) => i.id === id);
+        if (ins) {
+          focusAndHighlightInsight(ins);
+        }
+      }
+    });
+  }
 
   if (runSolvencyMcBtn) {
     runSolvencyMcBtn.addEventListener("click", runMonteCarloSimulation);
