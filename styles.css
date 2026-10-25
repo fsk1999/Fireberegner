@@ -3887,21 +3887,19 @@ th.housing-col {
    ========================================================================== */
 
 .math-inline-explainer-row {
-  animation: inlineExplainerSlideDown 180ms ease-out;
+  animation: inlineExplainerFadeIn 160ms ease-out;
   background: var(--surface-soft, #f4f8f6) !important;
   border-top: 2px solid var(--green-primary, #164b39) !important;
   border-bottom: 2px solid var(--green-primary, #164b39) !important;
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.05), inset 0 -3px 8px rgba(0, 0, 0, 0.05);
 }
 
-@keyframes inlineExplainerSlideDown {
+@keyframes inlineExplainerFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -3909,17 +3907,29 @@ th.housing-col {
   padding: 0 !important;
   text-align: left !important;
   white-space: normal !important;
+  position: relative;
+  overflow: visible;
 }
 
 .math-inline-shell {
+  position: sticky;
+  left: 0;
+  width: var(--table-visible-width, 100%);
+  max-width: var(--table-visible-width, 100%);
+  box-sizing: border-box;
   container-type: inline-size;
   container-name: mathshell;
   background: linear-gradient(180deg, rgba(247, 250, 248, 0.98) 0%, rgba(238, 246, 242, 0.98) 100%);
   border-radius: 4px;
-  box-sizing: border-box;
   color: var(--ink, #142321);
   font-family: var(--sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   padding: 16px 20px 20px;
+  margin: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .math-inline-shell {
+  background: #142320;
 }
 
 .is-explaining-row {

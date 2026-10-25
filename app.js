@@ -6613,12 +6613,16 @@
       ${exp.returnExampleNote ? `<p class="math-formula-detail">${exp.returnExampleNote}</p>` : ""}
     ` : "";
 
+    const tableWrap = document.querySelector("#main-projection-table-wrap");
+    const visibleWidth = tableWrap ? tableWrap.clientWidth : Math.min(window.innerWidth - 32, 1140);
+
     const inlineTr = document.createElement("tr");
     inlineTr.className = "math-inline-explainer-row";
     inlineTr.dataset.expandedAge = String(targetAge);
+    inlineTr.style.setProperty("--table-visible-width", `${visibleWidth}px`);
     inlineTr.innerHTML = `
       <td colspan="30" class="math-inline-explainer-cell">
-        <div class="math-inline-shell">
+        <div class="math-inline-shell" style="width: ${visibleWidth}px; max-width: ${visibleWidth}px;">
           <div class="math-inline-header">
             <div class="math-inline-title-area">
               <div class="math-inline-badge-strip">
@@ -6665,6 +6669,7 @@
 
     tr.after(inlineTr);
     tr.classList.add("is-explaining-row");
+    syncInlineExplainerWidth();
 
     const targetSpan = tr.querySelector(`[data-col-key="${colKey}"]`);
     if (targetSpan) {
@@ -6676,6 +6681,27 @@
     if (!isRestore) {
       inlineTr.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+  }
+
+  function syncInlineExplainerWidth() {
+    const tableWrap = document.querySelector("#main-projection-table-wrap");
+    const openShells = document.querySelectorAll(".math-inline-explainer-row .math-inline-shell");
+    if (!tableWrap || openShells.length === 0) return;
+    const visibleWidth = Math.max(320, tableWrap.clientWidth);
+    openShells.forEach((shell) => {
+      shell.style.width = `${visibleWidth}px`;
+      shell.style.maxWidth = `${visibleWidth}px`;
+      const row = shell.closest(".math-inline-explainer-row");
+      if (row) {
+        row.style.setProperty("--table-visible-width", `${visibleWidth}px`);
+      }
+    });
+  }
+
+  window.addEventListener("resize", syncInlineExplainerWidth);
+  const mainTableWrap = document.querySelector("#main-projection-table-wrap");
+  if (mainTableWrap && window.ResizeObserver) {
+    new ResizeObserver(syncInlineExplainerWidth).observe(mainTableWrap);
   }
 
   function expandInlineExplainerForMetric({ metricKey, targetEl }) {
