@@ -72,6 +72,14 @@
   });
 
   function getTargetCashShare(year, age, inputs, fireAge = inputs?.retirementAge) {
+    if (
+      Array.isArray(inputs?.annualCashShares) &&
+      Number.isFinite(inputs.annualCashShares[year])
+    ) {
+      const shareVal = inputs.annualCashShares[year];
+      const normalizedShare = shareVal > 1 ? shareVal / 100 : shareVal;
+      return Math.max(0, Math.min(1, normalizedShare));
+    }
     if (!Number.isFinite(inputs?.cashShareStart)) {
       return 0;
     }
@@ -1057,6 +1065,7 @@
       row.ratePension + row.lifeAnnuityDepotValue + row.ageSavings;
     const freeStockBalance = row.freeFunds + row.ask;
     const cashRate = values.cashReturnRate ?? 0.015;
+    row.cashInterestRate = cashRate;
     row.averageReturnRate =
       row.totalDepotValue > 0 &&
       Number.isFinite(row.pensionReturnRate) &&
@@ -1120,6 +1129,20 @@
     if (inputs.cashShareTarget !== undefined) {
       if (!Number.isFinite(inputs.cashShareTarget) || inputs.cashShareTarget < 0 || inputs.cashShareTarget > 100) {
         throw new Error("Kontantandel ved pension skal være mellem 0 % og 100 %.");
+      }
+    }
+    if (Array.isArray(inputs.annualCashShares)) {
+      for (const share of inputs.annualCashShares) {
+        if (Number.isFinite(share) && (share < 0 || (share > 1 && share > 100))) {
+          throw new Error("Årlig kontantandel skal være mellem 0 % og 100 %.");
+        }
+      }
+    }
+    if (Array.isArray(inputs.annualCashInterestRates)) {
+      for (const rate of inputs.annualCashInterestRates) {
+        if (Number.isFinite(rate) && rate <= -1) {
+          throw new Error("Årlig kontantrente kan ikke være lavere end -100 %.");
+        }
       }
     }
     if (
@@ -1461,6 +1484,22 @@
     const cashInterestTax = inputs.cashInterestTax ?? 0.37;
     const realCashReturn = realCashReturnFor(cashInterestRate, cashInterestTax);
 
+    function getCashInterestRateForYear(year) {
+      if (
+        Array.isArray(inputs.annualCashInterestRates) &&
+        Number.isFinite(inputs.annualCashInterestRates[year])
+      ) {
+        const rateVal = inputs.annualCashInterestRates[year];
+        return rateVal > 1 ? rateVal / 100 : rateVal;
+      }
+      return inputs.cashInterestRate ?? 0.015;
+    }
+
+    function realCashReturnForYear(year) {
+      const nominalRate = getCashInterestRateForYear(year);
+      return realCashReturnFor(nominalRate, cashInterestTax);
+    }
+
     const netPensionReturn = inputs.returnRate * (1 - inputs.pensionTax);
     const realPensionReturn = realPensionReturnFor(inputs.returnRate);
     const realAskReturn = realAskReturnFor(inputs.returnRate);
@@ -1635,7 +1674,7 @@
           freeReturn,
         ),
         realAskReturnFor(freeReturn),
-        realCashReturn,
+        realCashReturnForYear(year),
       ];
     }
 
@@ -1655,7 +1694,7 @@
           return realAskReturnFor(freeNominalReturn(year));
         }
         if (index === CASH) {
-          return realCashReturn;
+          return realCashReturnForYear(year);
         }
         return grossRealFreeFundsReturnFor(freeNominalReturn(year));
       });
@@ -1759,7 +1798,10 @@
     const followsInflation = inputs.contributionsFollowInflation !== false;
     const redirectsPensionContributions =
       inputs.redirectPensionContributionsToFreeFunds !== false;
-    const hasDynamicCashShare = Number.isFinite(inputs.cashShareStart);
+    const hasDynamicCashShare =
+      Number.isFinite(inputs.cashShareStart) ||
+      (Array.isArray(inputs.annualCashShares) &&
+        inputs.annualCashShares.some((s) => Number.isFinite(s)));
     let initialCash = 0;
     let initialFreeRealization = 0;
     let initialFreeInventory = 0;
@@ -2201,6 +2243,7 @@
                 phase: beforeRetirement ? "FIRE" : "Pension",
                 pensionReturnRate: pensionNominalReturn(year, shouldRecord),
                 freeFundsReturnRate: freeNominalReturn(year, shouldRecord),
+                cashReturnRate: getCashInterestRateForYear(year),
                 contribution: year === startYear ? startingContribution : 0,
                 withdrawal: totalWithdrawal,
                 desiredWithdrawal: baseDesired,
@@ -2290,6 +2333,7 @@
             ratePensionNonDeductibleBasis,
             {
               phase: "Slut",
+              cashReturnRate: getCashInterestRateForYear(endYear),
               lifeAnnuityDepotValue: lifeAnnuityConverted
                 ? lifeAnnuityDepotValue(lifeAnnuityAnnualIncome, endYear)
                 : balances[LIFE_ANNUITY],
@@ -2628,6 +2672,7 @@
               phase: "Opsparing",
               pensionReturnRate: pensionNominalReturn(year, true),
               freeFundsReturnRate: freeNominalReturn(year, true),
+              cashReturnRate: getCashInterestRateForYear(year),
               contribution: contributionAtCheckpoint,
               housingValue: accHousingInfo.housingValue,
               housingDebt: accHousingInfo.housingDebt,

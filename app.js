@@ -163,6 +163,21 @@
   let customAnnualReturnRates = [];
   let latestCustomCrisisResult = null;
   const customCrisisResetBtn = document.querySelector("#custom-crisis-reset-btn");
+  let customAnnualCashShares = [];
+  let customAnnualCashRates = [];
+  let isCustomCashMode = false;
+  const toggleCustomCashBtn = document.querySelector("#toggle-custom-cash-btn");
+  const customCashResetBtn = document.querySelector("#custom-cash-reset-btn");
+  const thCashHeader = document.querySelector("#th-cash-header");
+
+  function hasAnyCashOverrides() {
+    return (
+      (Array.isArray(customAnnualCashShares) &&
+        customAnnualCashShares.some((v) => Number.isFinite(v))) ||
+      (Array.isArray(customAnnualCashRates) &&
+        customAnnualCashRates.some((v) => Number.isFinite(v)))
+    );
+  }
   let activeTornadoPreset = null;
   let baseTornadoInputs = null;
   let isApplyingTornadoSliders = false;
@@ -598,6 +613,10 @@
           button.getAttribute("aria-pressed") === "true",
         ]),
       ),
+      annualCashShares:
+        customAnnualCashShares.length > 0 ? [...customAnnualCashShares] : undefined,
+      annualCashInterestRates:
+        customAnnualCashRates.length > 0 ? [...customAnnualCashRates] : undefined,
     };
   }
 
@@ -745,6 +764,16 @@
     }
     if (form.elements.cashShareTargetRange && form.elements.cashShareTarget) {
       form.elements.cashShareTargetRange.value = form.elements.cashShareTarget.value;
+    }
+    if (Array.isArray(inputs.annualCashShares)) {
+      customAnnualCashShares = [...inputs.annualCashShares];
+    } else {
+      customAnnualCashShares = [];
+    }
+    if (Array.isArray(inputs.annualCashInterestRates)) {
+      customAnnualCashRates = [...inputs.annualCashInterestRates];
+    } else {
+      customAnnualCashRates = [];
     }
     update();
   }
@@ -1696,6 +1725,69 @@
         <td class="scen-comp-col mc-comp-col-diff ${diffClass}" data-col-group="comparison">${formatDiffCurrency(diff)}</td>`;
     }
 
+    let cashCell = "";
+    const hasCustomShare = Number.isFinite(customAnnualCashShares[rowYearIdx]);
+    const hasCustomRate = Number.isFinite(customAnnualCashRates[rowYearIdx]);
+    const isCashOverridden = hasCustomShare || hasCustomRate;
+
+    if (row.phase === "Slut") {
+      cashCell = `<td data-col-group="free" class="projection-cash-cell"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span></td>`;
+    } else if (isCustomCashMode || isCashOverridden) {
+      const shareValPct = hasCustomShare
+        ? (customAnnualCashShares[rowYearIdx] * 100).toFixed(1)
+        : (row.cashShare !== undefined ? (row.cashShare * 100).toFixed(1) : "0.0");
+      const rateValPct = hasCustomRate
+        ? (customAnnualCashRates[rowYearIdx] * 100).toFixed(1)
+        : (row.cashInterestRate !== undefined ? (row.cashInterestRate * 100).toFixed(1) : ((latestInputs?.cashInterestRate ?? 0.015) * 100).toFixed(1));
+
+      cashCell = `
+        <td data-col-group="free" class="projection-cash-cell projection-cash-editable">
+          <div class="custom-cash-cell-wrap">
+            <div class="custom-cash-input-row" title="Kontantandel af frie midler i % (overstyrer indstilling under Afkast)">
+              <span class="custom-cash-label">Andel:</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                class="custom-cash-input custom-cash-share-input${hasCustomShare ? " is-overridden" : ""}"
+                data-custom-year="${rowYearIdx}"
+                data-custom-age="${row.age}"
+                value="${shareValPct}"
+                title="Kontantandel af frie midler (%) for alder ${row.age} år"
+              />
+              <span class="custom-cash-unit">%</span>
+            </div>
+            <div class="custom-cash-input-row" title="Bankrente på kontantreserve i % p.a. (overstyrer indstilling under Afkast)">
+              <span class="custom-cash-label">Rente:</span>
+              <input
+                type="number"
+                min="-5"
+                max="30"
+                step="0.1"
+                class="custom-cash-input custom-cash-rate-input${hasCustomRate ? " is-overridden" : ""}"
+                data-custom-year="${rowYearIdx}"
+                data-custom-age="${row.age}"
+                value="${rateValPct}"
+                title="Bankrente (% p.a.) for alder ${row.age} år"
+              />
+              <span class="custom-cash-unit">%</span>
+            </div>
+            <div class="custom-cash-amount">
+              <span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span>
+            </div>
+          </div>
+        </td>`;
+    } else {
+      const sharePill = (row.cashShare !== undefined && row.cashShare > 0.001)
+        ? ` <span class="cash-share-pill" title="Klik for at justere kontantreserve og rente år-for-år i matricen">${Math.round(row.cashShare * 100)} %</span>`
+        : "";
+      cashCell = `
+        <td data-col-group="free" class="projection-cash-cell">
+          <span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}${sharePill}</span>
+        </td>`;
+    }
+
     return `
       <tr data-phase="${row.phase}">
         <td>${dateFormat.format(row.date)}</td>
@@ -1708,7 +1800,7 @@
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ageSavings" data-row-age="${row.age}" tabindex="0">${currency.format(row.ageSavings)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="freeFunds" data-row-age="${row.age}" tabindex="0">${currency.format(row.freeFunds)}</span></td>
         <td data-col-group="free"><span class="explainable-val" data-col-key="ask" data-row-age="${row.age}" tabindex="0">${currency.format(row.ask)}</span></td>
-        <td data-col-group="free"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}${row.cashShare !== undefined && row.cashShare > 0.001 ? ` <span class="cash-share-pill">${Math.round(row.cashShare * 100)} %</span>` : ""}</span></td>
+        ${cashCell}
         <td><span class="explainable-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalDepotValue)}</span></td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}>${row.housingEquity ? `<span class="explainable-val" data-col-key="housingEquity" data-row-age="${row.age}" tabindex="0">${currency.format(row.housingEquity)}</span>` : "—"}</td>
         <td class="housing-col" data-col-group="housing"${includeHousing ? "" : " hidden"}><span class="explainable-val" data-col-key="totalWealthWithHousing" data-row-age="${row.age}" tabindex="0">${currency.format(row.totalWealthWithHousing ?? row.totalDepotValue)}</span></td>
@@ -4429,6 +4521,19 @@
       customCrisisResetBtn.hidden =
         mcTableScenario !== "crisis" || selectedTableCrisisIdx !== "custom";
     }
+    const hasCashOverrides = hasAnyCashOverrides();
+    if (customCashResetBtn) {
+      customCashResetBtn.hidden = !hasCashOverrides;
+    }
+    if (toggleCustomCashBtn) {
+      toggleCustomCashBtn.setAttribute("aria-pressed", String(isCustomCashMode));
+      toggleCustomCashBtn.classList.toggle("is-active", isCustomCashMode);
+    }
+    if (thCashHeader) {
+      thCashHeader.textContent = isCustomCashMode
+        ? "Kontantreserve (Andel % & Rente %)"
+        : "Kontantreserve";
+    }
     const baseCalcForTable =
       mcTableScenario === "sensitivity" && baseTornadoInputs
         ? calculateFire(baseTornadoInputs)
@@ -4790,47 +4895,145 @@
   }
 
   tableBody.addEventListener("change", (e) => {
-    const input = e.target.closest(".custom-return-input");
-    if (!input) return;
-    const yearIdx = Number(input.dataset.customYear);
-    const valPct = parseFloat(input.value);
-    if (!Number.isNaN(valPct)) {
-      customAnnualReturnRates[yearIdx] = valPct / 100;
-      input.classList.toggle("is-negative", valPct < 0);
+    const returnInput = e.target.closest(".custom-return-input");
+    if (returnInput) {
+      const yearIdx = Number(returnInput.dataset.customYear);
+      const valPct = parseFloat(returnInput.value);
+      if (!Number.isNaN(valPct)) {
+        customAnnualReturnRates[yearIdx] = valPct / 100;
+        returnInput.classList.toggle("is-negative", valPct < 0);
+      }
+      const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
+      latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
+        ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
+        : null;
+      if (activeStressTestCrisis?.isCustom) {
+        activeStressTestCrisis = latestCustomCrisisResult;
+      }
+      update();
+      if (latestInputs) renderStressTests(latestInputs, true);
+      if (latestCalculation && latestInputs) {
+        renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
+      }
+      const nextInput = tableBody.querySelector(`.custom-return-input[data-custom-year="${yearIdx}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
     }
-    const anchorInputs = baseTornadoInputs || latestInputs || readInputs();
-    latestCustomCrisisResult = window.FireMonteCarlo?.simulateCustomCrisis
-      ? window.FireMonteCarlo.simulateCustomCrisis(anchorInputs, customAnnualReturnRates)
-      : null;
-    if (activeStressTestCrisis?.isCustom) {
-      activeStressTestCrisis = latestCustomCrisisResult;
+
+    const cashShareInput = e.target.closest(".custom-cash-share-input");
+    if (cashShareInput) {
+      const yearIdx = Number(cashShareInput.dataset.customYear);
+      const valPct = parseFloat(cashShareInput.value);
+      if (!Number.isNaN(valPct)) {
+        customAnnualCashShares[yearIdx] = Math.max(0, Math.min(100, valPct)) / 100;
+      } else {
+        delete customAnnualCashShares[yearIdx];
+      }
+      update();
+      const nextInput = tableBody.querySelector(`.custom-cash-share-input[data-custom-year="${yearIdx}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
     }
-    update();
-    if (latestInputs) renderStressTests(latestInputs, true);
-    if (latestCalculation && latestInputs) {
-      renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
-    }
-    const nextInput = tableBody.querySelector(`.custom-return-input[data-custom-year="${yearIdx}"]`);
-    if (nextInput) {
-      nextInput.focus();
-      nextInput.select();
+
+    const cashRateInput = e.target.closest(".custom-cash-rate-input");
+    if (cashRateInput) {
+      const yearIdx = Number(cashRateInput.dataset.customYear);
+      const valPct = parseFloat(cashRateInput.value);
+      if (!Number.isNaN(valPct)) {
+        customAnnualCashRates[yearIdx] = valPct / 100;
+      } else {
+        delete customAnnualCashRates[yearIdx];
+      }
+      update();
+      const nextInput = tableBody.querySelector(`.custom-cash-rate-input[data-custom-year="${yearIdx}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
     }
   });
 
   tableBody.addEventListener("keydown", (e) => {
-    const input = e.target.closest(".custom-return-input");
-    if (!input) return;
-    if (e.key === "Enter") {
+    if (e.key !== "Enter") return;
+
+    const returnInput = e.target.closest(".custom-return-input");
+    if (returnInput) {
       e.preventDefault();
-      const currentYear = Number(input.dataset.customYear);
-      input.dispatchEvent(new Event("change", { bubbles: true }));
+      const currentYear = Number(returnInput.dataset.customYear);
+      returnInput.dispatchEvent(new Event("change", { bubbles: true }));
       const nextInput = tableBody.querySelector(`.custom-return-input[data-custom-year="${currentYear + 1}"]`);
       if (nextInput) {
         nextInput.focus();
         nextInput.select();
       }
+      return;
+    }
+
+    const cashShareInput = e.target.closest(".custom-cash-share-input");
+    if (cashShareInput) {
+      e.preventDefault();
+      const currentYear = Number(cashShareInput.dataset.customYear);
+      cashShareInput.dispatchEvent(new Event("change", { bubbles: true }));
+      const nextInput = tableBody.querySelector(`.custom-cash-share-input[data-custom-year="${currentYear + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
+    }
+
+    const cashRateInput = e.target.closest(".custom-cash-rate-input");
+    if (cashRateInput) {
+      e.preventDefault();
+      const currentYear = Number(cashRateInput.dataset.customYear);
+      cashRateInput.dispatchEvent(new Event("change", { bubbles: true }));
+      const nextInput = tableBody.querySelector(`.custom-cash-rate-input[data-custom-year="${currentYear + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
     }
   });
+
+  tableBody.addEventListener("click", (e) => {
+    const pill = e.target.closest(".cash-share-pill");
+    if (pill) {
+      isCustomCashMode = true;
+      if (toggleCustomCashBtn) {
+        toggleCustomCashBtn.setAttribute("aria-pressed", "true");
+        toggleCustomCashBtn.classList.add("is-active");
+      }
+      update();
+    }
+  });
+
+  if (toggleCustomCashBtn) {
+    toggleCustomCashBtn.addEventListener("click", () => {
+      isCustomCashMode = !isCustomCashMode;
+      toggleCustomCashBtn.setAttribute("aria-pressed", String(isCustomCashMode));
+      toggleCustomCashBtn.classList.toggle("is-active", isCustomCashMode);
+      update();
+    });
+  }
+
+  if (customCashResetBtn) {
+    customCashResetBtn.addEventListener("click", () => {
+      customAnnualCashShares = [];
+      customAnnualCashRates = [];
+      if (customCashResetBtn) {
+        customCashResetBtn.hidden = true;
+      }
+      update();
+    });
+  }
 
   if (customCrisisResetBtn) {
     customCrisisResetBtn.addEventListener("click", () => {

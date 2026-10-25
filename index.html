@@ -1897,6 +1897,26 @@
                       🔄 Nulstil afkast
                     </button>
                   </div>
+                  <div id="table-cash-override-wrap" class="table-cash-override-wrap">
+                    <button
+                      type="button"
+                      id="toggle-custom-cash-btn"
+                      class="table-cash-toggle-btn"
+                      aria-pressed="false"
+                      title="Slå til for at justere kontantreserve andel (%) og bankrente (% p.a.) år for år direkte i matricen"
+                    >
+                      ✏️ Justér kontant &amp; rente
+                    </button>
+                    <button
+                      type="button"
+                      id="custom-cash-reset-btn"
+                      class="custom-crisis-reset-btn custom-cash-reset-btn"
+                      title="Nulstil alle år-for-år kontantreserve og rente ændringer direkte i matricen tilbage til de overordnede indstillinger under afkast"
+                      hidden
+                    >
+                      🔄 Nulstil kontant &amp; rente
+                    </button>
+                  </div>
                   <label class="mc-table-compare-toggle">
                     <input
                       id="mc-table-show-comparison"
@@ -1982,7 +2002,7 @@
                       <th data-col-group="pension">Aldersopsparing</th>
                       <th data-col-group="free">Frie midler</th>
                       <th data-col-group="free">Aktiesparekonto</th>
-                      <th data-col-group="free">Kontantreserve</th>
+                      <th data-col-group="free" id="th-cash-header">Kontantreserve</th>
                       <th>Samlet depotværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Friværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Samlet formue (inkl. bolig)</th>

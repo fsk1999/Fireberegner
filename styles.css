@@ -4496,6 +4496,148 @@ th.housing-col {
 }
 
 /* =====================================================================
+   Year-by-Year Cash & Interest Editing in Matrix
+   ===================================================================== */
+.table-cash-override-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-cash-toggle-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.table-cash-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.table-cash-toggle-btn.is-active,
+.table-cash-toggle-btn[aria-pressed="true"] {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.custom-cash-reset-btn {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.custom-cash-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #7f1d1d;
+}
+
+.projection-cash-cell {
+  vertical-align: middle;
+}
+
+.projection-cash-editable {
+  padding: 4px 6px !important;
+  background: #fcfdfc;
+}
+
+.custom-cash-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 135px;
+}
+
+.custom-cash-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.custom-cash-label {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.custom-cash-input {
+  width: 46px;
+  padding: 2px 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease;
+}
+
+.custom-cash-input:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+  background: #f0fdf4;
+}
+
+.custom-cash-input.is-overridden {
+  background: #f0fdf4;
+  border-color: #10b981;
+  color: #065f46;
+  font-weight: 700;
+}
+
+.custom-cash-unit {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
+  width: 11px;
+}
+
+.custom-cash-amount {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+  padding-top: 2px;
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 1px;
+}
+
+.cash-share-pill {
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+
+.cash-share-pill:hover {
+  transform: scale(1.05);
+  background: #cbd5e1;
+}
+
+.cash-share-pill.is-overridden {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  font-weight: 600;
+}
+
+/* =====================================================================
    Cash Reserve & Dynamic Glide Path
    ===================================================================== */
 .cash-reserve-card-box {

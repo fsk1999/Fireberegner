@@ -382,8 +382,56 @@ console.assert(dynExp !== null, "Math explainer must explain dynamic cash share"
 console.assert(dynExp.formula.includes("5") || dynExp.formula.includes("%"), "Explainer formula should mention cash share percentage");
 console.log("✓ Dynamic cash share, linear glide path, and plan persistence verified.");
 
+console.log("\n=== 17. Year-by-Year Cash Reserve & Interest Rate Overrides ===");
+const yearByYearCashInputs = {
+  ...baseInputs,
+  freeFundsBalance: 500000,
+  annualFreeFundsContribution: 50000,
+  cashShareStart: 5,
+  cashShareTarget: 20,
+  cashInterestRate: 0.015,
+  annualCashShares: [0.10, 0.12, 0.15],
+  annualCashInterestRates: [0.035, 0.040, 0.025],
+};
+const ybyCalc = FireCalculations.calculateFire(yearByYearCashInputs);
+console.assert(ybyCalc.planRows.length > 0, "Must generate plan rows");
+const row0 = ybyCalc.planRows[0];
+const row1 = ybyCalc.planRows[1];
+const row2 = ybyCalc.planRows[2];
+
+console.assert(Math.abs(row0.cashShare - 0.10) < 0.001, `Row 0 cash share should be 10%, got ${(row0.cashShare * 100).toFixed(1)}%`);
+console.assert(Math.abs(row0.cashInterestRate - 0.035) < 0.0001, `Row 0 cash interest rate should be 3.5%, got ${row0.cashInterestRate}`);
+
+console.assert(Math.abs(row1.cashShare - 0.12) < 0.001, `Row 1 cash share should be 12%, got ${(row1.cashShare * 100).toFixed(1)}%`);
+console.assert(Math.abs(row1.cashInterestRate - 0.040) < 0.0001, `Row 1 cash interest rate should be 4.0%, got ${row1.cashInterestRate}`);
+
+console.assert(Math.abs(row2.cashShare - 0.15) < 0.001, `Row 2 cash share should be 15%, got ${(row2.cashShare * 100).toFixed(1)}%`);
+console.assert(Math.abs(row2.cashInterestRate - 0.025) < 0.0001, `Row 2 cash interest rate should be 2.5%, got ${row2.cashInterestRate}`);
+
+// Row 5 should fall back to standard glide path & interest rate
+if (ybyCalc.planRows.length > 5) {
+  const row5 = ybyCalc.planRows[5];
+  console.assert(Math.abs(row5.cashInterestRate - 0.015) < 0.0001, `Row 5 cash interest rate should default to 1.5%, got ${row5.cashInterestRate}`);
+}
+
+const expYby = FireMathExplainer.explainTableCell({
+  colKey: "cash",
+  row: row0,
+  prevRow: null,
+  calculation: ybyCalc,
+  inputs: yearByYearCashInputs,
+});
+console.assert(expYby !== null, "Math explainer must explain overridden cash cell");
+console.assert(expYby.assumptions.some((a) => a.value.includes("3,5")), "Explainer assumptions must reflect overridden interest rate 3.5%");
+
+const encodedYby = FirePlanCode.encodePlan(yearByYearCashInputs);
+const decodedYby = FirePlanCode.decodePlan(encodedYby);
+console.assert(Array.isArray(decodedYby.annualCashShares) && decodedYby.annualCashShares[0] === 0.10, "Plan code should preserve annualCashShares");
+console.assert(Array.isArray(decodedYby.annualCashInterestRates) && decodedYby.annualCashInterestRates[0] === 0.035, "Plan code should preserve annualCashInterestRates");
+console.log("✓ Year-by-year cash reserve & interest overrides verified.");
+
 console.log("\n==================================");
-console.log("ALL 16 VERIFICATION SUITES PASSED!");
+console.log("ALL 17 VERIFICATION SUITES PASSED!");
 console.log("==================================");
 
 

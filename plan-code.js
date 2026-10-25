@@ -254,9 +254,16 @@
       throw new Error("Koden indeholder ugyldige FIRE-input.");
     }
 
-    return Object.fromEntries(
+    const result = Object.fromEntries(
       INPUT_FIELDS.map((field) => [field, inputs[field]]),
     );
+    if (Array.isArray(rawInputs.annualCashShares)) {
+      result.annualCashShares = rawInputs.annualCashShares;
+    }
+    if (Array.isArray(rawInputs.annualCashInterestRates)) {
+      result.annualCashInterestRates = rawInputs.annualCashInterestRates;
+    }
+    return result;
   }
 
   function encodePlan(inputs) {

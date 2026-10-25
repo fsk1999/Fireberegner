@@ -747,29 +747,32 @@
         const end = row.cash ?? 0;
         const totalLiquidFree = (row.freeFunds ?? 0) + end;
         const cashSharePct = ((row.cashShare ?? (totalLiquidFree > 0 ? end / totalLiquidFree : 0)) * 100).toFixed(1);
-        const cashRate = inputs.cashInterestRate ?? 0.015;
+        const cashRate = row.cashInterestRate ?? inputs.cashInterestRate ?? 0.015;
         const cashTax = inputs.cashInterestTax ?? 0.37;
-        const hasGlide = Number.isFinite(inputs.cashShareStart);
+        const hasGlide = Number.isFinite(inputs.cashShareStart) || (Array.isArray(inputs.annualCashShares) && inputs.annualCashShares.some((s) => Number.isFinite(s)));
+        const rowYear = Math.max(0, age - inputs.currentAge);
+        const isCustomCash = (Array.isArray(inputs.annualCashShares) && Number.isFinite(inputs.annualCashShares[rowYear])) || (Array.isArray(inputs.annualCashInterestRates) && Number.isFinite(inputs.annualCashInterestRates[rowYear]));
 
         if (!prevRow) {
           return {
             title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
-            badge: "Sikker likviditet",
+            badge: isCustomCash ? "Justeret i matrix" : "Sikker likviditet",
             quickMath: `Startsaldo: ${currency.format(end)} (${cashSharePct} % af frie midler)`,
             description: hasGlide
-              ? `Din kontantreserve udgør ${cashSharePct} % af dine samlede frie midler (${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart} % og stige mod ${inputs.cashShareTarget} % ved pension.`
+              ? `Din kontantreserve udgør ${cashSharePct} % af dine samlede frie midler (${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart ?? cashSharePct} % og stige mod ${inputs.cashShareTarget ?? cashSharePct} % ved pension.`
               : "Din indtastede startopsparing i kontantreserve/bankindestående. Forrentes med en fast bankrente og fungerer som sikker buffer.",
             formula: hasGlide ? `Startsaldo = Frie midler × Kontantandel (${cashSharePct} %)` : "Startsaldo (primo)",
             formulaDetails: `Forrentes med ${percent.format(cashRate)} før skat. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst.`,
             steps: [
               { label: "Samlede frie midler", value: currency.format(totalLiquidFree) },
-              ...(hasGlide ? [{ label: `Kontantandel ved start (${inputs.cashShareStart} %)`, value: `${cashSharePct} %`, isSub: true }] : []),
+              ...(hasGlide ? [{ label: `Kontantandel ved start (${inputs.cashShareStart ?? cashSharePct} %)`, value: `${cashSharePct} %`, isSub: true }] : []),
               { label: "Startsaldo i kontantreserve", value: currency.format(end), isResult: true }
             ],
             assumptions: [
               { label: "Kontantandel ved start", value: `${inputs.cashShareStart ?? cashSharePct} %` },
               { label: "Rente på kontantreserve", value: percent.format(cashRate) },
-              { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
+              { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) },
+              ...(isCustomCash ? [{ label: "Matrix-justering", value: "Brugerdefineret år-for-år overstyring" }] : [])
             ]
           };
         }
@@ -785,7 +788,7 @@
 
         return {
           title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
-          badge: "Sikker likviditet",
+          badge: isCustomCash ? "Justeret i matrix" : "Sikker likviditet",
           quickMath: quickMathParts.join(" "),
           description: hasGlide
             ? `Kontantreserven udgør ${cashSharePct} % af dine samlede frie midler i år (${currency.format(totalLiquidFree)}). Den tilpasses dynamisk iht. din valgte optrapningsprofil.`
@@ -805,7 +808,8 @@
           assumptions: [
             { label: "Kontantandel (dette år)", value: `${cashSharePct} % af frie midler` },
             { label: "Rente på kontantreserve", value: percent.format(cashRate) },
-            { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) }
+            { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) },
+            ...(isCustomCash ? [{ label: "Matrix-justering", value: "Brugerdefineret år-for-år overstyring" }] : [])
           ]
         };
       }
