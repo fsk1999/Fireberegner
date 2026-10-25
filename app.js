@@ -4794,16 +4794,63 @@
     }
   });
 
+  const cashBalanceInput = form.elements.cashBalance;
   const cashShareStartInput = form.elements.cashShareStart;
   const cashShareStartRange = form.elements.cashShareStartRange;
   const cashShareTargetInput = form.elements.cashShareTarget;
   const cashShareTargetRange = form.elements.cashShareTargetRange;
+
+  let isSyncingCash = false;
+
+  function syncCashShareFromBalance() {
+    if (isSyncingCash) return;
+    isSyncingCash = true;
+    try {
+      const free = readNumber("freeFundsBalance") || 0;
+      const cash = readNumber("cashBalance") || 0;
+      const total = free + cash;
+      if (total > 0 && cashShareStartInput) {
+        const pct = Math.max(0, Math.min(100, Math.round((cash / total) * 100 * 10) / 10));
+        cashShareStartInput.value = pct;
+        if (cashShareStartRange) {
+          cashShareStartRange.value = pct;
+        }
+      }
+    } finally {
+      isSyncingCash = false;
+    }
+  }
+
+  function syncCashBalanceFromShare() {
+    if (isSyncingCash) return;
+    isSyncingCash = true;
+    try {
+      const free = readNumber("freeFundsBalance") || 0;
+      const currentCash = readNumber("cashBalance") || 0;
+      const total = free + currentCash;
+      const share = (parseFloat(cashShareStartInput?.value) || 0) / 100;
+      if (total > 0 && share >= 0 && share <= 1 && cashBalanceInput) {
+        const newCash = Math.round(total * share);
+        cashBalanceInput.value = currency.format(newCash).replace(/\s*kr\.$/, "");
+        formatNumberInput(cashBalanceInput);
+      }
+    } finally {
+      isSyncingCash = false;
+    }
+  }
+
+  if (cashBalanceInput) {
+    cashBalanceInput.addEventListener("input", syncCashShareFromBalance);
+  }
+
   if (cashShareStartInput && cashShareStartRange) {
     cashShareStartRange.addEventListener("input", () => {
       cashShareStartInput.value = cashShareStartRange.value;
+      syncCashBalanceFromShare();
     });
     cashShareStartInput.addEventListener("input", () => {
       cashShareStartRange.value = cashShareStartInput.value;
+      syncCashBalanceFromShare();
     });
   }
   if (cashShareTargetInput && cashShareTargetRange) {
