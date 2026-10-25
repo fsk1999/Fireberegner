@@ -2224,12 +2224,12 @@
             totalWithdrawal <= MONEY_TOLERANCE
               ? "—"
               : beforeRetirement
-                ? "Frie midler"
+                ? "Frie Midler (aktier)"
                 : pensionWithdrawal > MONEY_TOLERANCE &&
                     freeWithdrawal > MONEY_TOLERANCE
-                  ? "Pension og frie midler"
+                  ? "Pension + Frie Midler (aktier)"
                   : freeWithdrawal > MONEY_TOLERANCE
-                    ? "Frie midler"
+                    ? "Frie Midler (aktier)"
                     : "Pension";
 
           rows.push(

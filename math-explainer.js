@@ -667,7 +667,7 @@
         const steps = [];
         if (isFirstYear && hasCashAllocation) {
           steps.push({ label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) });
-          steps.push({ label: `Fratrukket kontantreserve i banken (${cashSharePct} %)`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Kontantreserve' som likviditetsbuffer" });
+          steps.push({ label: `Fratrukket kontantreserve i banken (${cashSharePct} %) (Frie Midler (kontant))`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Frie Midler (kontant)' som likviditetsbuffer" });
           steps.push({ label: `Investeret aktiedepot (primo 1. jan ${yearDate})`, value: `= ${currency.format(start)}`, note: "Danner grundlag for årets aktieafkast og hævninger" });
         } else {
           steps.push({
@@ -680,7 +680,7 @@
           steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}`, note: "Hæves til årets forbrug" });
         }
         if (contrib > 0) {
-          steps.push({ label: "Nettobidrag til frie midler", value: `+ ${currency.format(contrib)}`, note: "Indbetaling i opsparingsfasen" });
+          steps.push({ label: "Nettobidrag til Frie Midler (aktier)", value: `+ ${currency.format(contrib)}`, note: "Indbetaling i opsparingsfasen" });
         }
         steps.push({ label: `Nettoafkast i faste priser (${percent.format(grossRealRate)})`, value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: freeNominal < 0 ? "Både negativt kursafkast og inflation reducerer købekraften" : "I faste købekraftspriser" });
         steps.push({ label: `Nominelt bruttoafkast (${percent.format(freeNominal)})`, value: grossPrimo >= 0 ? `+ ${currency.format(grossPrimo)}` : `− ${currency.format(Math.abs(grossPrimo))}`, isSub: true });
@@ -697,7 +697,7 @@
         const rebalance = nextRowToUse ? Math.round(end - (netBase + contrib + afkast)) : 0;
         if (Math.abs(rebalance) > 50) {
           steps.push({
-            label: rebalance > 0 ? "Tilført fra kontantreserve (rebalancering)" : "Overført til kontantreserve (rebalancering)",
+            label: rebalance > 0 ? "Tilført fra Frie Midler (kontant) (rebalancering)" : "Overført til Frie Midler (kontant) (rebalancering)",
             value: rebalance > 0 ? `+ ${currency.format(rebalance)}` : `− ${currency.format(Math.abs(rebalance))}`,
             note: "Justering mod målsat kontantandel ved årets afslutning"
           });
@@ -711,13 +711,13 @@
         });
 
         return {
-          title: `Frie midler (${yearDate} · ${age} år)`,
+          title: `Frie Midler (aktier) (${yearDate} · ${age} år)`,
           badge: isFirstYear ? (hasCashAllocation ? "Investeret aktiedel (1. år)" : "Startsaldo (1. år)") : "Primosaldo",
           quickMath: quickMathStr,
           description: isFirstYear
             ? (hasCashAllocation
-                ? `Beløbet på ${currency.format(start)} er din investerede aktiedel ved planens start (svarende til ${stockSharePct} % af dine samlede frie midler på ${currency.format(totalLiquid)}, mens de resterende ${cashSharePct} % eller ${currency.format(cashBal)} er placeret i banken som kontantreserve). Herunder ses hele årets udvikling frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
-                : `Beløbet på ${currency.format(start)} er din indtastede startopsparing i frie midler ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(freeNominal)}), skat og hævninger udvikler saldoen frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
+                ? `Beløbet på ${currency.format(start)} er din investerede aktiedel ved planens start (svarende til ${stockSharePct} % af dine samlede frie midler på ${currency.format(totalLiquid)}, mens de resterende ${cashSharePct} % eller ${currency.format(cashBal)} er placeret i banken som Frie Midler (kontant)). Herunder ses hele årets udvikling frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
+                : `Beløbet på ${currency.format(start)} er din indtastede startopsparing i Frie Midler (aktier) ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(freeNominal)}), skat og hævninger udvikler saldoen frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
             : `Beløbet på ${currency.format(start)} er din primosaldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets forventede afkast (${percent.format(freeNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet af årets afkast og hævninger slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: "Ultimo = Primo − Hævning + Indbetaling + Nettoafkast (e. skat & inflation) ± Rebalancering",
           formulaDetails: `Hvor brutto realafkast er (${percent.format(freeNominal)} korrigeret for 2,0 % inflation) = ${percentPrecise.format(grossRealRate)}.`,
@@ -902,22 +902,22 @@
         });
 
         return {
-          title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
+          title: `Frie Midler (kontant) [Kontantreserve] (${yearDate} · ${age} år)`,
           badge: isFirstYear ? (isCustomCash ? "Justeret i matrix (1. år)" : "Startreserve (1. år)") : (isCustomCash ? "Justeret i matrix" : "Primosaldo"),
           quickMath: quickMathParts.join(" "),
           description: isFirstYear
             ? (hasGlide
-                ? `Din start-kontantreserve udgør ${currency.format(start)} (${cashSharePct} % af dine samlede frie midler på ${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart ?? cashSharePct} % og stige mod ${inputs.cashShareTarget ?? cashSharePct} % ved pension. Herunder ses årets rente og eventuelle rebalancering frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
-                : `Din indtastede startopsparing i kontantreserve/bankindestående på ${currency.format(start)}. Herunder ses årets rente efter skat og inflation frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
-            : `Beløbet på ${currency.format(start)} er din kontantreserve/bankkonto ved årets start (1. januar ${yearDate}). Dette viser reserven FØR årets rente og eventuelle hævninger finder sted. Resultatet videreføres til næste række (${yearDate + 1} · ${age + 1} år).`,
+                ? `Din start-beholdning af Frie Midler (kontant) udgør ${currency.format(start)} (${cashSharePct} % af dine samlede frie midler på ${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart ?? cashSharePct} % og stige mod ${inputs.cashShareTarget ?? cashSharePct} % ved pension. Herunder ses årets rente og eventuelle rebalancering frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
+                : `Din indtastede startopsparing i Frie Midler (kontant)/bankindestående på ${currency.format(start)}. Herunder ses årets rente efter skat og inflation frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
+            : `Beløbet på ${currency.format(start)} er dine Frie Midler (kontant)/bankkonto ved årets start (1. januar ${yearDate}). Dette viser reserven FØR årets rente og eventuelle hævninger finder sted. Resultatet videreføres til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: hasGlide
-            ? `Kontantreserve = Frie midler (${currency.format(totalLiquidFree)}) × ${cashSharePct} %`
+            ? `Frie Midler (kontant) = Frie midler (${currency.format(totalLiquidFree)}) × ${cashSharePct} %`
             : "Ultimo = Primo − Hævning + Indbetaling + Netto bankrente ± Rebalancering",
           formulaDetails: `Nominel rente ${percent.format(cashRate)} fratrukket ${percent.format(cashTax)} skat og korrigeret for ${percent.format(inflRate)} inflation.`,
           steps,
           assumptions: [
             { label: "Kontantandel (dette år)", value: `${cashSharePct} % af frie midler` },
-            { label: "Rente på kontantreserve", value: percent.format(cashRate) },
+            { label: "Rente på Frie Midler (kontant)", value: percent.format(cashRate) },
             { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) },
             ...(isCustomCash ? [{ label: "Matrix-justering", value: "Brugerdefineret år-for-år overstyring" }] : [])
           ]
@@ -939,7 +939,7 @@
           `${currency.format(row.ratePension)} (rate)`,
           `${currency.format(row.lifeAnnuityDepotValue)} (livrente)`,
           `${currency.format(row.ageSavings)} (aldersops.)`,
-          `${currency.format(row.freeFunds)} (frie)`,
+          `${currency.format(row.freeFunds)} (aktier)`,
           `${currency.format(row.ask)} (ASK)`
         ];
         if (row.cash > 0) parts.push(`${currency.format(row.cash)} (kontant)`);
@@ -948,11 +948,11 @@
           { label: "Ratepension (primo)", value: currency.format(row.ratePension) },
           { label: "Livrentedepot (primo aktuarmæssig værdi)", value: currency.format(row.lifeAnnuityDepotValue) },
           { label: "Aldersopsparing (primo)", value: currency.format(row.ageSavings) },
-          { label: "Frie midler (primo investeret)", value: currency.format(row.freeFunds) },
+          { label: "Frie Midler (aktier) (primo investeret)", value: currency.format(row.freeFunds) },
           { label: "Aktiesparekonto (primo)", value: currency.format(row.ask) }
         ];
         if (row.cash > 0) {
-          steps.push({ label: "Kontantreserve / Bank (primo)", value: currency.format(row.cash) });
+          steps.push({ label: "Frie Midler (kontant) / Bank (primo)", value: currency.format(row.cash) });
         }
         steps.push({ label: `Samlet depotværdi (primo 1. jan ${yearDate})`, value: `= ${currency.format(depot)}`, isResult: true });
 
@@ -982,7 +982,7 @@
           badge: "Primosaldo (Startsaldo)",
           quickMath,
           description: `Beløbet på ${currency.format(depot)} er din samlede finansielle depotværdi ved årets start (1. januar ${yearDate}). Dette er formuen FØR årets afkast (${percent.format(row.pensionReturnRate ?? nominalReturn)}) og årets udbetaling (${currency.format(row.withdrawal)}) finder sted.${nextRowToUse ? ` Efter årets afkast og hævning ender depotet på ${currency.format(nextRowToUse.totalDepotValue)} (ultimo), hvilket vises som primosaldo i næste række (${yearDate + 1} · ${age + 1} år).` : ""}`,
-          formula: "Samlet depotværdi (primo) = Ratepension + Livrentedepot + Aldersopsparing + Frie midler + ASK + Kontantreserve",
+          formula: "Samlet depotværdi (primo) = Ratepension + Livrentedepot + Aldersopsparing + Frie Midler (aktier) + ASK + Frie Midler (kontant)",
           formulaDetails: "Viser primosaldoen ved årets start. Inkluderer alle finansielle depoter, pensionskonti og kontantbeholdninger eksklusive fast ejendom.",
           steps,
           assumptions: [
@@ -1068,7 +1068,7 @@
         const free = Math.max(0, val - (rate + life + ageSavings + ask));
 
         const breakdown = [];
-        if (free > 0) breakdown.push({ label: "Frie midler (inkl. omdirigering)", value: currency.format(free), tag: `${currency.format(free)} (frie)` });
+        if (free > 0) breakdown.push({ label: "Frie Midler (aktier & kontant) (inkl. omdirigering)", value: currency.format(free), tag: `${currency.format(free)} (frie)` });
         if (rate > 0) breakdown.push({ label: "Ratepension", value: currency.format(rate), tag: `${currency.format(rate)} (rate)` });
         if (life > 0) breakdown.push({ label: "Livrente", value: currency.format(life), tag: `${currency.format(life)} (livrente)` });
         if (ageSavings > 0) breakdown.push({ label: "Aldersopsparing", value: currency.format(ageSavings), tag: `${currency.format(ageSavings)} (aldersops.)` });
@@ -1085,8 +1085,8 @@
           title: `Årlig indbetaling (${yearDate} · ${age} år)`,
           badge: "Opsparing",
           quickMath: quickMathStr,
-          description: "Den samlede bruttosum indbetalt på tværs af ratepension, livrente, aldersopsparing, aktiesparekonto og frie midler i det pågældende år.",
-          formula: "Indbetaling = Frie midler + Ratepension + Livrente + Aldersopsparing + ASK",
+          description: "Den samlede bruttosum indbetalt på tværs af ratepension, livrente, aldersopsparing, aktiesparekonto og Frie Midler (aktier & kontant) i det pågældende år.",
+          formula: "Indbetaling = Frie Midler (aktier & kontant) + Ratepension + Livrente + Aldersopsparing + ASK",
           formulaDetails: "Reguleres årligt med inflationen hvis dette er tilvalgt. Beløb vises i faste priser.",
           steps,
           assumptions: [
@@ -1137,7 +1137,7 @@
           { label: "Brutto hævet fra depoter", value: currency.format(gross) }
         ];
         if (freeWithdrawal > 0) {
-          steps.push({ label: "Hævet fra frie midler", value: currency.format(freeWithdrawal), isSub: true });
+          steps.push({ label: "Hævet fra Frie Midler (aktier)", value: currency.format(freeWithdrawal), isSub: true });
           steps.push({ label: "Heraf ubeskattet købesum (0 % skat)", value: currency.format(freeCostBasis), isSub: true });
           steps.push({ label: "Heraf skattepligtig aktiegevinst", value: currency.format(freeGain), isSub: true });
         }
@@ -1159,7 +1159,7 @@
 
         steps.push({ label: "Beregnet samlet skat", value: `− ${currency.format(tax)}` });
         if (freeTax > 0) {
-          steps.push({ label: "Aktieskat af frie midler (27 % / 42 %)", value: `− ${currency.format(freeTax)}`, isSub: true });
+          steps.push({ label: "Aktieskat af Frie Midler (aktier) (27 % / 42 %)", value: `− ${currency.format(freeTax)}`, isSub: true });
         }
         if (pensionTaxAmount > 0) {
           steps.push({ label: `Indkomstskat af pensioner (${percent.format(pensionTaxRate)})`, value: `− ${currency.format(pensionTaxAmount)}`, isSub: true });
@@ -1170,8 +1170,8 @@
           title: `Brutto-udbetaling (${yearDate} · ${age} år)`,
           badge: "Hævning",
           quickMath: `${currency.format(gross)} før skat − ${currency.format(tax)} (skat) = ${currency.format(net)} udbetalt til forbrug`,
-          description: "Det samlede hævede beløb fra pensioner og frie midler før skat til dækning af dit ønskede årlige forbrug.",
-          formula: "Brutto-udbetaling = Hævning fra frie midler + Pensionsudbetalinger",
+          description: "Det samlede hævede beløb fra pensioner og Frie Midler (aktier & kontant) før skat til dækning af dit ønskede årlige forbrug.",
+          formula: "Brutto-udbetaling = Hævning fra Frie Midler (aktier & kontant) + Pensionsudbetalinger",
           formulaDetails: "Bruttobeløbet hæves så det efter kildeskat/aktieskat præcis dækker dit ønskede rådighedsbeløb.",
           calcTitle: "Gennemført regneeksempel for udbetaling og skat",
           returnExample,
@@ -1228,7 +1228,7 @@
           title: `Lagerskat (${yearDate} · ${age} år)`,
           badge: "Årlig skat",
           quickMath: tax > 0 ? `${currency.format(tax)} afregnet i lagerskat af årets afkast` : "Ingen lagerskat dette år",
-          description: "Årlig skat af positivt afkast på lagerbeskattede frie midler (f.eks. ETF'er på skats positivliste eller investeringsfonde). Skatten trækkes direkte fra formuen frem mod næste år.",
+          description: "Årlig skat af positivt afkast på lagerbeskattede Frie Midler (aktier) (f.eks. ETF'er på skats positivliste eller investeringsfonde). Skatten trækkes direkte fra formuen frem mod næste år.",
           formula: "Lagerskat = Positivt afkast på lagerbeskattet andel × Aktieindkomstskat",
           formulaDetails: "Beskattes med 27 % op til progressionsgrænsen og derefter 42 %.",
           steps: [
@@ -1246,7 +1246,7 @@
           title: `Effektiv skat på udbetaling (${yearDate} · ${age} år)`,
           badge: "Skatteprocent",
           quickMath: `${percent.format(rate)} af årets udbetaling betales i skat`,
-          description: "Den gennemsnitlige skatteprocent på tværs af alle årets hævninger. En blanding af skattefri aldersopsparing, frie midler (kun skat af gevinst) og pensionsmidler giver ofte en effektiv skat langt under topskatten.",
+          description: "Den gennemsnitlige skatteprocent på tværs af alle årets hævninger. En blanding af skattefri aldersopsparing, Frie Midler (aktier) (kun skat af gevinst) og pensionsmidler giver ofte en effektiv skat langt under topskatten.",
           formula: "Effektiv skat = Samlet udbetalingsskat / Samlet brutto-udbetaling",
           formulaDetails: "Viser hvor skatteeffektivt din portefølje udbetales i praksis.",
           steps: [
@@ -1359,8 +1359,8 @@
           title: fire ? `FIRE-alder: ${fireAge} år` : "FIRE ikke opnået før pension",
           badge: "Hovedmilepæl",
           quickMath: fire ? `Arbejdsophør ved ${fireAge} år (${fire.date.getFullYear()}) · Broperiode: ${yearsFormat.format(fire.bridgeYears)} år` : "Formuen rækker ikke til tidlig pension",
-          description: "Den tidligste alder, hvor dine frie midler er tilstrækkelige til at finansiere dit ønskede forbrug frem til pensionsalderen uden yderligere lønindkomst.",
-          formula: "FIRE opnås når: Frie midler ≥ Nuværdien af ønsket forbrug frem til folkepension",
+          description: "Den tidligste alder, hvor dine Frie Midler (aktier & kontant) er tilstrækkelige til at finansiere dit ønskede forbrug frem til pensionsalderen uden yderligere lønindkomst.",
+          formula: "FIRE opnås når: Frie Midler (aktier & kontant) ≥ Nuværdien af ønsket forbrug frem til folkepension",
           formulaDetails: "Fra FIRE-alderen stopper lønindkomst og opsparing, og nedsparingen påbegyndes.",
           steps: [
             { label: "Nuværende alder", value: `${calculation.currentAge} år` },
@@ -1404,7 +1404,7 @@
           title: stop ? `Stop pensionsindbetaling: ${stop.age} år` : "Pensionsindbetaling fortsætter",
           badge: "Coast-FIRE",
           quickMath: stop ? `Nået ved ${stop.age} år (${stop.date.getFullYear()}) · Eksisterende pension vokser tilstrækkeligt alene` : "Målet kræver indbetaling frem til pension",
-          description: "Det tidspunkt hvor din pensionsformue er stor nok til, at rentes rente-effekten alene kan få den til at vokse til det nødvendige beløb ved pensionsalderen (Coast-FIRE). Herefter kan alle nye opsparingskroner omdirigeres til frie midler for at fremskynde FIRE.",
+          description: "Det tidspunkt hvor din pensionsformue er stor nok til, at rentes rente-effekten alene kan få den til at vokse til det nødvendige beløb ved pensionsalderen (Coast-FIRE). Herefter kan alle nye opsparingskroner omdirigeres til Frie Midler (aktier) for at fremskynde FIRE.",
           formula: "Pensionsmål i dag = Nødvendig pensionsformue / (1 + realt afkast)^(år til pension)",
           formulaDetails: "Når din aktuelle pension rammer dette mål, er yderligere pensionsindskud overflødige for at dække pensionsperioden.",
           steps: [
@@ -1412,7 +1412,7 @@
             { label: "Alder hvor pensionen kan stoppe", value: stop ? `${stop.age} år` : "Ikke nået før FIRE", isResult: true }
           ],
           assumptions: [
-            { label: "Omdirigering til frie midler", value: inputs.redirectPensionContributionsToFreeFunds ? "Aktiveret" : "Deaktiveret" }
+            { label: "Omdirigering til Frie Midler (aktier)", value: inputs.redirectPensionContributionsToFreeFunds ? "Aktiveret" : "Deaktiveret" }
           ]
         };
       }
@@ -1467,17 +1467,17 @@
         const netInterestPct = (cashRate * (1 - cashTax) * 100).toFixed(2);
 
         return {
-          title: "Kontantreserve i dag (Likviditetsbuffer)",
+          title: "Frie Midler (kontant) i dag [Kontantreserve] (Likviditetsbuffer)",
           badge: "Startbuffer",
           quickMath: `${currency.format(cashBalance)} (${startShare} % af samlede frie midler ${currency.format(totalFree)})`,
-          description: `Din kontantreserve i banken ved beregningens start. Den udgør præcis ${startShare} % af dine samlede frie midler (${currency.format(totalFree)}). De resterende ${100 - startShare} % (${currency.format(freeStock)}) er investeret i aktier på dit frie depot som afkastsøgende formue.`,
-          formula: `Kontantreserve i dag = Samlede frie midler × Kontantandel ved start\n= ${currency.format(totalFree)} × ${startShare} % = ${currency.format(cashBalance)}`,
-          formulaDetails: `Kronebeløb og procentdel synkroniseres automatisk. Kontantreserven forrentes med ${percent.format(cashRate)} p.a. i banken. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst (effektiv nettotilskrivning ca. ${netInterestPct} % før inflation).`,
+          description: `Dine Frie Midler (kontant) i banken ved beregningens start. De udgør præcis ${startShare} % af dine samlede frie midler (${currency.format(totalFree)}). De resterende ${100 - startShare} % (${currency.format(freeStock)}) er investeret i aktier på dit frie depot som afkastsøgende Frie Midler (aktier).`,
+          formula: `Frie Midler (kontant) i dag = Samlede frie midler × Kontantandel ved start\n= ${currency.format(totalFree)} × ${startShare} % = ${currency.format(cashBalance)}`,
+          formulaDetails: `Kronebeløb og procentdel synkroniseres automatisk. Dine Frie Midler (kontant) forrentes med ${percent.format(cashRate)} p.a. i banken. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst (effektiv nettotilskrivning ca. ${netInterestPct} % før inflation).`,
           steps: [
             { label: "Samlede frie midler (Frie midler i dag)", value: currency.format(totalFree) },
             { label: "Valgt kontantandel ved start", value: `${startShare} %` },
-            { label: "Investeret i aktier (frie midler depot)", value: `${currency.format(freeStock)} (${100 - startShare} %)` },
-            { label: "Kontantreserve i dag (sikker bankkonto)", value: currency.format(cashBalance), isResult: true }
+            { label: "Investeret i aktier (Frie Midler (aktier) depot)", value: `${currency.format(freeStock)} (${100 - startShare} %)` },
+            { label: "Frie Midler (kontant) / Kontantreserve i dag (sikker bankkonto)", value: currency.format(cashBalance), isResult: true }
           ],
           assumptions: [
             { label: "Samlede frie midler", value: currency.format(totalFree) },
@@ -1497,12 +1497,12 @@
           title: "Kontantandel ved start (%)",
           badge: "Startallokering",
           quickMath: `${startShare} % af frie midler (${currency.format(totalFree)}) = ${currency.format(cashBalance)}`,
-          description: "Hvor stor en procentdel af dine samlede frie midler, der placeres risikofrit som kontanter i banken ved start. Dette giver en likviditetsbuffer til uforudsete udgifter og beskytter mod at skulle sælge aktier under markedsuro.",
-          formula: `Kontantandel = Kontantreserve / Samlede frie midler\n= ${currency.format(cashBalance)} / ${currency.format(totalFree)} = ${startShare} %`,
-          formulaDetails: "Træk i skyderen eller indtast procenten direkte. Det tilsvarende kronebeløb i kontantreserve-feltet opdateres automatisk.",
+          description: "Hvor stor en procentdel af dine samlede frie midler, der placeres risikofrit som Frie Midler (kontant) i banken ved start. Dette giver en likviditetsbuffer til uforudsete udgifter og beskytter mod at skulle sælge aktier under markedsuro.",
+          formula: `Kontantandel = Frie Midler (kontant) / Samlede frie midler\n= ${currency.format(cashBalance)} / ${currency.format(totalFree)} = ${startShare} %`,
+          formulaDetails: "Træk i skyderen eller indtast procenten direkte. Det tilsvarende kronebeløb i feltet for Frie Midler (kontant) opdateres automatisk.",
           steps: [
             { label: "Samlede frie midler", value: currency.format(totalFree) },
-            { label: "Kontantreserve i dag", value: currency.format(cashBalance) },
+            { label: "Frie Midler (kontant) / Kontantreserve i dag", value: currency.format(cashBalance) },
             { label: "Kontantandel ved start", value: `${startShare} %`, isResult: true }
           ],
           assumptions: [

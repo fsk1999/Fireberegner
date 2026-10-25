@@ -82,6 +82,22 @@
   const insightsDrawerCollapseBtn = document.querySelector("#insights-drawer-collapse-btn");
   const insightsCollapseLabel = document.querySelector("#insights-collapse-label");
   const insightsDrawerHeader = document.querySelector("#insights-drawer-header");
+  const thInsightsCol = document.querySelector("#th-insights-col");
+  const superThBasisinfo = document.querySelector("#super-th-basisinfo");
+
+  function updateInsightsColVisibility() {
+    if (thInsightsCol) {
+      if (insightsEnabled) {
+        thInsightsCol.removeAttribute("hidden");
+      } else {
+        thInsightsCol.setAttribute("hidden", "");
+      }
+    }
+    if (superThBasisinfo) {
+      superThBasisinfo.colSpan = insightsEnabled ? 5 : 4;
+    }
+  }
+  updateInsightsColVisibility();
 
   const autoCalculateToggle = document.querySelector("#auto-calculate-toggle");
   const manualRecalculateBtn = document.querySelector("#manual-recalculate-btn");
@@ -861,7 +877,7 @@
       annualRatePensionContribution: "ratepension",
       annualLifeAnnuityContribution: "livrente",
       annualAgeSavingsContribution: "aldersopsparing",
-      annualFreeFundsContribution: "frie midler",
+      annualFreeFundsContribution: "Frie Midler (aktier)",
     };
     const lockedLabels = Object.entries(locks ?? {})
       .filter(([, locked]) => locked)
@@ -1174,7 +1190,7 @@
   function renderProjectionTableState() {
     setText(
       "projection-note",
-      "Datoerne er årlige beregningstidspunkter fra dagens dato. Afkast viser det formuevægtede gennemsnit af det forventede afkast på tværs af alle viste depoter før skat og inflation frem mod næste dato. Livrentedepot viser også efter pensionsstart den beregnede værdi bag de fremtidige udbetalinger. Samlet depotværdi inkluderer livrenten; den frie slutreserve gør ikke. Brutto-udbetaling viser hævninger og livrente før skat. Netto-udbetaling viser beløbet efter beregnet skat. Lagerskat viser skatten af årets positive afkast på den lagerbeskattede andel af frie midler og er trukket fra formuen frem mod næste dato. Effektiv skat viser skatten på årets samlede udbetaling som procent af udbetalingen før skat. Lagerskat indgår ikke i denne procentsats.",
+      "Datoerne er årlige beregningstidspunkter fra dagens dato. Afkast viser det formuevægtede gennemsnit af det forventede afkast på tværs af alle viste depoter før skat og inflation frem mod næste dato. Livrentedepot viser også efter pensionsstart den beregnede værdi bag de fremtidige udbetalinger. Samlet depotværdi inkluderer livrenten; den frie slutreserve gør ikke. Brutto-udbetaling viser hævninger og livrente før skat. Netto-udbetaling viser beløbet efter beregnet skat. Lagerskat viser skatten af årets positive afkast på den lagerbeskattede andel af Frie Midler (aktier) og er trukket fra formuen frem mod næste dato. Effektiv skat viser skatten på årets samlede udbetaling som procent af udbetalingen før skat. Lagerskat indgår ikke i denne procentsats.",
     );
   }
 
@@ -1205,21 +1221,21 @@
         button.disabled = isFullyInventoryTaxed;
       });
     freeFundsCostBasisField.querySelector("i").title = isFullyInventoryTaxed
-      ? "Den samlede købspris bruges ikke, når alle frie midler er lagerbeskattede."
-      : "Det samlede beløb, du betalte for de investeringer i frie midler, som du stadig ejer.";
+      ? "Den samlede købspris bruges ikke, når alle Frie Midler (aktier) er lagerbeskattede."
+      : "Det samlede beløb, du betalte for de investeringer i Frie Midler (aktier), som du stadig ejer.";
     setText(
       "total-free-funds-tax-label",
       isFullyInventoryTaxed
-        ? "Samlet lagerbeskatning af frie midler"
+        ? "Samlet lagerbeskatning af Frie Midler (aktier)"
         : isFullyRealizationTaxed
-          ? "Samlet skat på hævninger fra frie midler"
-          : "Samlet skat på frie midler",
+          ? "Samlet skat på hævninger fra Frie Midler (aktier)"
+          : "Samlet skat på Frie Midler (aktier)",
     );
     setText(
       "effective-free-funds-tax-label",
       isFullyRealizationTaxed
-        ? "Effektiv skat på hævninger fra frie midler"
-        : "Effektiv skat af beskattet afkast på frie midler",
+        ? "Effektiv skat på hævninger fra Frie Midler (aktier)"
+        : "Effektiv skat af beskattet afkast på Frie Midler (aktier)",
     );
     renderProjectionTableState();
   }
@@ -1793,7 +1809,7 @@
               <span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span>
             </div>
             <div class="custom-cash-controls">
-              <div class="custom-cash-input-row" title="Kontantandel af frie midler i % (overstyrer indstilling under Afkast)">
+              <div class="custom-cash-input-row" title="Andel Frie Midler (kontant) i % (overstyrer indstilling under Afkast)">
                 <span class="custom-cash-label">Andel:</span>
                 <input
                   type="number"
@@ -1804,11 +1820,11 @@
                   data-custom-year="${rowYearIdx}"
                   data-custom-age="${row.age}"
                   value="${shareValPct}"
-                  title="Kontantandel af frie midler (%) for alder ${row.age} år"
+                  title="Andel Frie Midler (kontant) (%) for alder ${row.age} år"
                 />
                 <span class="custom-cash-unit">%</span>
               </div>
-              <div class="custom-cash-input-row" title="Bankrente på kontantreserve i % p.a. (overstyrer indstilling under Afkast)">
+              <div class="custom-cash-input-row" title="Bankrente på Frie Midler (kontant) i % p.a. (overstyrer indstilling under Afkast)">
                 <span class="custom-cash-label">Rente:</span>
                 <input
                   type="number"
@@ -1832,7 +1848,7 @@
         const ovrShare = hasCustomShare ? `${(customAnnualCashShares[rowYearIdx] * 100).toFixed(0)} %` : `${Math.round(row.cashShare * 100)} %`;
         sharePill = ` <span class="cash-share-pill is-overridden" title="Brugerdefineret: ${hasCustomShare ? (customAnnualCashShares[rowYearIdx] * 100).toFixed(1) + ' % andel' : ''} ${hasCustomRate ? (customAnnualCashRates[rowYearIdx] * 100).toFixed(1) + ' % rente' : ''}. Klik for at justere">${ovrShare} ⚡</span>`;
       } else if (row.cashShare !== undefined && row.cashShare > 0.001) {
-        sharePill = ` <span class="cash-share-pill" title="Kontantandel: ${Math.round(row.cashShare * 100)} % af frie midler. Klik for at justere år for år">${Math.round(row.cashShare * 100)} %</span>`;
+        sharePill = ` <span class="cash-share-pill" title="Frie Midler (kontant): ${Math.round(row.cashShare * 100)} % af frie midler. Klik for at justere år for år">${Math.round(row.cashShare * 100)} %</span>`;
       }
       cashCell = `
         <td data-col-group="free" class="projection-cash-cell">
@@ -1867,7 +1883,8 @@
     return `
       <tr data-phase="${row.phase}" data-row-age="${row.age}" class="${isRowInsightActive ? "has-insight-active" : ""}">
         <td><span class="explainable-val row-date-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${dateFormat.format(row.date)}</span></td>
-        <td><span class="explainable-val row-age-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${ages.format(row.age)}</span>${insightBadgeHtml}</td>
+        <td class="td-insights-cell"${insightsEnabled ? "" : " hidden"}>${insightBadgeHtml}</td>
+        <td class="td-age-cell"><span class="explainable-val row-age-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${ages.format(row.age)}</span></td>
         <td>${row.phase}</td>
         ${returnCell}
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
@@ -2028,7 +2045,7 @@
     if (targetRow.age < pensionStopAge) {
       phaseName = "Opsparing";
     } else if (targetRow.age < fireAge) {
-      phaseName = "Frie midler";
+      phaseName = "Frie Midler (aktier)";
     } else if (targetRow.age < (inputs?.publicPensionAge ?? 69)) {
       phaseName = "FIRE Brofase";
     } else {
@@ -2142,7 +2159,7 @@
         badgeText: "Coast-FIRE",
         description: `Din pensionsformue vil via renters rente alene vokse tilstrækkeligt til at dække alderdommen efter ${pubAge} år. Yderligere indbetalinger til låst pension binder unødig likviditet.`,
         consequenceText: "💡 Mulighed for at fremrykke din FIRE-alder ved at kanalisere opsparing væk fra låst pension.",
-        proposalText: "Overvej at minimere eller stoppe nye pensionsindbetalinger (Coast-FIRE) og flyt det månedlige sparebeløb til Aktiesparekonto og frie midler for at styrke din brofase.",
+        proposalText: "Overvej at minimere eller stoppe nye pensionsindbetalinger (Coast-FIRE) og flyt det månedlige sparebeløb til Aktiesparekonto og Frie Midler (aktier) for at styrke din brofase.",
       });
     }
 
@@ -2162,9 +2179,9 @@
         ageStart: highCashRow.age,
         ageEnd: fireAge ? Math.max(highCashRow.age + 1, fireAge - 3) : highCashRow.age + 5,
         badgeText: "Cash Drag",
-        description: `Du fastholder en høj kontantreserve (${currency.format(highCashRow.cash || 250000)}) i en fase med lang tidshorisont. Kontanter forrentes under inflationen og taber købekraft.`,
+        description: `Du fastholder en høj andel Frie Midler (kontant) (${currency.format(highCashRow.cash || 250000)}) i en fase med lang tidshorisont. Kontanter forrentes under inflationen og taber købekraft.`,
         consequenceText: "⚠️ Tabt renters rente på 4–6 % årligt i forhold til globale aktieindeks.",
-        proposalText: "Hold kontantreserven nede på 3–6 måneders nødopsparing nu, og begynd først opskalering til stor kontantbuffer 2–3 år før tilbagetrækning.",
+        proposalText: "Hold Frie Midler (kontant) nede på 3–6 måneders nødopsparing nu, og begynd først opskalering til stor kontantbuffer 2–3 år før tilbagetrækning.",
       });
     }
 
@@ -2202,7 +2219,7 @@
           </div>
           <div class="insight-card-body">
             <h5>Ingen kritiske modregnings- eller skattefælder fundet</h5>
-            <p>Din økonomiske plan har en sund fordeling mellem frie midler og pensioner uden voldsom modregning eller sekvensrisiko.</p>
+            <p>Din økonomiske plan har en sund fordeling mellem Frie Midler (aktier &amp; kontant) og pensioner uden voldsom modregning eller sekvensrisiko.</p>
           </div>
         </div>`;
       return;
@@ -2339,6 +2356,8 @@
         cockpitInsightsDrawer.setAttribute("hidden", "");
       }
     }
+
+    updateInsightsColVisibility();
 
     if (latestCalculation && latestInputs) {
       renderActiveChart(latestCalculation, latestInputs, latestMonteCarlo);
@@ -2701,7 +2720,7 @@
         className: "chart-phase-saving-free",
         from: pensionStopAge,
         to: fireAge,
-        label: "Frie Midler",
+        label: "Frie Midler (aktier)",
       },
       {
         className: "chart-phase-fire",
@@ -2880,7 +2899,7 @@
           color: "#818cf8",
         });
         items.push({
-          label: "Frie midler",
+          label: "Frie Midler (aktier)",
           value: freeFundsValue(row),
           color: "#34d399",
         });
@@ -2972,7 +2991,7 @@
         row.age < pensionStopAge
           ? "Opsparing"
           : row.age < fireAge
-            ? "Frie Midler"
+            ? "Frie Midler (aktier)"
             : row.age < inputs.retirementAge
               ? "FIRE Brofase"
               : "Pension";
@@ -3196,7 +3215,7 @@
     let chartVisualLayers = "";
 
     const streamDefinitions = [
-      { key: "free", label: "Frie midler", fill: "url(#cf-grad-free)", stroke: "#10b981", color: "#10b981" },
+      { key: "free", label: "Frie Midler (aktier)", fill: "url(#cf-grad-free)", stroke: "#10b981", color: "#10b981" },
       { key: "ask", label: "ASK", fill: "url(#cf-grad-ask)", stroke: "#06b6d4", color: "#06b6d4" },
       { key: "ageSavings", label: "Aldersopsparing", fill: "url(#cf-grad-age)", stroke: "#8b5cf6", color: "#8b5cf6" },
       { key: "rate", label: "Ratepension", fill: "url(#cf-grad-rate)", stroke: "#f59e0b", color: "#f59e0b" },
@@ -3402,7 +3421,7 @@
       } else {
         if (d.free > 0)
           items.push({
-            label: "Frie midler (netto)",
+            label: "Frie Midler (aktier) (netto)",
             value: d.free,
             color: "#10b981",
           });
@@ -5191,14 +5210,14 @@
     setText(
       "result-fire-milestone-note",
       fire
-        ? `Frie midler finansierer de næste ${years.format(fire.bridgeYears)} år.`
+        ? `Frie Midler (aktier) finansierer de næste ${years.format(fire.bridgeYears)} år.`
         : "De valgte indbetalinger finansierer ikke hele FIRE-perioden.",
     );
     setText("result-retirement-age", `${inputs.retirementAge} år`);
     setText(
       "result-retirement-note",
       calculation.isFullyFunded
-        ? `Pension og eventuelle frie midler finansierer perioden frem til ${ages.format(calculation.finalRow.age)} år.`
+        ? `Pension og eventuelle Frie Midler finansierer perioden frem til ${ages.format(calculation.finalRow.age)} år.`
         : calculation.firstShortfallDate
           ? `Formuen dækker ikke den ønskede hævning fra ${dateFormat.format(calculation.firstShortfallDate)}.`
           : "Formuen dækker ikke den ønskede hævning gennem hele perioden.",
@@ -5390,11 +5409,12 @@
       toggleCustomCashBtn.classList.toggle("is-active", isCustomCashMode);
       toggleCustomCashBtn.textContent = isCustomCashMode
         ? "✓ Gem / skjul justering"
-        : "✏️ Justér kontant & rente";
+        : "✏️ Justér Frie Midler (kontant) & rente";
     }
     if (thCashHeader) {
-      thCashHeader.textContent = "Kontantreserve";
+      thCashHeader.textContent = "Frie Midler (kontant)";
     }
+    updateInsightsColVisibility();
     const baseCalcForTable =
       mcTableScenario === "sensitivity" && baseTornadoInputs
         ? calculateFire(baseTornadoInputs)
@@ -5524,7 +5544,7 @@
       calculation.annualAgeSavingsContributionRedirected <= 0;
     ageSavingsRedirectMessage.textContent =
       calculation.annualAgeSavingsContributionRedirected > 0
-        ? `${currency.format(calculation.annualAgeSavingsContributionRedirected)} over loftet flyttes til frie midler i beregningen.`
+        ? `${currency.format(calculation.annualAgeSavingsContributionRedirected)} over loftet flyttes til Frie Midler (aktier) i beregningen.`
         : "";
     ratePensionSplitMessage.hidden =
       calculation.annualNonDeductibleRatePensionContribution <= 0;
@@ -6535,9 +6555,9 @@
       { key: "ratePension", label: "Ratepension", val: row.ratePension },
       { key: "lifeAnnuityDepotValue", label: "Livrente", val: row.lifeAnnuityDepotValue },
       { key: "ageSavings", label: "Aldersopsparing", val: row.ageSavings },
-      { key: "freeFunds", label: "Frie midler", val: row.freeFunds },
+      { key: "freeFunds", label: "Frie Midler (aktier)", val: row.freeFunds },
       { key: "ask", label: "ASK", val: row.ask },
-      { key: "cash", label: "Kontantreserve", val: row.cash },
+      { key: "cash", label: "Frie Midler (kontant)", val: row.cash },
       { key: "netWithdrawal", label: "Netto udbetaling", val: row.netWithdrawal },
       { key: "withdrawal", label: "Brutto udbetaling", val: row.withdrawal },
       { key: "returnRate", label: "Afkast", val: row.returnRate }

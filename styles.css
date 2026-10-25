@@ -2542,7 +2542,36 @@ legend,
   pointer-events: none;
 }
 
-/* Op- og nedsparingsmatrice Insight Badges */
+/* Op- og nedsparingsmatrice Insight Column & Badges */
+.th-insights-col {
+  text-align: left;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.td-insights-cell {
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 4px 6px;
+}
+
+.td-insights-cell .matrix-insight-pill {
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+.td-age-cell {
+  text-align: right;
+  min-width: 52px;
+  white-space: nowrap;
+}
+
+.th-insights-col[hidden],
+.td-insights-cell[hidden] {
+  display: none !important;
+}
+
 .matrix-insight-pill {
   display: inline-flex;
   align-items: center;
