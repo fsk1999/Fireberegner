@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FIRE-beregner – Interaktiv Dokumentation & Arkitektur</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <div class="docs-shell">
+      <!-- Venstre Sidebar Navigation -->
+      <aside class="docs-sidebar">
+        <div class="docs-brand">
+          <a href="./docs.html" class="docs-brand-title">
+            <span>🔥</span> FIRE Dokumentation
+          </a>
+          <span class="docs-brand-sub">Interaktiv Matematik & Arkitektur</span>
+          <a href="./index.html" class="docs-back-btn">
+            <span>←</span> Tilbage til Beregneren
+          </a>
+        </div>
+
+        <div class="docs-nav-search">
+          <input type="search" id="docs-search-input" placeholder="Søg i dokumentation..." />
+        </div>
+
+        <nav class="docs-nav-menu">
+          <div class="docs-nav-group-title">Oversigt</div>
+          <a href="#intro" class="docs-nav-link active">📖 Introduktion</a>
+          <a href="#architecture" class="docs-nav-link">🏛️ Systemarkitektur (/archify)</a>
+
+          <div class="docs-nav-group-title">Interaktiv Formelsandbox</div>
+          <a href="#sandbox-pal" class="docs-nav-link">⚡ PAL-skat (15,3 %)</a>
+          <a href="#sandbox-stock-tax" class="docs-nav-link">📈 Aktieskat (27 % / 42 %)</a>
+          <a href="#sandbox-folkepension" class="docs-nav-link">👴 Folkepension & Modregning</a>
+          <a href="#sandbox-housing" class="docs-nav-link">🏡 Bolig & Friværdi</a>
+          <a href="#sandbox-monte-carlo" class="docs-nav-link">🎲 Monte Carlo & Risiko</a>
+
+          <div class="docs-nav-group-title">Regelsæt & Satser</div>
+          <a href="#tax-rules-2026" class="docs-nav-link">📊 2026 Skatte- og Pensionssatser</a>
+          <a href="#withdrawal-strategy" class="docs-nav-link">🎯 Skatteoptimal Udbetaling</a>
+          <a href="#stress-testing" class="docs-nav-link">📉 Historiske Børskrak</a>
+
+          <div class="docs-nav-group-title">Teknisk Reference</div>
+          <a href="#modules-api" class="docs-nav-link">💻 Moduler & Datastrukturer</a>
+          <a href="#plan-codes" class="docs-nav-link">🔗 Base64URL Plankoder</a>
+          <a href="#git-deployment-test" class="docs-nav-link">🚀 Git, Deployment & Test</a>
+        </nav>
+      </aside>
+
+      <!-- Hovedindhold -->
+      <main class="docs-main">
+        <!-- Hero Sektion -->
+        <header class="docs-hero" id="intro">
+          <span class="docs-hero-badge">2026 Regelsæt • 100% Klient-side & Privat</span>
+          <h1>FIRE-beregner Dokumentation & Arkitektur</h1>
+          <p>
+            Komplet teknisk og matematisk opslagsværk for den danske FIRE- og pensionsberegner.
+            Udforsk systemets arkitektur, test de matematiske formler live i sandkassen, og forstå de underliggende skatteregler.
+          </p>
+        </header>
+
+        <!-- Sektion: Systemarkitektur (/archify) -->
+        <section class="docs-section" id="architecture">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">🏛️ Systemarkitektur Visualisering (/archify)</h2>
+            <p class="docs-section-desc">
+              Interaktivt arkitekturdiagram genereret med <code>/archify</code>. Viser samspillet mellem præsentationslag, event-orkestrering, finansielle beregningsmotorer, hjælpesystemet og dokumentations-hubben.
+            </p>
+          </div>
+
+          <div class="docs-arch-frame-wrap">
+            <div class="docs-arch-toolbar">
+              <div class="docs-arch-title">
+                <span>🔥</span> Systemarkitektur: Komplet Klient-side Beregner & Moduler
+              </div>
+              <div class="docs-arch-actions">
+                <a href="./architecture.html" target="_blank" class="docs-arch-btn">
+                  <span>↗</span> Åbn i nyt vindue
+                </a>
+              </div>
+            </div>
+            <iframe
+              src="./architecture.html"
+              class="docs-arch-iframe"
+              title="FIRE-beregner Systemarkitektur"
+              loading="lazy"
+            ></iframe>
+          </div>
+
+          <div class="docs-card">
+            <h3 style="margin-top:0; color:var(--color-fire);">Arkitekturmæssige Hovedprincipper</h3>
+            <ul style="padding-left:20px; margin:0;">
+              <li style="margin-bottom:8px;">
+                <strong>100% Klient-side Isolation:</strong> Beregneren kører udelukkende i brugerens webbrowser. Ingen formuedata, indkomster eller pensionsoplysninger sendes nogensinde over netværket.
+              </li>
+              <li style="margin-bottom:8px;">
+                <strong>Reaktiv Event-Orkestrering:</strong> <code>app.js</code> lytter på brugerinput og genberegner synkront i lette scenarier, eller benytter <code>optimization-worker.js</code> til tunge Monte Carlo-kørsler.
+              </li>
+              <li style="margin-bottom:8px;">
+                <strong>Modulær Dekobling:</strong> Kerneberegningerne (<code>calculations.js</code>, <code>life-annuity.js</code>, <code>monte-carlo.js</code>) er rene funktioner uden DOM-afhængigheder, hvilket muliggør uafhængig automatiseret testning.
+              </li>
+              <li>
+                <strong>Selvstændigt Hjælpe- og Docs-system:</strong> Både in-app hjælpesystemet (<code>help-system.js</code>) og dette dokumentations-hub (<code>docs.html</code>) kan tilføjes eller fjernes uden at påvirke beregnerens kerne.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Sektion: Interaktiv Formelsandbox -->
+        <section class="docs-section" id="sandboxes">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">🧪 Interaktiv Formelsandbox</h2>
+            <p class="docs-section-desc">
+              Eksperimentér med de underliggende matematiske beregninger. Træk i skyderne for at se afkast, skat og modregning opdateret i realtid.
+            </p>
+          </div>
+
+          <div class="docs-sandbox-grid">
+            <!-- Sandbox 1: PAL-skat -->
+            <div class="docs-sandbox-card" id="sandbox-pal">
+              <div class="docs-sandbox-header">
+                <h3 class="docs-sandbox-title">⚡ PAL-skat (15,3 % Lagerskat)</h3>
+                <p class="docs-sandbox-desc">Pensionsafkastbeskatning efter PAL § 2. Trækkes årligt af nettoafkastet.</p>
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Startsaldo:</span>
+                  <span id="pal-start-val" class="docs-control-val">500.000 kr.</span>
+                </div>
+                <input type="range" id="pal-start" class="docs-sandbox-slider" min="50000" max="5000000" step="50000" value="500000" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Årligt nominelt afkast:</span>
+                  <span id="pal-return-val" class="docs-control-val">7,0 %</span>
+                </div>
+                <input type="range" id="pal-return" class="docs-sandbox-slider" min="0" max="15" step="0.5" value="7" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Horisont:</span>
+                  <span id="pal-years-val" class="docs-control-val">10 år</span>
+                </div>
+                <input type="range" id="pal-years" class="docs-sandbox-slider" min="1" max="30" step="1" value="10" />
+              </div>
+
+              <div class="docs-sandbox-result">
+                <div class="docs-result-row">
+                  <span>Samlet bruttoafkast:</span>
+                  <strong id="pal-res-gross">0 kr.</strong>
+                </div>
+                <div class="docs-result-row" style="color:var(--color-danger);">
+                  <span>Heraf betalt PAL-skat (15,3 %):</span>
+                  <strong id="pal-res-tax">0 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Nettoafkast efter PAL:</span>
+                  <strong id="pal-res-net">0 kr.</strong>
+                </div>
+                <div class="docs-result-row total">
+                  <span>Slutsaldo på pensionskonto:</span>
+                  <strong id="pal-res-balance">0 kr.</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sandbox 2: Aktieskat 27/42% -->
+            <div class="docs-sandbox-card" id="sandbox-stock-tax">
+              <div class="docs-sandbox-header">
+                <h3 class="docs-sandbox-title">📈 Aktieindkomstskat (27 % vs. 42 %)</h3>
+                <p class="docs-sandbox-desc">Progression ved realisation af gevinster og udbytter på frie midler i 2026.</p>
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Årlig aktiegevinst / udlodning:</span>
+                  <span id="stock-gain-val" class="docs-control-val">120.000 kr.</span>
+                </div>
+                <input type="range" id="stock-gain" class="docs-sandbox-slider" min="10000" max="500000" step="5000" value="120000" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Civilstand:</span>
+                </div>
+                <select id="stock-couple" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--color-border-control);">
+                  <option value="single">Enlig (Knæk: 79.400 kr.)</option>
+                  <option value="couple">Gift / Samlevende (Knæk: 158.800 kr.)</option>
+                </select>
+              </div>
+
+              <div class="docs-sandbox-result">
+                <div class="docs-result-row">
+                  <span>27 % knækgrænse:</span>
+                  <strong id="stock-res-threshold">79.400 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Skat ved 27 %:</span>
+                  <strong id="stock-res-27">0 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Skat ved 42 % (topdel):</span>
+                  <strong id="stock-res-42">0 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Effektiv skatteprocent:</span>
+                  <strong id="stock-res-eff-pct">0 %</strong>
+                </div>
+                <div class="docs-result-row total">
+                  <span>Netto udbetalt til forbrug:</span>
+                  <strong id="stock-res-net">0 kr.</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sandbox 3: Folkepension & Modregning -->
+            <div class="docs-sandbox-card" id="sandbox-folkepension">
+              <div class="docs-sandbox-header">
+                <h3 class="docs-sandbox-title">👴 Folkepension & Modregning (2026)</h3>
+                <p class="docs-sandbox-desc">Dynamisk modregning i pensionstillægget ved anden pensionsindkomst.</p>
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Anden pensionsindkomst (Rate, livrente, ATP):</span>
+                  <span id="fp-income-val" class="docs-control-val">150.000 kr.</span>
+                </div>
+                <input type="range" id="fp-income" class="docs-sandbox-slider" min="0" max="400000" step="5000" value="150000" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Civilstand:</span>
+                </div>
+                <select id="fp-couple" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--color-border-control);">
+                  <option value="single">Enlig (30,9 % modregning over 98.800 kr.)</option>
+                  <option value="couple">Gift / Samlevende (32,0 % modregning over 197.900 kr.)</option>
+                </select>
+              </div>
+
+              <div class="docs-sandbox-result">
+                <div class="docs-result-row">
+                  <span>Grundbeløb (uafhængigt af pensioner):</span>
+                  <strong id="fp-res-base">90.528 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Max pensionstillæg før modregning:</span>
+                  <strong id="fp-res-max-tillæg">104.772 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Bundfradrag for modregning:</span>
+                  <strong id="fp-res-threshold">98.800 kr.</strong>
+                </div>
+                <div class="docs-result-row" style="color:var(--color-danger);">
+                  <span>Modregning i tillæg:</span>
+                  <strong id="fp-res-offset">0 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Udbetalt pensionstillæg:</span>
+                  <strong id="fp-res-paid-tillæg">0 kr.</strong>
+                </div>
+                <div class="docs-result-row total">
+                  <span>Samlet folkepension før skat:</span>
+                  <strong id="fp-res-total">0 kr. / år</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sandbox 4: Bolig & Friværdi -->
+            <div class="docs-sandbox-card" id="sandbox-housing">
+              <div class="docs-sandbox-header">
+                <h3 class="docs-sandbox-title">🏡 Boligfriværdi & Nedsparingsprovenu</h3>
+                <p class="docs-sandbox-desc">Beregner friværdi ved FIRE baseret på prisvækst og gældsafdrag.</p>
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Boligens markedsværdi i dag:</span>
+                  <span id="housing-market-val" class="docs-control-val">3.000.000 kr.</span>
+                </div>
+                <input type="range" id="housing-market" class="docs-sandbox-slider" min="500000" max="10000000" step="100000" value="3000000" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Restgæld i dag:</span>
+                  <span id="housing-debt-val" class="docs-control-val">1.500.000 kr.</span>
+                </div>
+                <input type="range" id="housing-debt" class="docs-sandbox-slider" min="0" max="6000000" step="50000" value="1500000" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Forventet årlig boligprisvækst:</span>
+                  <span id="housing-growth-val" class="docs-control-val">2,0 %</span>
+                </div>
+                <input type="range" id="housing-growth" class="docs-sandbox-slider" min="0" max="6" step="0.5" value="2" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>År til pensionering / frigørelse:</span>
+                  <span id="housing-years-val" class="docs-control-val">15 år</span>
+                </div>
+                <input type="range" id="housing-years" class="docs-sandbox-slider" min="1" max="30" step="1" value="15" />
+              </div>
+
+              <div class="docs-sandbox-result">
+                <div class="docs-result-row">
+                  <span>Friværdi i dag:</span>
+                  <strong id="housing-res-today">1.500.000 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Fremskrevet markedsværdi:</span>
+                  <strong id="housing-res-future-market">0 kr.</strong>
+                </div>
+                <div class="docs-result-row">
+                  <span>Frigjort nettoprovenu ved FIRE:</span>
+                  <strong id="housing-res-future-equity">0 kr.</strong>
+                </div>
+                <div class="docs-result-row total">
+                  <span>Månedligt forbrugsbidrag:</span>
+                  <strong id="housing-res-monthly">0 kr.</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sandbox 5: Monte Carlo Box-Muller -->
+          <div class="docs-card" id="sandbox-monte-carlo" style="margin-top:24px;">
+            <div class="docs-sandbox-header">
+              <h3 class="docs-sandbox-title">🎲 Monte Carlo Stokastisk Simulator (Box-Muller)</h3>
+              <p class="docs-sandbox-desc">
+                Simulerer 30-årige formueforløb for en person med 1 mio. kr. i frie midler og 40.000 kr. årlig hævning (4% SWR).
+              </p>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Middelafkast (μ):</span>
+                  <span id="mc-mean-val" class="docs-control-val">7,0 %</span>
+                </div>
+                <input type="range" id="mc-mean" class="docs-sandbox-slider" min="2" max="12" step="0.5" value="7" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Volatilitet / Risiko (σ):</span>
+                  <span id="mc-vol-val" class="docs-control-val">16,0 %</span>
+                </div>
+                <input type="range" id="mc-vol" class="docs-sandbox-slider" min="5" max="30" step="1" value="16" />
+              </div>
+
+              <div class="docs-sandbox-control">
+                <div class="docs-control-label">
+                  <span>Antal stokastiske forløb:</span>
+                  <span id="mc-count-val" class="docs-control-val">500 forløb</span>
+                </div>
+                <input type="range" id="mc-count" class="docs-sandbox-slider" min="100" max="1000" step="50" value="500" />
+              </div>
+            </div>
+
+            <canvas id="mc-canvas" width="880" height="260" style="width:100%; height:260px; background:#fff; border:1px solid var(--color-border); border-radius:8px; display:block;"></canvas>
+
+            <div class="docs-sandbox-result" style="margin-top:16px; display:flex; justify-content:space-around; text-align:center;">
+              <div>
+                <span style="font-size:12px; color:var(--color-text-muted);">P10 (Pessimistisk 10%):</span>
+                <div id="mc-res-p10" style="font-size:16px; font-weight:700; color:var(--color-danger); margin-top:2px;">0 kr.</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--color-text-muted);">P50 (Median forventning):</span>
+                <div id="mc-res-p50" style="font-size:16px; font-weight:700; color:var(--color-fire); margin-top:2px;">0 kr.</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--color-text-muted);">P90 (Optimistisk 10%):</span>
+                <div id="mc-res-p90" style="font-size:16px; font-weight:700; color:var(--color-free-funds); margin-top:2px;">0 kr.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sektion: 2026 Regelsæt & Satser -->
+        <section class="docs-section" id="tax-rules-2026">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">📊 2026 Skatte- og Pensionssatser</h2>
+            <p class="docs-section-desc">Gældende satser anvendt i beregnerens skattemotor.</p>
+          </div>
+
+          <div class="docs-card">
+            <table class="docs-table">
+              <thead>
+                <tr>
+                  <th>Område</th>
+                  <th>Sats / Grænse 2026</th>
+                  <th>Type</th>
+                  <th>Lovgrundlag & Bemærkning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>PAL-skat</strong></td>
+                  <td>15,3 %</td>
+                  <td><span class="docs-badge pension">Pensionsafkast</span></td>
+                  <td>PAL § 2: Årlig lagerskat på afkast af ratepension, aldersopsparing og livrente.</td>
+                </tr>
+                <tr>
+                  <td><strong>Aktiesparekonto (ASK)</strong></td>
+                  <td>17,0 % (Loft: 174.200 kr. / 348.400 kr. par)</td>
+                  <td><span class="docs-badge">Lagerskat</span></td>
+                  <td>Skattefrie udbetalinger, modregnes aldrig i folkepension.</td>
+                </tr>
+                <tr>
+                  <td><strong>Aktieindkomstskat (lav)</strong></td>
+                  <td>27,0 % op til 79.400 kr. (158.800 kr. par)</td>
+                  <td><span class="docs-badge">Realisation</span></td>
+                  <td>Personskatteloven § 8 a: Lav progressionssats for gevinster og udbytter.</td>
+                </tr>
+                <tr>
+                  <td><strong>Aktieindkomstskat (høj)</strong></td>
+                  <td>42,0 % over knækgrænsen</td>
+                  <td><span class="docs-badge">Realisation</span></td>
+                  <td>Højeste marginalskat på aktieindkomst over progressionsgrænsen.</td>
+                </tr>
+                <tr>
+                  <td><strong>Folkepension Grundbeløb</strong></td>
+                  <td>90.528 kr./år (181.056 kr. for par)</td>
+                  <td><span class="docs-badge fire">Statspension</span></td>
+                  <td>Udbetales fuldt uafhængigt af private pensionsudbetalinger.</td>
+                </tr>
+                <tr>
+                  <td><strong>Folkepension Pensionstillæg</strong></td>
+                  <td>Op til 104.772 kr. (enlig) / 107.232 kr. (par)</td>
+                  <td><span class="docs-badge fire">Tillæg</span></td>
+                  <td>Modregnes med 30,9 % (enlig) eller 32,0 % (par) over bundfradraget.</td>
+                </tr>
+                <tr>
+                  <td><strong>Modregningsbundfradrag</strong></td>
+                  <td>98.800 kr./år (enlig) / 197.900 kr. (par)</td>
+                  <td><span class="docs-badge fire">Fradrag</span></td>
+                  <td>Indtægt fra ratepension, livrente og ATP over dette beløb modregnes.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Sektion: Skatteoptimal Udbetaling -->
+        <section class="docs-section" id="withdrawal-strategy">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">🎯 Skatteoptimal Udbetalingsrækkefølge (taxOptimal)</h2>
+            <p class="docs-section-desc">
+              Hvordan beregnerens optimeringsalgoritme minimerer den samlede levetidsskat.
+            </p>
+          </div>
+
+          <div class="docs-card">
+            <ol style="padding-left:20px; line-height:1.7;">
+              <li>
+                <strong>Trin 1: Udnyt 27 % aktieskatteknækket:</strong> Hvert år hæves aktiegevinster fra frie midler præcist op til 79.400 kr. (eller 158.800 kr. for par) for altid at maksimere den lave 27 % beskatning frem for 42 %.
+              </li>
+              <li>
+                <strong>Trin 2: Tøm 0 % skattebelastede midler:</strong> Resterende forbrugsbehov dækkes af ubeskattet anskaffelsessum på frie midler, Aktiesparekonto og efter pensionsalderen Aldersopsparing.
+              </li>
+              <li>
+                <strong>Trin 3: Hæv pensionsmidler under modregningsgrænsen:</strong> Ratepensioner fordeles så vidt muligt over 15–20 år fremfor 10 år, så den årlige udbetaling holdes under 98.800 kr. bundfradraget.
+              </li>
+              <li>
+                <strong>Trin 4: Minimer 42 % aktieavance:</strong> Hvis der stadig mangler likviditet, hæves overskydende aktieavance modvilligt med 42 % beskatning som sidste udvej.
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- Sektion: Historiske Børskrak -->
+        <section class="docs-section" id="stress-testing">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">📉 Historiske Børskrak & Sequence-of-Returns</h2>
+            <p class="docs-section-desc">
+              Beregneren stresstester planen mod de 4 værste globale finanskriser.
+            </p>
+          </div>
+
+          <div class="docs-card">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong style="color:var(--color-fire);">1929 Wall Street Krakket</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  -80 % nominelt fald over 3 år. Den mest brutale krise i moderne finanshistorie.
+                </p>
+              </div>
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong style="color:var(--color-fire);">1973 Oliekrisen</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  To på hinanden følgende tabsår (-15 %, -26 %) kombineret med tocifret inflation (stagflation).
+                </p>
+              </div>
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong style="color:var(--color-fire);">2000 Dot-Com Boblen</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  Tre på hinanden følgende tabsår for aktier (-9 %, -12 %, -22 %) efter teknologi-euforien.
+                </p>
+              </div>
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong style="color:var(--color-fire);">2008 Den Globale Finanskrise</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  -37 % chokfald over 12 måneder, efterfulgt af et hurtigt og stærkt V-formet opsving.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sektion: Moduler & API -->
+        <section class="docs-section" id="modules-api">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">💻 Moduler & Datastrukturer</h2>
+            <p class="docs-section-desc">Kodelayout og snitflader for udviklere.</p>
+          </div>
+
+          <div class="docs-card">
+            <h3 style="margin-top:0;">Kernefiler i <code>fireberegner/</code>:</h3>
+            <pre class="docs-code"><code>calculations.js    -> Hovedberegner: år-for-år opsparing, skat, folkepension, udbetaling
+life-annuity.js    -> Aktuarmæssige overlevelsesfaktorer og livrenteberegninger
+monte-carlo.js     -> Box-Muller stokastisk simulering og historiske krisetests
+math-explainer.js  -> Højrekliks formelinspektør med live tal-nedbrydning
+plan-code.js       -> Base64URL serialisering af formulartilstand
+help-system.js     -> Modulært in-app hjælpecenter og interaktiv rundvisning
+docs.html          -> Fritstående dokumentationsportal og formelsandbox</code></pre>
+          </div>
+        </section>
+
+        <!-- Sektion: Plankoder -->
+        <section class="docs-section" id="plan-codes">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">🔗 Base64URL Plankoder</h2>
+            <p class="docs-section-desc">
+              Beregneren gemmer alle forudsætninger i en URL-venlig kompakt kode.
+            </p>
+          </div>
+
+          <div class="docs-card">
+            <p>
+              En plankode genereres af <code>plan-code.js</code> ved at serialisere formularens JSON-tilstand, gzip/deflate-komprimere den hvis tilgængelig, og konvertere til Base64URL format uden padding:
+            </p>
+            <pre class="docs-code"><code>// Eksempel på URL med indlejret plankode:
+http://localhost:8080/fireberegner/#plan=eyJjdXJyZW50QWdlIjo0MCwiZmlyZUFnZSI6NjEs...</code></pre>
+            <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:0;">
+              Plankoden understøtter fuld fremad- og bagudkompatibilitet, så ældre delte links fortsat indlæses korrekt med fornuftige standardværdier for nye felter (fx boligfriværdi og kontantreserve).
+            </p>
+          </div>
+        </section>
+
+        <!-- Sektion: Git, Deployment & Test -->
+        <section class="docs-section" id="git-deployment-test">
+          <div class="docs-section-header">
+            <h2 class="docs-section-title">🚀 Git Repository, Deployment & Test</h2>
+            <p class="docs-section-desc">
+              Vejledning i kildekode-styring, produktions-deployment og kvalitetssikring.
+            </p>
+          </div>
+
+          <div class="docs-card">
+            <h3 style="margin-top:0; color:var(--color-fire);">🔗 Git Kildekode-repository</h3>
+            <table class="docs-table">
+              <tbody>
+                <tr>
+                  <td><strong>GitHub Repository:</strong></td>
+                  <td><a href="https://github.com/fsk1999/Fireberegner" target="_blank" style="color:var(--color-fire); font-weight:600;">https://github.com/fsk1999/Fireberegner</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Clone via SSH:</strong></td>
+                  <td><code>git clone git@github.com:fsk1999/Fireberegner.git</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Clone via HTTPS:</strong></td>
+                  <td><code>git clone https://github.com/fsk1999/Fireberegner.git</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Lokal sti:</strong></td>
+                  <td><code>/home/fsk1999/Antigravity/Fireberegner/</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Standard gren:</strong></td>
+                  <td><code>main</code> (Stabil produktion)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin-top:20px; color:var(--color-fire);">Anbefalet Branching & Udviklings-workflow</h4>
+            <p style="font-size:13.5px;">
+              For at beskytte den eksisterende kodebase og undgå utilsigtede fejl i den igangværende udvikling, følges et <strong>Feature Branch Workflow</strong>:
+            </p>
+            <pre class="docs-code"><code># 1. Skift til dit Fireberegner repository og hent nyeste main
+cd /home/fsk1999/Antigravity/Fireberegner
+git checkout main
+git pull origin main
+
+# 2. Opret en dedikeret feature branch til nye funktioner
+git checkout -b feature/interactive-help-and-docs
+
+# 3. Kør verifikationstest for at sikre 0 regressioner
+node test-verification.mjs
+node test-help-docs.mjs
+
+# 4. Commit ændringerne med en beskrivende besked
+git add .
+git commit -m "feat: tilføj interaktiv dokumentation, /archify arkitektur og hjælpesystem"
+
+# 5. Push til GitHub og opret Pull Request
+git push -u origin feature/interactive-help-and-docs</code></pre>
+          </div>
+
+          <div class="docs-card">
+            <h3 style="margin-top:0; color:var(--color-fire);">🌐 Deployment & Hosting</h3>
+            <p style="font-size:13.5px;">
+              FIRE-beregneren er en <strong>100 % statisk Single Page Application (SPA)</strong>. Den indeholder ingen server-side scripts eller databaser, hvilket gør deployment ekstremt simpelt, sikkert og omkostningsfrit.
+            </p>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin:16px 0;">
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong>🐙 GitHub Pages (Anbefalet)</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  Aktiveres under Repository Settings → Pages → Source: <em>Deploy from a branch</em> (branch: <code>main</code>, mappe: <code>/ (root)</code>). Opdateres automatisk ved git push.
+                </p>
+              </div>
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong>⚡ Cloudflare Pages / Vercel / Netlify</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  Forbind dit GitHub-repo med 0-konfiguration. Global CDN, gratis HTTPS og lynhurtig levering verden over.
+                </p>
+              </div>
+              <div style="padding:16px; background:var(--color-surface-soft); border-radius:8px; border:1px solid var(--color-border);">
+                <strong>🖥️ Lokal afvikling & On-Premise</strong>
+                <p style="font-size:12.5px; margin:6px 0 0; color:var(--color-text-muted);">
+                  Kør <code>node server.js</code> i roden af projektet. Serveren lytter på port 8080 (<code>http://localhost:8080/</code>).
+                </p>
+              </div>
+            </div>
+
+            <h4 style="margin-top:20px; color:var(--color-fire);">MIME-typer & Caching Regler</h4>
+            <p style="font-size:13.5px;">
+              Sørg for at webserveren leverer korrekte HTTP headers:
+            </p>
+            <ul style="font-size:13px; padding-left:20px; line-height:1.6;">
+              <li><code>.html</code>: <code>text/html; charset=utf-8</code> (<code>Cache-Control: no-cache</code> for at sikre nyeste version).</li>
+              <li><code>.js</code>: <code>application/javascript; charset=utf-8</code>.</li>
+              <li><code>.css</code>: <code>text/css; charset=utf-8</code>.</li>
+              <li>Script tags forsynes med version-tags (fx <code>?v=20261024-4</code>) for at forhindre forældet browser-cache.</li>
+            </ul>
+          </div>
+
+          <div class="docs-card">
+            <h3 style="margin-top:0; color:var(--color-fire);">🧪 Testsuiter & Kvalitetssikring</h3>
+            <p style="font-size:13.5px;">
+              Projektet har to uafhængige testsuiter, der sikrer matematisk nøjagtighed og UI-integritet:
+            </p>
+            <table class="docs-table">
+              <thead>
+                <tr>
+                  <th>Testfil</th>
+                  <th>Kommando</th>
+                  <th>Formål & Dækning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>test-verification.mjs</strong></td>
+                  <td><code>node test-verification.mjs</code></td>
+                  <td>
+                    18 omfattende matematiske suiter: basisscenarier, par-tilstand, skatteoptimal udbetaling, folkepension & modregning, boligfriværdi, Monte Carlo stokastik, 4 historiske børskrak, sensitivitetsanalyse og kontantreserve.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>test-help-docs.mjs</strong></td>
+                  <td><code>node test-help-docs.mjs</code></td>
+                  <td>
+                    Verificerer tilstedeværelse af alle hjælpe- og dokumentationsfiler, API-kontrakter (<code>FireHelp</code>), <code>/archify</code> arkitekturoutputtet, sektions-ID'er og HTTP-levering.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./docs.js"></script>
+  </body>
+</html>

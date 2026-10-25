@@ -1,0 +1,538 @@
+/* ==========================================================================
+   FIRE-Beregner: Interaktivt Hjælpesystem & Guidet Rundvisning
+   Modulært design - Kan inkluderes/udelades uafhængigt
+   ========================================================================== */
+
+/* Flydende Hjælpe-knap (Floating Action Button) */
+.fire-help-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-round, 999px);
+  background: var(--color-fire, #164b39);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(20, 35, 33, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9990;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
+}
+
+.fire-help-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: var(--color-fire-dark, #103a2d);
+  box-shadow: 0 8px 24px rgba(20, 35, 33, 0.3);
+}
+
+.fire-help-fab:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.fire-help-fab svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fire-help-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-pension, #dda72c);
+  color: #103a2d;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Hjælpecenter Skuffe (Slide-over Drawer) */
+.fire-help-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 35, 33, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 9995;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.fire-help-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fire-help-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  max-width: 92vw;
+  background: var(--color-surface, #ffffff);
+  box-shadow: -8px 0 32px rgba(20, 35, 33, 0.2);
+  z-index: 9996;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  color: var(--color-text, #142321);
+  font-family: inherit;
+}
+
+.fire-help-drawer.active {
+  transform: translateX(0);
+}
+
+.fire-help-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border, #dddcd6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface-soft, #fbfaf7);
+}
+
+.fire-help-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fire-help-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-fire, #164b39);
+}
+
+.fire-help-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--color-text-muted, #68706e);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-round, 999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fire-help-close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text, #142321);
+}
+
+/* Drawer Body & Search */
+.fire-help-search-box {
+  padding: 16px 24px;
+  background: var(--color-surface, #fff);
+  border-bottom: 1px solid var(--color-border, #dddcd6);
+  position: relative;
+}
+
+.fire-help-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: var(--radius-control, 6px);
+  border: 1px solid var(--color-border-control, #cfd2d0);
+  background: var(--color-surface-soft, #fbfaf7);
+  font-size: 14px;
+  color: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.fire-help-search-input:focus {
+  border-color: var(--color-fire, #164b39);
+  box-shadow: 0 0 0 3px var(--color-fire-soft, #eaf1ed);
+}
+
+.fire-help-search-icon {
+  position: absolute;
+  left: 36px;
+  top: 27px;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted, #68706e);
+  pointer-events: none;
+}
+
+.fire-help-actions-bar {
+  padding: 12px 24px;
+  display: flex;
+  gap: 10px;
+  background: var(--color-fire-soft, #eaf1ed);
+  border-bottom: 1px solid var(--color-border, #dddcd6);
+}
+
+.fire-help-tour-btn,
+.fire-help-inspect-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fire-help-tour-btn {
+  background: var(--color-fire, #164b39);
+  color: #fff;
+  border: none;
+}
+
+.fire-help-tour-btn:hover {
+  background: var(--color-fire-dark, #103a2d);
+}
+
+.fire-help-inspect-btn {
+  background: #fff;
+  color: var(--color-fire, #164b39);
+  border: 1px solid var(--color-border, #dddcd6);
+}
+
+.fire-help-inspect-btn:hover {
+  background: #fbfaf7;
+  border-color: var(--color-fire, #164b39);
+}
+
+.fire-help-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+/* Accordion Topics */
+.fire-help-category-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #68706e);
+  margin: 18px 0 8px;
+  font-weight: 700;
+}
+
+.fire-help-category-title:first-child {
+  margin-top: 0;
+}
+
+.fire-help-item {
+  border: 1px solid var(--color-border, #dddcd6);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: var(--color-surface, #fff);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.fire-help-item:hover {
+  border-color: var(--color-border-control, #cfd2d0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.fire-help-item-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: var(--color-surface, #fff);
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.fire-help-item-header:hover {
+  background: var(--color-surface-soft, #fbfaf7);
+}
+
+.fire-help-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+  color: var(--color-text-muted, #68706e);
+}
+
+.fire-help-item.open .fire-help-chevron {
+  transform: rotate(180deg);
+}
+
+.fire-help-item-body {
+  padding: 0 16px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text, #142321);
+  display: none;
+}
+
+.fire-help-item.open .fire-help-item-body {
+  display: block;
+}
+
+.fire-help-item-body code {
+  background: var(--color-surface-soft, #fbfaf7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  border: 1px solid var(--color-border, #dddcd6);
+}
+
+.fire-help-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  background: var(--color-free-funds-soft, #eaf2f7);
+  color: var(--color-free-funds, #2f709d);
+}
+
+.fire-help-tag.pension {
+  background: var(--color-pension-soft, #fbf3dc);
+  color: var(--color-pension-line, #b77a08);
+}
+
+.fire-help-tag.tax {
+  background: #fdf2f2;
+  color: var(--color-danger, #a6392f);
+}
+
+/* Drawer Footer */
+.fire-help-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border, #dddcd6);
+  background: var(--color-surface-soft, #fbfaf7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fire-help-docs-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fire, #164b39);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+}
+
+.fire-help-docs-link:hover {
+  color: var(--color-fire-dark, #103a2d);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Interaktiv Rundvisning (Guided Tour Spotlight)
+   ========================================================================== */
+.fire-tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 35, 30, 0.6);
+  z-index: 10000;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.fire-tour-overlay.active {
+  opacity: 1;
+}
+
+/* Spotlight cutout target highlight */
+.fire-tour-target-highlight {
+  position: absolute;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(16, 35, 30, 0.65), 0 0 20px rgba(22, 75, 57, 0.5);
+  border: 2px solid var(--color-pension, #dda72c);
+  pointer-events: none;
+  z-index: 10001;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fire-tour-popover {
+  position: absolute;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border-radius: var(--radius-card, 14px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  z-index: 10002;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--color-text, #142321);
+  font-family: inherit;
+}
+
+.fire-tour-step-badge {
+  display: inline-block;
+  background: var(--color-fire-soft, #eaf1ed);
+  color: var(--color-fire, #164b39);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.fire-tour-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-fire, #164b39);
+}
+
+.fire-tour-desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text, #142321);
+}
+
+.fire-tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border, #dddcd6);
+  padding-top: 14px;
+}
+
+.fire-tour-skip {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #68706e);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.fire-tour-skip:hover {
+  color: var(--color-text, #142321);
+  text-decoration: underline;
+}
+
+.fire-tour-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.fire-tour-prev,
+.fire-tour-next {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--color-border, #dddcd6);
+  transition: all 0.15s ease;
+}
+
+.fire-tour-prev {
+  background: var(--color-surface-soft, #fbfaf7);
+  color: var(--color-text, #142321);
+}
+
+.fire-tour-prev:hover:not(:disabled) {
+  background: #eee;
+}
+
+.fire-tour-prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fire-tour-next {
+  background: var(--color-fire, #164b39);
+  color: #fff;
+  border-color: var(--color-fire, #164b39);
+}
+
+.fire-tour-next:hover {
+  background: var(--color-fire-dark, #103a2d);
+}
+
+/* Pulsing beacon for contextual inspection */
+.fire-help-inspecting * {
+  cursor: help !important;
+}
+
+.fire-help-inspect-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-fire, #164b39);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 10010;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: fireHelpSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fireHelpSlideDown {
+  from {
+    transform: translate(-50%, -20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.fire-help-cancel-inspect {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fire-help-cancel-inspect:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .fire-help-drawer {
+    width: 100vw;
+  }
+  .fire-help-fab {
+    bottom: 16px;
+    right: 16px;
+    width: 46px;
+    height: 46px;
+  }
+}
