@@ -5760,8 +5760,23 @@
       </div>
     `;
 
-    const anchor = targetEl.closest(".result-card, .cash-reserve-card, .form-group, .hero-kpi-card, header, footer, .result-milestone") || targetEl.parentElement;
-    anchor.after(card);
+    const cashCard = targetEl.closest(".cash-reserve-card-box, .cash-allocation-card-box, .cash-reserve-card");
+    const resultCard = targetEl.closest(".result-card");
+    const plannerCard = document.querySelector(".planner-card");
+
+    if (cashCard) {
+      cashCard.appendChild(card);
+    } else if (resultCard) {
+      card.classList.add("math-inline-dashboard-card");
+      if (plannerCard) {
+        plannerCard.after(card);
+      } else {
+        resultCard.after(card);
+      }
+    } else {
+      const anchor = targetEl.closest(".hero-kpi-card, .form-group, header, footer, .result-milestone") || targetEl.parentElement;
+      anchor.after(card);
+    }
     targetEl.classList.add("is-explaining-active");
     activeInlineExplainer = { metricKey, isMetric: true, targetEl };
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });

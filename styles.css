@@ -1202,13 +1202,12 @@ legend,
 
 .result-card {
   align-self: start;
-  position: sticky;
-  top: var(--space-4);
+  position: static;
+  margin-top: 0;
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-width: 0;
   overflow: hidden;
-  z-index: 5;
 }
 
 .result-card > header {
@@ -3004,13 +3003,14 @@ th.housing-col {
   font-size: 12.5px;
   margin-top: 4px;
   min-width: 0;
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
 }
 
 .math-steps-table td {
   border-bottom: 1px solid var(--line);
-  padding: 5px 4px;
+  padding: 6px 6px;
+  vertical-align: top;
 }
 
 .math-steps-table tr:last-child td {
@@ -3019,18 +3019,21 @@ th.housing-col {
 
 .math-step-label {
   color: var(--ink);
+  line-height: 1.45;
   overflow-wrap: break-word;
-  padding-right: 8px;
-  word-break: break-word;
+  padding-right: 14px;
+  word-break: normal;
 }
 
 .math-step-value {
   font-family: var(--data);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-semibold);
+  line-height: 1.45;
+  min-width: 80px;
   text-align: right;
   white-space: nowrap;
-  width: 130px;
+  width: auto;
 }
 
 .math-step-result td {
@@ -3135,6 +3138,8 @@ th.housing-col {
 }
 
 .math-inline-shell {
+  container-type: inline-size;
+  container-name: mathshell;
   background: linear-gradient(180deg, rgba(247, 250, 248, 0.98) 0%, rgba(238, 246, 242, 0.98) 100%);
   border-radius: 4px;
   box-sizing: border-box;
@@ -3375,7 +3380,16 @@ th.housing-col {
 .math-inline-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+@container mathshell (max-width: 680px) {
+  .math-inline-grid {
+    grid-template-columns: 1fr;
+  }
+  .math-flow-strip {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 900px) {
@@ -3408,8 +3422,26 @@ th.housing-col {
   border: 2px solid var(--green-primary, #164b39);
   border-radius: var(--radius-card, 12px);
   box-shadow: 0 8px 24px rgba(20, 35, 33, 0.12);
-  margin: 12px 0 16px;
+  box-sizing: border-box;
+  margin: 14px 0 16px;
   overflow: hidden;
+  width: 100%;
+}
+
+.math-inline-dashboard-card {
+  grid-column: 1 / -1 !important;
+  margin: var(--space-3) 0 var(--space-4) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cash-reserve-card-box .math-inline-standalone-card,
+.cash-allocation-card-box .math-inline-standalone-card {
+  grid-column: 1 / -1 !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 
