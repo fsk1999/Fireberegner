@@ -2248,9 +2248,10 @@
         return `
           <g class="chart-insight-pin${isFocused ? " is-focused" : ""}" data-insight-id="${ins.id}" data-insight-age="${ins.ageStart}" transform="translate(${x} 0)" role="button" tabindex="0">
             <title>${ins.title} (${ins.badgeText}) - Alder ${ins.ageStart} år: Klik for handlingsforslag</title>
-            <line x1="0" y1="${margin.top}" x2="0" y2="${margin.top + plotHeight}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3" opacity="${isFocused ? "0.9" : "0.55"}" />
-            <circle class="chart-insight-pin-circle" cx="0" cy="${pinY}" r="11" />
-            <text class="chart-insight-pin-text" x="0" y="${pinY + 3.5}">💡</text>
+            <line x1="0" y1="${margin.top}" x2="0" y2="${margin.top + plotHeight}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3" opacity="${isFocused ? "0.9" : "0.55"}" pointer-events="none" />
+            <circle class="chart-insight-pin-hitarea" cx="0" cy="${pinY}" r="22" fill="transparent" pointer-events="all" />
+            <circle class="chart-insight-pin-circle" cx="0" cy="${pinY}" r="11" pointer-events="none" />
+            <text class="chart-insight-pin-text" x="0" y="${pinY + 3.5}" pointer-events="none">💡</text>
           </g>`;
       })
       .join("");
@@ -2265,6 +2266,12 @@
         const ins = currentCalculationInsights.find((i) => i.id === id);
         if (ins) {
           focusAndHighlightInsight(ins);
+        }
+      });
+      pin.addEventListener("pointerenter", () => {
+        const age = Number(pin.dataset.insightAge);
+        if (Number.isFinite(age)) {
+          syncAllChartsToAge(age);
         }
       });
     });

@@ -2507,11 +2507,10 @@ legend,
 /* Chart Insight Pins */
 .chart-insight-pin {
   cursor: pointer;
-  transition: transform 150ms ease;
 }
 
-.chart-insight-pin:hover {
-  transform: scale(1.15);
+.chart-insight-pin-hitarea {
+  cursor: pointer;
 }
 
 .chart-insight-pin-circle {
@@ -2519,6 +2518,20 @@ legend,
   stroke: #ffffff;
   stroke-width: 1.5;
   filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+  transition: r 160ms ease, stroke-width 160ms ease, filter 160ms ease, fill 160ms ease;
+}
+
+.chart-insight-pin:hover .chart-insight-pin-circle {
+  r: 13.5;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75));
+}
+
+.chart-insight-pin.is-focused .chart-insight-pin-circle {
+  fill: #ef4444;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.75));
 }
 
 .chart-insight-pin-text {
