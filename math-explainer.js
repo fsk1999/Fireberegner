@@ -1292,6 +1292,146 @@
         };
       }
 
+      case "cash-balance-today": {
+        const totalFree = (inputs.freeFundsBalance ?? 0) > 0 ? inputs.freeFundsBalance : (inputs.cashBalance ?? 0);
+        const startShare = Number.isFinite(inputs.cashShareStart) ? inputs.cashShareStart : 5;
+        const cashBalance = Math.round(totalFree * (startShare / 100));
+        const freeStock = totalFree - cashBalance;
+        const cashRate = inputs.cashInterestRate ?? 0.015;
+        const cashTax = inputs.cashInterestTax ?? 0.37;
+        const netInterestPct = (cashRate * (1 - cashTax) * 100).toFixed(2);
+
+        return {
+          title: "Kontantreserve i dag (Likviditetsbuffer)",
+          badge: "Startbuffer",
+          quickMath: `${currency.format(cashBalance)} (${startShare} % af samlede frie midler ${currency.format(totalFree)})`,
+          description: `Din kontantreserve i banken ved beregningens start. Den udgør præcis ${startShare} % af dine samlede frie midler (${currency.format(totalFree)}). De resterende ${100 - startShare} % (${currency.format(freeStock)}) er investeret i aktier på dit frie depot som afkastsøgende formue.`,
+          formula: `Kontantreserve i dag = Samlede frie midler × Kontantandel ved start\n= ${currency.format(totalFree)} × ${startShare} % = ${currency.format(cashBalance)}`,
+          formulaDetails: `Kronebeløb og procentdel synkroniseres automatisk. Kontantreserven forrentes med ${percent.format(cashRate)} p.a. i banken. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst (effektiv nettotilskrivning ca. ${netInterestPct} % før inflation).`,
+          steps: [
+            { label: "Samlede frie midler (Frie midler i dag)", value: currency.format(totalFree) },
+            { label: "Valgt kontantandel ved start", value: `${startShare} %` },
+            { label: "Investeret i aktier (frie midler depot)", value: `${currency.format(freeStock)} (${100 - startShare} %)` },
+            { label: "Kontantreserve i dag (sikker bankkonto)", value: currency.format(cashBalance), isResult: true }
+          ],
+          assumptions: [
+            { label: "Samlede frie midler", value: currency.format(totalFree) },
+            { label: "Startandel", value: `${startShare} %` },
+            { label: "Bankrente", value: percent.format(cashRate) },
+            { label: "Renteskat", value: percent.format(cashTax) }
+          ]
+        };
+      }
+
+      case "cash-share-start": {
+        const totalFree = (inputs.freeFundsBalance ?? 0) > 0 ? inputs.freeFundsBalance : (inputs.cashBalance ?? 0);
+        const startShare = Number.isFinite(inputs.cashShareStart) ? inputs.cashShareStart : 5;
+        const cashBalance = Math.round(totalFree * (startShare / 100));
+
+        return {
+          title: "Kontantandel ved start (%)",
+          badge: "Startallokering",
+          quickMath: `${startShare} % af frie midler (${currency.format(totalFree)}) = ${currency.format(cashBalance)}`,
+          description: "Hvor stor en procentdel af dine samlede frie midler, der placeres risikofrit som kontanter i banken ved start. Dette giver en likviditetsbuffer til uforudsete udgifter og beskytter mod at skulle sælge aktier under markedsuro.",
+          formula: `Kontantandel = Kontantreserve / Samlede frie midler\n= ${currency.format(cashBalance)} / ${currency.format(totalFree)} = ${startShare} %`,
+          formulaDetails: "Træk i skyderen eller indtast procenten direkte. Det tilsvarende kronebeløb i kontantreserve-feltet opdateres automatisk.",
+          steps: [
+            { label: "Samlede frie midler", value: currency.format(totalFree) },
+            { label: "Kontantreserve i dag", value: currency.format(cashBalance) },
+            { label: "Kontantandel ved start", value: `${startShare} %`, isResult: true }
+          ],
+          assumptions: [
+            { label: "Startandel", value: `${startShare} %` },
+            { label: "Målandel ved pension", value: `${inputs.cashShareTarget ?? 20} %` }
+          ]
+        };
+      }
+
+      case "cash-share-target": {
+        const startShare = Number.isFinite(inputs.cashShareStart) ? inputs.cashShareStart : 5;
+        const targetShare = Number.isFinite(inputs.cashShareTarget) ? inputs.cashShareTarget : 20;
+        const targetAge = inputs.retirementAge ?? 69;
+
+        return {
+          title: "Kontantandel ved pension / FIRE (%)",
+          badge: "Målallokering",
+          quickMath: `Mål: ${targetShare} % i kontanter ved pension (${targetAge} år)`,
+          description: "Mål-allokeringen for kontantreserven, når du når pension eller FIRE. Mange investorer øger kontantandelen op til pension (f.eks. til 15-25 %) for at dække 1-3 års leveomkostninger (Sequence of Returns Risk buffer), så man undgår tvangssalg af aktier under et børskrak i de første udbetalingsår.",
+          formula: `Mål-kontantandel = ${targetShare} % af frie midler ved ${targetAge} år`,
+          formulaDetails: "Andelen optrappes gradvist fra startandelen frem mod måldatoen baseret på din valgte optrapningsprofil.",
+          steps: [
+            { label: "Startandel i dag", value: `${startShare} %` },
+            { label: "Målandel ved pension/FIRE", value: `${targetShare} %`, isResult: true },
+            { label: "Samlet stigning", value: `${targetShare >= startShare ? "+" : ""}${(targetShare - startShare).toFixed(1)} %-point` },
+            { label: "Målalder", value: `${targetAge} år` }
+          ],
+          assumptions: [
+            { label: "Startandel", value: `${startShare} %` },
+            { label: "Målandel", value: `${targetShare} %` },
+            { label: "Optrapningsstrategi", value: inputs.cashShareStrategy || "glidePath" }
+          ]
+        };
+      }
+
+      case "cash-share-strategy": {
+        const strategy = inputs.cashShareStrategy || "glidePath";
+        const strategyNames = {
+          glidePath: "Glidende optrapning mod folkepension (Lineær)",
+          glidePathFire: "Glidende optrapning mod FIRE-start",
+          stepAtRetirement: "Trinvis stigning ved folkepension",
+          stepAtFire: "Trinvis stigning ved FIRE-start",
+          constant: "Fast kontantandel (Samme % alle år)",
+        };
+        const strategyName = strategyNames[strategy] || strategy;
+
+        return {
+          title: "Optrapningsprofil for kontantreserve",
+          badge: "Aktivallokering",
+          quickMath: `Valgt profil: ${strategyName}`,
+          description: "Bestemmer hvordan kontantandelen af dine frie midler udvikler sig fra din nuværende alder og frem mod pension eller FIRE. 'Glidende' profiler øger kontantandelen jævnt år for år, 'Trinvise' springer på én gang ved målalderen, og 'Fast' fastholder samme procentdel hele livet.",
+          formula: strategy === "constant"
+            ? "Andel(år) = Startandel (uændret)"
+            : "Andel(år) = Start + (Mål − Start) × (år / år_til_mål)",
+          formulaDetails: "I op- og nedsparingsmatricen kan du desuden overstyre kontantandel og rente individuelt for specifikke år.",
+          steps: [
+            { label: "Valgt profil", value: strategyName, isResult: true },
+            { label: "Startandel", value: `${inputs.cashShareStart ?? 5} %` },
+            { label: "Målandel", value: `${inputs.cashShareTarget ?? 20} %` }
+          ],
+          assumptions: [
+            { label: "Profil", value: strategyName }
+          ]
+        };
+      }
+
+      case "cash-glide-range":
+      case "cash-glide-milestone": {
+        const curAge = inputs.currentAge ?? 30;
+        const retAge = inputs.retirementAge ?? 69;
+        const fireAge = calculation.fireRow ? calculation.fireRow.age : null;
+        const startShare = Number.isFinite(inputs.cashShareStart) ? inputs.cashShareStart : 5;
+        const targetShare = Number.isFinite(inputs.cashShareTarget) ? inputs.cashShareTarget : 20;
+
+        return {
+          title: "Optrapningssti (Glide path)",
+          badge: "Likviditetsbuffer",
+          quickMath: `${startShare} % ved start (${curAge} år) → ${targetShare} % ved pension (${retAge} år)`,
+          description: "Viser hvordan kontantandelen af dine frie midler tilpasses over livsfaserne. Ved at opbygge kontanter frem mod pension opnår du en sikker 'kontant-buffer' til at dække de første års forbrug uden at realisere aktier i faldende markeder.",
+          formula: "Andel(alder) = Startandel + (Målandel − Startandel) × ((alder − startalder) / (målalder − startalder))",
+          formulaDetails: "Hvert år i op- og nedsparingsmatricen allokeres den beregnede procentdel automatisk til bankkontoen med den gældende bankrente.",
+          steps: [
+            { label: `Start ved ${curAge} år`, value: `${startShare} %` },
+            ...(fireAge ? [{ label: `FIRE ved ${fireAge} år`, value: `${Math.round((typeof globalThis !== "undefined" && globalThis.FireCalculations?.getTargetCashShare ? globalThis.FireCalculations.getTargetCashShare(fireAge - curAge, fireAge, inputs, fireAge || retAge) : (startShare / 100)) * 100)} %` }] : []),
+            { label: `Pension ved ${retAge} år`, value: `${targetShare} %`, isResult: true }
+          ],
+          assumptions: [
+            { label: "Startandel", value: `${startShare} %` },
+            { label: "Målandel", value: `${targetShare} %` },
+            { label: "Strategi", value: inputs.cashShareStrategy || "glidePath" }
+          ]
+        };
+      }
+
       default:
         return null;
     }

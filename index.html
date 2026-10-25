@@ -318,51 +318,53 @@
                   <div class="cash-reserve-card-box cash-allocation-card-box">
                     <div class="cash-card-title-row">
                       <span class="cash-card-title">💵 Kontantreserve &amp; Likviditetsbuffer (Aktivallokering)</span>
-                      <span class="cash-card-badge" id="cash-glide-badge">5 % → 20 %</span>
+                      <span class="cash-card-badge explainable-val" id="cash-glide-badge" data-metric-key="cash-glide-range" tabindex="0" title="Højreklik for beregningsforklaring af optrapningsstien">5 % → 20 %</span>
                     </div>
                     <p class="cash-card-hint">
-                      Placér en del af dine frie midler som kontantreserve i banken som sikkerhed mod kursudsving. Du kan angive det som kronebeløb eller procentdel – de to felter synkroniseres automatisk. Vælg også mål for kontantandel ved pension/FIRE og optrapningsprofil over tid.
+                      Placér en del af dine frie midler som kontantreserve i banken som sikkerhed mod kursudsving. Du kan angive det som kronebeløb eller procentdel – de to felter synkroniseres automatisk. Vælg også mål for kontantandel ved pension/FIRE og optrapningsprofil over tid. Højreklik på et vilkårligt tal for at se det præcise regnestykke.
                     </p>
                     <div class="form-grid cash-subgrid">
                       <label class="field">
-                        <span>Kontantreserve i dag (kr.)
-                          <i title="Nuværende indestående på bankkonto eller kontantopsparing. Forrentes med særskilt bankrente og giver en sikker likviditetsbuffer uden kursudsving.">i</i>
+                        <span class="explainable-val" data-metric-key="cash-balance-today" tabindex="0">Kontantreserve i dag (kr.)
+                          <i title="Nuværende indestående på bankkonto eller kontantopsparing. Forrentes med særskilt bankrente og giver en sikker likviditetsbuffer uden kursudsving. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <input
                           name="cashBalance"
                           type="text"
                           inputmode="numeric"
                           data-number-format="integer"
-                          value="0"
+                          value="12.500"
                           required
+                          class="explainable-val"
+                          data-metric-key="cash-balance-today"
                         />
                       </label>
 
                       <label class="field">
-                        <span>Kontantandel ved start (%)
-                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start. Synkroniseres automatisk med kronebeløbet.">i</i>
+                        <span class="explainable-val" data-metric-key="cash-share-start" tabindex="0">Kontantandel ved start (%)
+                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start. Synkroniseres automatisk med kronebeløbet. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <div class="slider-input-inline">
-                          <input type="range" name="cashShareStartRange" min="0" max="50" step="1" value="5" class="cash-range-slider" />
-                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" required /><b>%</b></span>
+                          <input type="range" name="cashShareStartRange" min="0" max="50" step="1" value="5" class="cash-range-slider explainable-val" data-metric-key="cash-share-start" />
+                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" required class="explainable-val" data-metric-key="cash-share-start" /><b>%</b></span>
                         </div>
                       </label>
 
                       <label class="field">
-                        <span>Kontantandel ved pension / FIRE (%)
-                          <i title="Mål-procentdel i kontanter, når du når pension eller FIRE.">i</i>
+                        <span class="explainable-val" data-metric-key="cash-share-target" tabindex="0">Kontantandel ved pension / FIRE (%)
+                          <i title="Mål-procentdel i kontanter, når du når pension eller FIRE. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <div class="slider-input-inline">
-                          <input type="range" name="cashShareTargetRange" min="0" max="50" step="1" value="20" class="cash-range-slider" />
-                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" required /><b>%</b></span>
+                          <input type="range" name="cashShareTargetRange" min="0" max="50" step="1" value="20" class="cash-range-slider explainable-val" data-metric-key="cash-share-target" />
+                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" required class="explainable-val" data-metric-key="cash-share-target" /><b>%</b></span>
                         </div>
                       </label>
 
                       <label class="field">
-                        <span>Optrapningsprofil over årene
-                          <i title="Vælg hvordan kontantandelen udvikler sig over tid: 'Glidende' stiger lineært år for år. 'Trinvis' skifter først på måldatoen. 'Fast' holder samme procent.">i</i>
+                        <span class="explainable-val" data-metric-key="cash-share-strategy" tabindex="0">Optrapningsprofil over årene
+                          <i title="Vælg hvordan kontantandelen udvikler sig over tid: 'Glidende' stiger lineært år for år. 'Trinvis' skifter først på måldatoen. 'Fast' holder samme procent. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
-                        <select name="cashShareStrategy" required>
+                        <select name="cashShareStrategy" class="explainable-val" data-metric-key="cash-share-strategy" required>
                           <option value="glidePath">📈 Glidende optrapning mod folkepension (Lineær)</option>
                           <option value="glidePathFire">🎯 Glidende optrapning mod FIRE-start</option>
                           <option value="stepAtRetirement">⚡ Trinvis stigning ved folkepension</option>

@@ -3439,7 +3439,7 @@
           ? window.FireCalculations.getTargetCashShare(m.age - curAge, m.age, inputs, fireAge || retAge)
           : (m.age >= retAge ? targetShare / 100 : startShare / 100);
         const sharePct = (share * 100).toFixed(1).replace(/\.0$/, "");
-        return `<span class="cash-glide-pill${m.isKey ? " is-key-milestone" : ""}">${m.label}: <strong>${sharePct} %</strong></span>`;
+        return `<span class="cash-glide-pill${m.isKey ? " is-key-milestone" : ""} explainable-val" data-metric-key="cash-glide-milestone" tabindex="0" title="Højreklik for detaljeret beregningsforklaring af denne kontantandel">${m.label}: <strong>${sharePct} %</strong></span>`;
       })
       .join("");
   }
@@ -4807,6 +4807,8 @@
   const cashShareTargetInput = form.elements.cashShareTarget;
   const cashShareTargetRange = form.elements.cashShareTargetRange;
 
+  const freeFundsBalanceInput = form.elements.freeFundsBalance;
+
   let isSyncingCash = false;
 
   function syncCashShareFromBalance() {
@@ -4815,9 +4817,8 @@
     try {
       const free = readNumber("freeFundsBalance") || 0;
       const cash = readNumber("cashBalance") || 0;
-      const total = free + cash;
-      if (total > 0 && cashShareStartInput) {
-        const pct = Math.max(0, Math.min(100, Math.round((cash / total) * 100 * 10) / 10));
+      if (free > 0 && cashShareStartInput) {
+        const pct = Math.max(0, Math.min(100, Math.round((cash / free) * 100 * 10) / 10));
         cashShareStartInput.value = pct;
         if (cashShareStartRange) {
           cashShareStartRange.value = pct;
@@ -4833,11 +4834,9 @@
     isSyncingCash = true;
     try {
       const free = readNumber("freeFundsBalance") || 0;
-      const currentCash = readNumber("cashBalance") || 0;
-      const total = free + currentCash;
       const share = (parseFloat(cashShareStartInput?.value) || 0) / 100;
-      if (total > 0 && share >= 0 && share <= 1 && cashBalanceInput) {
-        const newCash = Math.round(total * share);
+      if (free >= 0 && share >= 0 && share <= 1 && cashBalanceInput) {
+        const newCash = Math.round(free * share);
         cashBalanceInput.value = currency.format(newCash).replace(/\s*kr\.$/, "");
         formatNumberInput(cashBalanceInput);
       }
@@ -4848,6 +4847,10 @@
 
   if (cashBalanceInput) {
     cashBalanceInput.addEventListener("input", syncCashShareFromBalance);
+  }
+
+  if (freeFundsBalanceInput) {
+    freeFundsBalanceInput.addEventListener("input", syncCashBalanceFromShare);
   }
 
   if (cashShareStartInput && cashShareStartRange) {
@@ -5480,6 +5483,25 @@
     if (el) {
       event.preventDefault();
       openMathInspector(el);
+      return;
+    }
+    const cashEl = event.target.closest(
+      "[name='cashBalance'], [name='cashShareStart'], [name='cashShareStartRange'], [name='cashShareTarget'], [name='cashShareTargetRange'], [name='cashShareStrategy'], .cash-card-title, .cash-glide-pill, .cash-share-pill, #cash-glide-badge"
+    );
+    if (cashEl) {
+      event.preventDefault();
+      let metricKey = "cash-balance-today";
+      if (cashEl.name === "cashShareStart" || cashEl.name === "cashShareStartRange" || cashEl.matches?.("[name='cashShareStartRange']")) {
+        metricKey = "cash-share-start";
+      } else if (cashEl.name === "cashShareTarget" || cashEl.name === "cashShareTargetRange" || cashEl.matches?.("[name='cashShareTargetRange']")) {
+        metricKey = "cash-share-target";
+      } else if (cashEl.name === "cashShareStrategy") {
+        metricKey = "cash-share-strategy";
+      } else if (cashEl.classList?.contains("cash-glide-pill") || cashEl.id === "cash-glide-badge") {
+        metricKey = "cash-glide-milestone";
+      }
+      cashEl.dataset.metricKey = metricKey;
+      openMathInspector(cashEl);
     }
   });
 
@@ -5557,6 +5579,7 @@
   renderCoupleState();
   renderFolkepensionState();
   renderHousingState();
+  syncCashBalanceFromShare();
 
   updateCalcModeUi();
   update();

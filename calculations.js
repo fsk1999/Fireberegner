@@ -1808,7 +1808,7 @@
     let initialCostBasis = inputs.freeFundsCostBasis ?? 0;
 
     if (hasDynamicCashShare) {
-      const totalFree = inputs.freeFundsBalance + (inputs.cashBalance ?? 0);
+      const totalFree = (inputs.freeFundsBalance ?? 0) > 0 ? inputs.freeFundsBalance : (inputs.cashBalance ?? 0);
       const startShare = getTargetCashShare(0, inputs.currentAge, inputs, inputs.retirementAge);
       initialCash = totalFree * startShare;
       const initialFreeStock = totalFree * (1 - startShare);

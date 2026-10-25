@@ -430,8 +430,71 @@ console.assert(Array.isArray(decodedYby.annualCashShares) && decodedYby.annualCa
 console.assert(Array.isArray(decodedYby.annualCashInterestRates) && decodedYby.annualCashInterestRates[0] === 0.035, "Plan code should preserve annualCashInterestRates");
 console.log("✓ Year-by-year cash reserve & interest overrides verified.");
 
+console.log("\n=== 18. Cash Reserve Explanations & Exact Sync Calculations ===");
+const test250kInputs10 = {
+  ...baseInputs,
+  freeFundsBalance: 250000,
+  cashShareStart: 10,
+  cashShareTarget: 20,
+};
+const calc250k10 = FireCalculations.calculateFire(test250kInputs10);
+const row0_10 = calc250k10.planRows[0];
+console.assert(Math.abs(row0_10.cash - 25000) < 1, `250k free funds with 10% cash share must give exactly 25.000 kr. in cash, got ${row0_10.cash}`);
+console.assert(Math.abs(row0_10.freeFunds - 225000) < 1, `250k free funds with 10% cash share must give exactly 225.000 kr. in stock, got ${row0_10.freeFunds}`);
+console.assert(Math.abs((row0_10.cash + row0_10.freeFunds) - 250000) < 1, `Total liquid free funds must equal 250.000 kr., got ${row0_10.cash + row0_10.freeFunds}`);
+
+const test250kInputs5 = {
+  ...baseInputs,
+  freeFundsBalance: 250000,
+  cashShareStart: 5,
+  cashShareTarget: 20,
+};
+const calc250k5 = FireCalculations.calculateFire(test250kInputs5);
+const row0_5 = calc250k5.planRows[0];
+console.assert(Math.abs(row0_5.cash - 12500) < 1, `250k free funds with 5% cash share must give exactly 12.500 kr. in cash, got ${row0_5.cash}`);
+console.assert(Math.abs(row0_5.freeFunds - 237500) < 1, `250k free funds with 5% cash share must give exactly 237.500 kr. in stock, got ${row0_5.freeFunds}`);
+
+const expCashBal = FireMathExplainer.explainKeyMetric({
+  metricKey: "cash-balance-today",
+  calculation: calc250k10,
+  inputs: test250kInputs10,
+});
+console.assert(expCashBal !== null, "Math explainer must explain cash-balance-today");
+console.assert(expCashBal.quickMath.includes("25.000"), "Explainer quickMath must include 25.000 kr.");
+console.assert(expCashBal.steps.some((s) => s.label.includes("Kontantreserve") && s.value.includes("25.000")), "Explainer steps must include 25.000 kr.");
+
+const expCashShareStart = FireMathExplainer.explainKeyMetric({
+  metricKey: "cash-share-start",
+  calculation: calc250k10,
+  inputs: test250kInputs10,
+});
+console.assert(expCashShareStart !== null, "Math explainer must explain cash-share-start");
+console.assert(expCashShareStart.title.includes("Kontantandel ved start"), "Title must be Kontantandel ved start");
+
+const expCashShareTarget = FireMathExplainer.explainKeyMetric({
+  metricKey: "cash-share-target",
+  calculation: calc250k10,
+  inputs: test250kInputs10,
+});
+console.assert(expCashShareTarget !== null, "Math explainer must explain cash-share-target");
+
+const expCashStrategy = FireMathExplainer.explainKeyMetric({
+  metricKey: "cash-share-strategy",
+  calculation: calc250k10,
+  inputs: test250kInputs10,
+});
+console.assert(expCashStrategy !== null, "Math explainer must explain cash-share-strategy");
+
+const expCashMilestone = FireMathExplainer.explainKeyMetric({
+  metricKey: "cash-glide-milestone",
+  calculation: calc250k10,
+  inputs: test250kInputs10,
+});
+console.assert(expCashMilestone !== null, "Math explainer must explain cash-glide-milestone");
+console.log("✓ Cash reserve explanations and exact sync calculations verified.");
+
 console.log("\n==================================");
-console.log("ALL 17 VERIFICATION SUITES PASSED!");
+console.log("ALL 18 VERIFICATION SUITES PASSED!");
 console.log("==================================");
 
 
