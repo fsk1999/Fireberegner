@@ -3108,6 +3108,7 @@
         0,
         (row.freeFundsWithdrawal || 0) - (row.withdrawalTax || 0),
       );
+      const cash = Math.max(0, row.cashWithdrawal || 0);
       const ask = Math.max(0, row.askWithdrawal || 0);
       const ageSavings = Math.max(0, row.ageSavingsWithdrawal || 0);
       const rate = Math.max(
@@ -3129,7 +3130,7 @@
         ? 0
         : (row.desiredWithdrawal || inputs.desiredAnnualWithdrawal || 0);
       const totalOut =
-        free + ask + ageSavings + rate + life + pub + atp + housing;
+        free + cash + ask + ageSavings + rate + life + pub + atp + housing;
       const stackTotal = isAccumulation ? savings : totalOut;
 
       return {
@@ -3139,6 +3140,7 @@
         isAccumulation,
         savings,
         free,
+        cash,
         ask,
         ageSavings,
         rate,
@@ -3165,7 +3167,7 @@
         d.savingsBottom = 0;
         d.savingsTop = 0;
       }
-      const streamKeys = ["free", "ask", "ageSavings", "rate", "life", "pub", "atp", "housing"];
+      const streamKeys = ["free", "cash", "ask", "ageSavings", "rate", "life", "pub", "atp", "housing"];
       streamKeys.forEach((key) => {
         d.layerBottoms[key] = cur;
         cur += d[key] || 0;
@@ -3216,6 +3218,7 @@
 
     const streamDefinitions = [
       { key: "free", label: "Frie Midler (aktier)", fill: "url(#cf-grad-free)", stroke: "#10b981", color: "#10b981" },
+      { key: "cash", label: "Frie Midler (kontant)", fill: "url(#cf-grad-cash)", stroke: "#0ea5e9", color: "#0ea5e9" },
       { key: "ask", label: "ASK", fill: "url(#cf-grad-ask)", stroke: "#06b6d4", color: "#06b6d4" },
       { key: "ageSavings", label: "Aldersopsparing", fill: "url(#cf-grad-age)", stroke: "#8b5cf6", color: "#8b5cf6" },
       { key: "rate", label: "Ratepension", fill: "url(#cf-grad-rate)", stroke: "#f59e0b", color: "#f59e0b" },
@@ -3252,6 +3255,13 @@
       // Line mode: Pure cubic curves
       const savPts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.savings).toFixed(2) }));
       let linePaths = `<path d="${smoothPointsToCubic(savPts)}" fill="none" stroke="#2563eb" stroke-width="2.5" />`;
+      // Distinct curve for total net drawdown:
+      const totalOutPts = data
+        .filter((d) => !d.isAccumulation && d.totalOut > 0)
+        .map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d.totalOut).toFixed(2) }));
+      if (totalOutPts.length > 0) {
+        linePaths += `<path d="${smoothPointsToCubic(totalOutPts)}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />`;
+      }
       streamDefinitions.forEach((def) => {
         const pts = data.map((d) => ({ x: xForAge(d.age).toFixed(2), y: yForValue(d[def.key] || 0).toFixed(2) }));
         linePaths += `<path d="${smoothPointsToCubic(pts)}" fill="none" stroke="${def.stroke}" stroke-width="2" />`;
@@ -3271,6 +3281,7 @@
           }
           const segments = [
             { val: d.free, fill: "#10b981" },
+            { val: d.cash, fill: "#0ea5e9" },
             { val: d.ask, fill: "#06b6d4" },
             { val: d.ageSavings, fill: "#8b5cf6" },
             { val: d.rate, fill: "#f59e0b" },
@@ -3333,6 +3344,10 @@
           <linearGradient id="cf-grad-free" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#10b981" stop-opacity="0.9" />
             <stop offset="100%" stop-color="#059669" stop-opacity="0.5" />
+          </linearGradient>
+          <linearGradient id="cf-grad-cash" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#0284c7" stop-opacity="0.5" />
           </linearGradient>
           <linearGradient id="cf-grad-ask" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.9" />
@@ -3425,6 +3440,12 @@
             value: d.free,
             color: "#10b981",
           });
+        if (d.cash > 0)
+          items.push({
+            label: "Frie Midler (kontant)",
+            value: d.cash,
+            color: "#0ea5e9",
+          });
         if (d.ask > 0)
           items.push({
             label: "Aktiesparekonto",
@@ -3468,9 +3489,9 @@
             color: "#84cc16",
           });
         items.push({
-          label: "Samlet udbetalt",
+          label: "Samlet udbetalt (netto)",
           value: d.totalOut,
-          color: "#1d2b27",
+          color: "#38bdf8",
         });
         if (d.target > 0) {
           items.push({

@@ -178,6 +178,7 @@
     const pensionTaxRate = inputs.pensionWithdrawalTax ?? 0.37;
 
     const freeWithdrawal = row.freeFundsWithdrawal ?? 0;
+    const cashWithdrawal = row.cashWithdrawal ?? 0;
     const freeGain = row.realizedFreeFundsGain ?? 0;
     const freeCostBasis = Math.max(0, freeWithdrawal - freeGain);
     const freeTax = row.withdrawalTax ?? 0;
@@ -195,14 +196,14 @@
     const lifeTax = Math.round(lifeTotal * pensionTaxRate);
 
     const ageSavingsWithdrawal = row.ageSavingsWithdrawal ?? 0;
-    const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
+    const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + cashWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
 
     let text = `1. Ønsket årligt forbrug:\n`;
     text += `   ${currency.format(desired)} (${inputs.withdrawalAfterTax ? "efter skat i faste priser" : "før skat"})\n\n`;
 
     text += `2. Hvorfor skal der hæves ${currency.format(gross)} brutto fra depoterne?\n`;
     if (row.phase === "FIRE") {
-      text += `   I FIRE-fasen dækkes dit forbrug primært af dine frie investeringsmidler.\n`;
+      text += `   I FIRE-fasen dækkes dit forbrug primært af dine frie investeringsmidler og likvide kontanter.\n`;
       text += `   Ved salg af frie midler beskattes den realiserede aktiegevinst som aktieindkomst (27 % / 42 %).\n`;
       text += `   For at du kan få udbetalt præcis ${currency.format(net)} rent til forbrug, skal der hæves nok til både at dække dit forbrug og den udløste aktieskat:\n`;
       text += `   ${currency.format(net)} (netto til forbrug) + ${currency.format(tax)} (skat) = ${currency.format(gross)} (brutto hævning).\n\n`;
@@ -213,9 +214,12 @@
 
     text += `3. Fordeling af hævningen på konti (${currency.format(gross)} i alt):\n`;
     if (freeWithdrawal > 0) {
-      text += `   • Frie midler: ${currency.format(freeWithdrawal)}\n`;
+      text += `   • Frie Midler (aktier): ${currency.format(freeWithdrawal)}\n`;
       text += `     - Heraf ubeskattet købesum (hovedstol): ${currency.format(freeCostBasis)} (0 % skat — dine egne indskud)\n`;
       text += `     - Heraf skattepligtig aktiegevinst: ${currency.format(freeGain)}\n`;
+    }
+    if (cashWithdrawal > 0) {
+      text += `   • Frie Midler (kontant): ${currency.format(cashWithdrawal)} (hævet fra bankreserve — 0 % skat ved hævning)\n`;
     }
     if (rateTotal > 0) {
       text += `   • Ratepension: ${currency.format(rateTotal)}\n`;
@@ -1117,6 +1121,7 @@
         }
 
         const freeWithdrawal = row.freeFundsWithdrawal ?? 0;
+        const cashWithdrawal = row.cashWithdrawal ?? 0;
         const freeGain = row.realizedFreeFundsGain ?? 0;
         const freeCostBasis = Math.max(0, freeWithdrawal - freeGain);
         const freeTax = row.withdrawalTax ?? 0;
@@ -1129,7 +1134,7 @@
 
         const lifeTotal = row.lifeAnnuityWithdrawal ?? 0;
         const ageSavingsWithdrawal = row.ageSavingsWithdrawal ?? 0;
-        const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
+        const askWithdrawal = row.askWithdrawal ?? Math.max(0, gross - (freeWithdrawal + cashWithdrawal + rateTotal + lifeTotal + ageSavingsWithdrawal));
 
         const returnExample = buildWithdrawalExample({ row, prevRow, inputs, calculation });
 
@@ -1140,6 +1145,9 @@
           steps.push({ label: "Hævet fra Frie Midler (aktier)", value: currency.format(freeWithdrawal), isSub: true });
           steps.push({ label: "Heraf ubeskattet købesum (0 % skat)", value: currency.format(freeCostBasis), isSub: true });
           steps.push({ label: "Heraf skattepligtig aktiegevinst", value: currency.format(freeGain), isSub: true });
+        }
+        if (cashWithdrawal > 0) {
+          steps.push({ label: "Hævet fra Frie Midler (kontant)", value: currency.format(cashWithdrawal), isSub: true });
         }
         if (rateTotal > 0) {
           steps.push({ label: "Hævet fra ratepension", value: currency.format(rateTotal), isSub: true });

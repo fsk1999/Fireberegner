@@ -2659,6 +2659,7 @@ tr.has-insight-active {
 /* Cashflow Legend */
 .legend-cf-savings { background: #2563eb; }
 .legend-cf-free { background: #10b981; }
+.legend-cf-cash { background: #0ea5e9; }
 .legend-cf-ask { background: #06b6d4; }
 .legend-cf-age { background: #8b5cf6; }
 .legend-cf-rate { background: #f59e0b; }
@@ -2666,6 +2667,11 @@ tr.has-insight-active {
 .legend-cf-pub { background: #6366f1; }
 .legend-cf-atp { background: #14b8a6; }
 .legend-cf-housing { background: #84cc16; }
+.legend-cf-total {
+  background: #38bdf8;
+  height: 3px !important;
+  border-radius: 2px;
+}
 .legend-cf-target {
   background: #ef4444;
   border-top: 2px dashed #ef4444;
