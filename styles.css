@@ -2778,15 +2778,25 @@ th.housing-col {
 }
 
 .explainable-val {
-  cursor: help;
+  cursor: pointer;
   text-decoration: underline dotted rgba(22, 75, 57, 0.45);
   text-underline-offset: 3px;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 .explainable-val:hover {
-  background-color: rgba(22, 75, 57, 0.09);
-  border-radius: 3px;
+  background-color: rgba(22, 75, 57, 0.12);
+  border-radius: 4px;
+}
+
+.explainable-val.is-explaining-active {
+  background-color: var(--green-primary, #164b39) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 0 2px var(--green-soft, #d8eee2) !important;
+  color: #ffffff !important;
+  font-weight: var(--weight-bold, 700) !important;
+  padding: 1px 4px !important;
+  text-decoration: none !important;
 }
 
 .math-hover-tooltip {
@@ -3094,6 +3104,314 @@ th.housing-col {
   justify-content: flex-end;
   padding: var(--space-3) var(--space-5);
 }
+
+/* ==========================================================================
+   Inline Explainer (Forslag 1: Fokuseret foldbar række & netbanksopgørelse)
+   ========================================================================== */
+
+.math-inline-explainer-row {
+  animation: inlineExplainerSlideDown 180ms ease-out;
+  background: var(--surface-soft, #f4f8f6) !important;
+  border-top: 2px solid var(--green-primary, #164b39) !important;
+  border-bottom: 2px solid var(--green-primary, #164b39) !important;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.05), inset 0 -3px 8px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes inlineExplainerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.math-inline-explainer-cell {
+  padding: 0 !important;
+  text-align: left !important;
+  white-space: normal !important;
+}
+
+.math-inline-shell {
+  background: linear-gradient(180deg, rgba(247, 250, 248, 0.98) 0%, rgba(238, 246, 242, 0.98) 100%);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--ink, #142321);
+  font-family: var(--sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  padding: 16px 20px 20px;
+}
+
+.is-explaining-row {
+  background-color: rgba(22, 75, 57, 0.08) !important;
+}
+
+.is-explaining-row > td {
+  border-bottom-color: transparent !important;
+}
+
+.math-inline-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(22, 75, 57, 0.15);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+}
+
+.math-inline-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.math-inline-badge-strip {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.math-inline-badge {
+  background: var(--green-soft, #d8eee2);
+  border-radius: 9999px;
+  color: var(--green-dark, #164b39);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+.math-inline-subbadge {
+  color: var(--muted, #5f7470);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.math-inline-title {
+  color: var(--ink, #142321);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.math-inline-desc {
+  color: var(--ink, #142321);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.math-inline-pill-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.math-inline-pill-label {
+  color: var(--muted, #5f7470);
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.math-inline-pill {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--color-border-control, #cfdbd5);
+  border-radius: 6px;
+  color: var(--ink, #142321);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  transition: all 120ms ease;
+}
+
+.math-inline-pill:hover {
+  background: var(--green-soft, #d8eee2);
+  border-color: var(--green-primary, #164b39);
+  color: var(--green-dark, #164b39);
+}
+
+.math-inline-pill.is-active {
+  background: var(--green-primary, #164b39);
+  border-color: var(--green-primary, #164b39);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.math-inline-close-btn {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(22, 75, 57, 0.25);
+  border-radius: 6px;
+  color: var(--ink, #142321);
+  cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 5px 12px;
+  transition: all 120ms ease;
+}
+
+.math-inline-close-btn:hover {
+  background: rgba(22, 75, 57, 0.1);
+  border-color: var(--green-primary, #164b39);
+}
+
+/* Netbanks-Tidslinje / Flow Strip */
+.math-flow-strip {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid rgba(22, 75, 57, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+}
+
+.math-flow-node {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.math-flow-node-badge {
+  color: var(--muted, #5f7470);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.math-flow-node-val {
+  color: var(--ink, #142321);
+  font-family: var(--data, "SF Mono", monospace);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.math-flow-node-note {
+  color: var(--muted, #5f7470);
+  font-size: 11.5px;
+}
+
+.math-flow-connector {
+  align-items: center;
+  display: flex;
+  flex: 1.5 1 240px;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.math-flow-events {
+  background: var(--surface-soft, #f7faf8);
+  border: 1px dashed rgba(22, 75, 57, 0.25);
+  border-radius: 6px;
+  color: var(--ink, #142321);
+  font-family: var(--data, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.math-flow-arrow-line {
+  color: var(--green-primary, #164b39);
+  display: flex;
+  justify-content: center;
+}
+
+.math-summary-banner {
+  background: #ffffff;
+  border: 1px solid rgba(22, 75, 57, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+}
+
+.math-summary-badge {
+  color: var(--green-dark, #164b39);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.math-summary-quick {
+  color: var(--ink, #142321);
+  font-family: var(--data, monospace);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.math-summary-desc {
+  color: var(--muted, #5f7470);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* Detail Grid */
+.math-inline-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1.15fr 0.85fr;
+}
+
+@media (max-width: 900px) {
+  .math-inline-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.math-inline-card {
+  background: #ffffff;
+  border: 1px solid rgba(22, 75, 57, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  padding: 14px 16px;
+}
+
+.math-inline-card h4 {
+  color: var(--green-dark, #164b39);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+}
+
+/* Standalone Card outside table */
+.math-inline-standalone-card {
+  animation: inlineExplainerSlideDown 180ms ease-out;
+  background: #ffffff;
+  border: 2px solid var(--green-primary, #164b39);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: 0 8px 24px rgba(20, 35, 33, 0.12);
+  margin: 12px 0 16px;
+  overflow: hidden;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *,

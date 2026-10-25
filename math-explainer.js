@@ -1457,6 +1457,29 @@
         };
       }
 
+      case "result-withdrawal": {
+        const annual = inputs.desiredAnnualWithdrawal ?? 0;
+        const monthly = Math.round(annual / 12);
+        const isNet = Boolean(inputs.withdrawalAfterTax);
+        return {
+          title: `Ønsket udbetaling: ${currency.format(annual)}/år (${currency.format(monthly)}/md.)`,
+          badge: isNet ? "Netto (efter skat)" : "Brutto (før skat)",
+          quickMath: `${currency.format(monthly)} kr./måned (${currency.format(annual)} kr./år i faste priser)`,
+          description: `Dit valgte månedlige forbrugsbehov under FIRE og pension. Beløbet er angivet i faste købekraftspriser (i dagens penge) og fremskrives automatisk med inflationen (${percent.format(inputs.inflationRate ?? 0.02)}), så din reelle købekraft bevares uændret gennem hele livet.`,
+          formula: isNet ? "Årligt udbetalingsbehov = Månedligt nettobehov × 12 (inflationssikret)" : "Årligt brutto-udbetalingsbehov = Månedligt bruttobehov × 12",
+          formulaDetails: "Porteføljen hæver det nødvendige beløb hvert år for at levere præcis dette rådighedsbeløb efter modregning af skat og eventuelle offentlige ydelser.",
+          steps: [
+            { label: "Månedligt forbrugsbehov", value: `${currency.format(monthly)}/md.` },
+            { label: "Årligt udbetalingsbehov", value: currency.format(annual), isResult: true },
+            { label: "Skattegrundlag", value: isNet ? "Efter skat (netto rådighedsbeløb)" : "Før skat (brutto)" }
+          ],
+          assumptions: [
+            { label: "Købekraftssikring", value: `Korrigeres for ${percent.format(inputs.inflationRate ?? 0.02)} årlig inflation` },
+            { label: "Udbetalingsstrategi", value: inputs.withdrawalStrategy === "taxOptimal" ? "Skatteoptimal" : "Proportional" }
+          ]
+        };
+      }
+
       case "result-pension-stop-age": {
         const stop = calculation.pensionStopRow;
         return {

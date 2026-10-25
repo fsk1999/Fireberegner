@@ -1795,9 +1795,9 @@
     }
 
     return `
-      <tr data-phase="${row.phase}">
-        <td>${dateFormat.format(row.date)}</td>
-        <td>${ages.format(row.age)}</td>
+      <tr data-phase="${row.phase}" data-row-age="${row.age}">
+        <td><span class="explainable-val row-date-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${dateFormat.format(row.date)}</span></td>
+        <td><span class="explainable-val row-age-val" data-col-key="totalDepotValue" data-row-age="${row.age}" tabindex="0" title="Klik for at folde årets opgørelse ud">${ages.format(row.age)}</span></td>
         <td>${row.phase}</td>
         ${returnCell}
         <td data-col-group="pension"><span class="explainable-val" data-col-key="ratePension" data-row-age="${row.age}" tabindex="0">${currency.format(row.ratePension)}</span></td>
@@ -4655,6 +4655,7 @@
         ),
       )
       .join("");
+    restoreInlineExplainerIfActive();
     markContributionLimit(
       "annualAgeSavingsContribution",
       calculation.ageSavingsContributionLimitExceeded,
@@ -5456,7 +5457,322 @@
     mathInspectorDialog.showModal();
   }
 
+  let activeInlineExplainer = null; // { age, colKey, isMetric, metricKey }
+
+  function closeInlineExplainer() {
+    if (tableBody) {
+      const existingRows = tableBody.querySelectorAll(".math-inline-explainer-row");
+      existingRows.forEach((r) => r.remove());
+    }
+
+    const existingCards = document.querySelectorAll(".math-inline-standalone-card");
+    existingCards.forEach((c) => c.remove());
+
+    document.querySelectorAll(".is-explaining-active").forEach((el) => el.classList.remove("is-explaining-active"));
+    document.querySelectorAll(".is-explaining-row").forEach((el) => el.classList.remove("is-explaining-row"));
+
+    activeInlineExplainer = null;
+  }
+
+  function restoreInlineExplainerIfActive() {
+    if (!activeInlineExplainer || activeInlineExplainer.isMetric) return;
+    const { age, colKey } = activeInlineExplainer;
+    setTimeout(() => {
+      expandInlineExplainerForTable({ colKey, targetAge: age, isRestore: true });
+    }, 10);
+  }
+
+  function toggleInlineExplainer(targetEl) {
+    if (!targetEl) return;
+    const colKey = targetEl.dataset.colKey;
+    const targetAge = Number(targetEl.dataset.rowAge);
+    const metricKey = targetEl.dataset.metricKey;
+
+    if (colKey && Number.isFinite(targetAge)) {
+      if (
+        activeInlineExplainer &&
+        !activeInlineExplainer.isMetric &&
+        activeInlineExplainer.age === targetAge &&
+        activeInlineExplainer.colKey === colKey
+      ) {
+        closeInlineExplainer();
+        return;
+      }
+      expandInlineExplainerForTable({ colKey, targetAge, targetEl });
+      return;
+    }
+
+    if (metricKey) {
+      if (
+        activeInlineExplainer &&
+        activeInlineExplainer.isMetric &&
+        activeInlineExplainer.metricKey === metricKey
+      ) {
+        closeInlineExplainer();
+        return;
+      }
+      expandInlineExplainerForMetric({ metricKey, targetEl });
+      return;
+    }
+  }
+
+  function expandInlineExplainerForTable({ colKey, targetAge, targetEl, isRestore = false }) {
+    if (!latestActiveTableCalc || !latestInputs || !tableBody) return;
+    const rows = latestActiveTableCalc.planRows;
+    const rowIndex = rows.findIndex((r) => r.age === targetAge);
+    if (rowIndex === -1) return;
+
+    const row = rows[rowIndex];
+    const prevRow = rowIndex > 0 ? rows[rowIndex - 1] : null;
+    const nextRow = rowIndex < rows.length - 1 ? rows[rowIndex + 1] : null;
+
+    const tr = targetEl?.closest("tr") || tableBody.querySelector(`tr[data-row-age="${targetAge}"]`);
+    if (!tr) return;
+
+    const exp = window.FireMathExplainer?.explainTableCell({
+      colKey,
+      row,
+      prevRow,
+      calculation: latestActiveTableCalc,
+      inputs: latestInputs,
+      scenario: mcTableScenario,
+    });
+    if (!exp) return;
+
+    closeInlineExplainer();
+
+    const accountDefs = [
+      { key: "totalDepotValue", label: "Samlet depot", val: row.totalDepotValue },
+      { key: "ratePension", label: "Ratepension", val: row.ratePension },
+      { key: "lifeAnnuityDepotValue", label: "Livrente", val: row.lifeAnnuityDepotValue },
+      { key: "ageSavings", label: "Aldersopsparing", val: row.ageSavings },
+      { key: "freeFunds", label: "Frie midler", val: row.freeFunds },
+      { key: "ask", label: "ASK", val: row.ask },
+      { key: "cash", label: "Kontantreserve", val: row.cash },
+      { key: "netWithdrawal", label: "Netto udbetaling", val: row.netWithdrawal },
+      { key: "withdrawal", label: "Brutto udbetaling", val: row.withdrawal },
+      { key: "returnRate", label: "Afkast", val: row.returnRate }
+    ];
+    if (row.housingEquity > 0) {
+      accountDefs.push({ key: "housingEquity", label: "Friværdi", val: row.housingEquity });
+      accountDefs.push({ key: "totalWealthWithHousing", label: "Samlet formue", val: row.totalWealthWithHousing });
+    }
+    const validAccounts = accountDefs.filter((a) => a.val !== undefined && a.val !== null && (a.val !== 0 || ["totalDepotValue", "ratePension", "freeFunds", "cash", "netWithdrawal", "returnRate"].includes(a.key)));
+
+    const isBalanceCol = ["ratePension", "lifeAnnuityDepotValue", "ageSavings", "freeFunds", "ask", "cash", "totalDepotValue", "housingEquity", "totalWealthWithHousing"].includes(colKey);
+    let flowHtml = "";
+
+    if (isBalanceCol) {
+      const startVal = row[colKey] ?? 0;
+      const endVal = nextRow ? (nextRow[colKey] ?? 0) : startVal;
+      flowHtml = `
+        <div class="math-flow-strip">
+          <div class="math-flow-node math-flow-primo">
+            <div class="math-flow-node-badge">1. januar ${row.date.getFullYear()} (Primo)</div>
+            <div class="math-flow-node-val">${currency.format(startVal)}</div>
+            <div class="math-flow-node-note">Saldo ved årets start (før årets afkast og hævninger)</div>
+          </div>
+          <div class="math-flow-connector">
+            <div class="math-flow-events">${exp.quickMath}</div>
+            <div class="math-flow-arrow-line">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+          <div class="math-flow-node math-flow-ultimo">
+            <div class="math-flow-node-badge">31. december ${row.date.getFullYear()} (Ultimo)</div>
+            <div class="math-flow-node-val">${currency.format(endVal)}</div>
+            <div class="math-flow-node-note">${nextRow ? `Videreføres som primosaldo til ${row.date.getFullYear() + 1} (${row.age + 1} år)` : "Slutsaldo ved planens ophør"}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      flowHtml = `
+        <div class="math-summary-banner">
+          <div class="math-summary-badge">${exp.badge}</div>
+          <div class="math-summary-quick">${exp.quickMath}</div>
+          <div class="math-summary-desc">${exp.description}</div>
+        </div>
+      `;
+    }
+
+    const stepsRowsHtml = (exp.steps || [])
+      .map(
+        (step) => `
+        <tr class="${step.isResult ? "math-step-result" : ""} ${step.isSub ? "math-step-sub" : ""}">
+          <td class="math-step-label">
+            ${step.label}
+            ${step.note ? `<small class="math-step-note">${step.note}</small>` : ""}
+          </td>
+          <td class="math-step-value">${step.value}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const assumptionsHtml = (exp.assumptions || [])
+      .map(
+        (item) => `
+        <div class="math-assumption-item">
+          <small>${item.label}</small>
+          <strong>${item.value}</strong>
+        </div>`,
+      )
+      .join("");
+
+    const returnExampleHtml = exp.returnExample ? `
+      <h4 style="margin-top: 14px;">${exp.calcTitle || "Gennemført regneeksempel for afkast"}</h4>
+      <pre class="math-formula-box"><code>${exp.returnExample}</code></pre>
+      ${exp.returnExampleNote ? `<p class="math-formula-detail">${exp.returnExampleNote}</p>` : ""}
+    ` : "";
+
+    const inlineTr = document.createElement("tr");
+    inlineTr.className = "math-inline-explainer-row";
+    inlineTr.dataset.expandedAge = String(targetAge);
+    inlineTr.innerHTML = `
+      <td colspan="30" class="math-inline-explainer-cell">
+        <div class="math-inline-shell">
+          <div class="math-inline-header">
+            <div class="math-inline-title-area">
+              <div class="math-inline-badge-strip">
+                <span class="math-inline-badge">${exp.badge}</span>
+                <span class="math-inline-subbadge">${row.date.getFullYear()} · ${row.age} år · Fase: ${row.phase}</span>
+              </div>
+              <h3 class="math-inline-title">${exp.title}</h3>
+            </div>
+            <div class="math-inline-pill-nav" aria-label="Vælg konto for dette år">
+              <span class="math-inline-pill-label">Vis for ${row.date.getFullYear()}:</span>
+              ${validAccounts.map((acc) => `
+                <button type="button" class="math-inline-pill ${acc.key === colKey ? "is-active" : ""}" data-col-key="${acc.key}" data-row-age="${targetAge}">
+                  ${acc.label}
+                </button>
+              `).join("")}
+            </div>
+            <button type="button" class="math-inline-close-btn" title="Luk forklaring (Esc)">
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+              <span>Luk</span>
+            </button>
+          </div>
+
+          ${flowHtml}
+
+          <div class="math-inline-grid">
+            <div class="math-inline-card">
+              <h4>Konkret regnestykke (${row.date.getFullYear()} · ${row.age} år)</h4>
+              <table class="math-steps-table">
+                <tbody>${stepsRowsHtml}</tbody>
+              </table>
+            </div>
+            <div class="math-inline-card">
+              <h4>Matematisk formel & Lovgrundlag</h4>
+              <pre class="math-formula-box"><code>${exp.formula}</code></pre>
+              ${exp.formulaDetails ? `<p class="math-formula-detail">${exp.formulaDetails}</p>` : ""}
+              <h4 style="margin-top: 14px;">Gældende satser og forudsætninger</h4>
+              <div class="math-assumptions-list">${assumptionsHtml}</div>
+              ${returnExampleHtml}
+            </div>
+          </div>
+        </div>
+      </td>
+    `;
+
+    tr.after(inlineTr);
+    tr.classList.add("is-explaining-row");
+
+    const targetSpan = tr.querySelector(`[data-col-key="${colKey}"]`);
+    if (targetSpan) {
+      targetSpan.classList.add("is-explaining-active");
+    }
+
+    activeInlineExplainer = { age: targetAge, colKey, isMetric: false };
+
+    if (!isRestore) {
+      inlineTr.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  function expandInlineExplainerForMetric({ metricKey, targetEl }) {
+    if (!latestCalculation || !latestInputs) return;
+    const exp = window.FireMathExplainer?.explainKeyMetric({
+      metricKey,
+      calculation: latestCalculation,
+      inputs: latestInputs,
+    });
+    if (!exp) return;
+
+    closeInlineExplainer();
+
+    const stepsRowsHtml = (exp.steps || [])
+      .map(
+        (step) => `
+        <tr class="${step.isResult ? "math-step-result" : ""} ${step.isSub ? "math-step-sub" : ""}">
+          <td class="math-step-label">
+            ${step.label}
+            ${step.note ? `<small class="math-step-note">${step.note}</small>` : ""}
+          </td>
+          <td class="math-step-value">${step.value}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const assumptionsHtml = (exp.assumptions || [])
+      .map(
+        (item) => `
+        <div class="math-assumption-item">
+          <small>${item.label}</small>
+          <strong>${item.value}</strong>
+        </div>`,
+      )
+      .join("");
+
+    const card = document.createElement("div");
+    card.className = "math-inline-standalone-card";
+    card.innerHTML = `
+      <div class="math-inline-shell">
+        <div class="math-inline-header">
+          <div class="math-inline-title-area">
+            <span class="math-inline-badge">${exp.badge}</span>
+            <h3 class="math-inline-title">${exp.title}</h3>
+            <p class="math-inline-desc">${exp.description}</p>
+          </div>
+          <button type="button" class="math-inline-close-btn" title="Luk forklaring (Esc)">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            <span>Luk</span>
+          </button>
+        </div>
+
+        <div class="math-summary-banner">
+          <div class="math-summary-quick">${exp.quickMath}</div>
+        </div>
+
+        <div class="math-inline-grid">
+          <div class="math-inline-card">
+            <h4>Konkret regnestykke</h4>
+            <table class="math-steps-table">
+              <tbody>${stepsRowsHtml}</tbody>
+            </table>
+          </div>
+          <div class="math-inline-card">
+            <h4>Matematisk formel & Forudsætninger</h4>
+            <pre class="math-formula-box"><code>${exp.formula}</code></pre>
+            ${exp.formulaDetails ? `<p class="math-formula-detail">${exp.formulaDetails}</p>` : ""}
+            <div class="math-assumptions-list" style="margin-top: 12px;">${assumptionsHtml}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const anchor = targetEl.closest(".result-card, .cash-reserve-card, .form-group, .hero-kpi-card, header, footer, .result-milestone") || targetEl.parentElement;
+    anchor.after(card);
+    targetEl.classList.add("is-explaining-active");
+    activeInlineExplainer = { metricKey, isMetric: true, targetEl };
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function openMathInspector(targetEl) {
+    toggleInlineExplainer(targetEl);
+  }
+
   function closeMathInspector() {
+    closeInlineExplainer();
     if (mathInspectorDialog && mathInspectorDialog.open) {
       mathInspectorDialog.close();
     }
@@ -5478,11 +5794,62 @@
   document.addEventListener("pointerleave", () => hideMathTooltip());
   window.addEventListener("scroll", () => hideMathTooltip(), { passive: true });
 
+  // Single left-click handler across the entire app
+  document.addEventListener("click", (event) => {
+    const closeBtn = event.target.closest(".math-inline-close-btn");
+    if (closeBtn) {
+      event.preventDefault();
+      closeInlineExplainer();
+      return;
+    }
+
+    const switchPill = event.target.closest(".math-inline-pill");
+    if (switchPill) {
+      event.preventDefault();
+      const colKey = switchPill.dataset.colKey;
+      const targetAge = Number(switchPill.dataset.rowAge);
+      if (colKey && Number.isFinite(targetAge)) {
+        expandInlineExplainerForTable({ colKey, targetAge });
+      }
+      return;
+    }
+
+    const el = event.target.closest(".explainable-val");
+    if (el) {
+      // Don't intercept clicks inside native input or select controls
+      if (el.tagName === "INPUT" || el.tagName === "SELECT") {
+        return;
+      }
+      event.preventDefault();
+      toggleInlineExplainer(el);
+      return;
+    }
+
+    const cashEl = event.target.closest(
+      "[name='cashBalance'], [name='cashShareStart'], [name='cashShareStartRange'], [name='cashShareTarget'], [name='cashShareTargetRange'], [name='cashShareStrategy'], .cash-card-title, .cash-glide-pill, .cash-share-pill, #cash-glide-badge"
+    );
+    if (cashEl && !["INPUT", "SELECT"].includes(cashEl.tagName)) {
+      event.preventDefault();
+      let metricKey = "cash-balance-today";
+      if (cashEl.name === "cashShareStart" || cashEl.name === "cashShareStartRange" || cashEl.matches?.("[name='cashShareStartRange']")) {
+        metricKey = "cash-share-start";
+      } else if (cashEl.name === "cashShareTarget" || cashEl.name === "cashShareTargetRange" || cashEl.matches?.("[name='cashShareTargetRange']")) {
+        metricKey = "cash-share-target";
+      } else if (cashEl.name === "cashShareStrategy") {
+        metricKey = "cash-share-strategy";
+      } else if (cashEl.classList?.contains("cash-glide-pill") || cashEl.id === "cash-glide-badge") {
+        metricKey = "cash-glide-milestone";
+      }
+      cashEl.dataset.metricKey = metricKey;
+      toggleInlineExplainer(cashEl);
+    }
+  });
+
   document.addEventListener("contextmenu", (event) => {
     const el = event.target.closest(".explainable-val");
     if (el) {
       event.preventDefault();
-      openMathInspector(el);
+      toggleInlineExplainer(el);
       return;
     }
     const cashEl = event.target.closest(
@@ -5501,17 +5868,23 @@
         metricKey = "cash-glide-milestone";
       }
       cashEl.dataset.metricKey = metricKey;
-      openMathInspector(cashEl);
+      toggleInlineExplainer(cashEl);
     }
   });
 
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeInlineExplainer();
+      return;
+    }
     if (
       (event.key === "Enter" || event.key === " ") &&
       event.target.matches?.(".explainable-val")
     ) {
-      event.preventDefault();
-      openMathInspector(event.target);
+      if (event.target.tagName !== "INPUT" && event.target.tagName !== "SELECT") {
+        event.preventDefault();
+        toggleInlineExplainer(event.target);
+      }
     }
   });
 
@@ -5522,7 +5895,7 @@
       const el = event.target.closest(".explainable-val");
       if (el) {
         touchTimer = setTimeout(() => {
-          openMathInspector(el);
+          toggleInlineExplainer(el);
           touchTimer = null;
         }, 450);
       }
