@@ -4546,19 +4546,46 @@ th.housing-col {
 }
 
 .projection-cash-cell {
+  text-align: right;
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+.projection-cash-cell .cash-primary-val {
+  font-size: var(--text-caption-size, 13px);
+  font-weight: 600;
+  color: var(--ink, #142321);
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
 }
 
 .projection-cash-editable {
-  padding: 4px 6px !important;
-  background: #fcfdfc;
+  padding: 6px 8px !important;
+  background: #fbfdfc;
+  vertical-align: top;
 }
 
 .custom-cash-cell-wrap {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.custom-cash-main-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: right;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+
+.custom-cash-controls {
+  display: flex;
+  flex-direction: column;
   gap: 3px;
-  min-width: 135px;
 }
 
 .custom-cash-input-row {
@@ -4576,7 +4603,7 @@ th.housing-col {
 }
 
 .custom-cash-input {
-  width: 46px;
+  width: 48px;
   padding: 2px 4px;
   font-size: 11.5px;
   font-weight: 600;
@@ -4607,34 +4634,48 @@ th.housing-col {
   font-size: 10.5px;
   font-weight: 600;
   color: #64748b;
-  width: 11px;
+  width: 12px;
+  text-align: left;
 }
 
 .custom-cash-amount {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #0f172a;
   text-align: right;
   padding-top: 2px;
   border-top: 1px dashed #e2e8f0;
   margin-top: 1px;
+  font-variant-numeric: tabular-nums;
 }
 
 .cash-share-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  margin-left: 5px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: transform 0.1s ease, background-color 0.15s ease;
 }
 
 .cash-share-pill:hover {
   transform: scale(1.05);
-  background: #cbd5e1;
+  background: #d1fae5;
+  border-color: #6ee7b7;
 }
 
 .cash-share-pill.is-overridden {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #86efac;
-  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+  font-weight: 700;
 }
 
 /* =====================================================================
@@ -4702,8 +4743,27 @@ th.housing-col {
 }
 
 .slider-input-inline .input-suffix {
-  width: 72px;
+  width: 104px;
+  min-width: 104px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.slider-input-inline .input-suffix input {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 4px 0 8px !important;
+  text-align: right;
+  font-weight: 600;
+  font-size: 13.5px;
+  box-sizing: border-box;
+}
+
+.slider-input-inline .input-suffix b {
+  padding: 0 6px !important;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .cash-glide-visual-strip {

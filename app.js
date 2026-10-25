@@ -1731,8 +1731,8 @@
     const isCashOverridden = hasCustomShare || hasCustomRate;
 
     if (row.phase === "Slut") {
-      cashCell = `<td data-col-group="free" class="projection-cash-cell"><span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span></td>`;
-    } else if (isCustomCashMode || isCashOverridden) {
+      cashCell = `<td data-col-group="free" class="projection-cash-cell"><span class="explainable-val cash-primary-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span></td>`;
+    } else if (isCustomCashMode) {
       const shareValPct = hasCustomShare
         ? (customAnnualCashShares[rowYearIdx] * 100).toFixed(1)
         : (row.cashShare !== undefined ? (row.cashShare * 100).toFixed(1) : "0.0");
@@ -1743,48 +1743,54 @@
       cashCell = `
         <td data-col-group="free" class="projection-cash-cell projection-cash-editable">
           <div class="custom-cash-cell-wrap">
-            <div class="custom-cash-input-row" title="Kontantandel af frie midler i % (overstyrer indstilling under Afkast)">
-              <span class="custom-cash-label">Andel:</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                class="custom-cash-input custom-cash-share-input${hasCustomShare ? " is-overridden" : ""}"
-                data-custom-year="${rowYearIdx}"
-                data-custom-age="${row.age}"
-                value="${shareValPct}"
-                title="Kontantandel af frie midler (%) for alder ${row.age} år"
-              />
-              <span class="custom-cash-unit">%</span>
-            </div>
-            <div class="custom-cash-input-row" title="Bankrente på kontantreserve i % p.a. (overstyrer indstilling under Afkast)">
-              <span class="custom-cash-label">Rente:</span>
-              <input
-                type="number"
-                min="-5"
-                max="30"
-                step="0.1"
-                class="custom-cash-input custom-cash-rate-input${hasCustomRate ? " is-overridden" : ""}"
-                data-custom-year="${rowYearIdx}"
-                data-custom-age="${row.age}"
-                value="${rateValPct}"
-                title="Bankrente (% p.a.) for alder ${row.age} år"
-              />
-              <span class="custom-cash-unit">%</span>
-            </div>
-            <div class="custom-cash-amount">
+            <div class="custom-cash-main-val">
               <span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span>
+            </div>
+            <div class="custom-cash-controls">
+              <div class="custom-cash-input-row" title="Kontantandel af frie midler i % (overstyrer indstilling under Afkast)">
+                <span class="custom-cash-label">Andel:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  class="custom-cash-input custom-cash-share-input${hasCustomShare ? " is-overridden" : ""}"
+                  data-custom-year="${rowYearIdx}"
+                  data-custom-age="${row.age}"
+                  value="${shareValPct}"
+                  title="Kontantandel af frie midler (%) for alder ${row.age} år"
+                />
+                <span class="custom-cash-unit">%</span>
+              </div>
+              <div class="custom-cash-input-row" title="Bankrente på kontantreserve i % p.a. (overstyrer indstilling under Afkast)">
+                <span class="custom-cash-label">Rente:</span>
+                <input
+                  type="number"
+                  min="-5"
+                  max="30"
+                  step="0.1"
+                  class="custom-cash-input custom-cash-rate-input${hasCustomRate ? " is-overridden" : ""}"
+                  data-custom-year="${rowYearIdx}"
+                  data-custom-age="${row.age}"
+                  value="${rateValPct}"
+                  title="Bankrente (% p.a.) for alder ${row.age} år"
+                />
+                <span class="custom-cash-unit">%</span>
+              </div>
             </div>
           </div>
         </td>`;
     } else {
-      const sharePill = (row.cashShare !== undefined && row.cashShare > 0.001)
-        ? ` <span class="cash-share-pill" title="Klik for at justere kontantreserve og rente år-for-år i matricen">${Math.round(row.cashShare * 100)} %</span>`
-        : "";
+      let sharePill = "";
+      if (isCashOverridden) {
+        const ovrShare = hasCustomShare ? `${(customAnnualCashShares[rowYearIdx] * 100).toFixed(0)} %` : `${Math.round(row.cashShare * 100)} %`;
+        sharePill = ` <span class="cash-share-pill is-overridden" title="Brugerdefineret: ${hasCustomShare ? (customAnnualCashShares[rowYearIdx] * 100).toFixed(1) + ' % andel' : ''} ${hasCustomRate ? (customAnnualCashRates[rowYearIdx] * 100).toFixed(1) + ' % rente' : ''}. Klik for at justere">${ovrShare} ⚡</span>`;
+      } else if (row.cashShare !== undefined && row.cashShare > 0.001) {
+        sharePill = ` <span class="cash-share-pill" title="Kontantandel: ${Math.round(row.cashShare * 100)} % af frie midler. Klik for at justere år for år">${Math.round(row.cashShare * 100)} %</span>`;
+      }
       cashCell = `
         <td data-col-group="free" class="projection-cash-cell">
-          <span class="explainable-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}${sharePill}</span>
+          <span class="explainable-val cash-primary-val" data-col-key="cash" data-row-age="${row.age}" tabindex="0">${currency.format(row.cash ?? 0)}</span>${sharePill}
         </td>`;
     }
 
@@ -4528,11 +4534,12 @@
     if (toggleCustomCashBtn) {
       toggleCustomCashBtn.setAttribute("aria-pressed", String(isCustomCashMode));
       toggleCustomCashBtn.classList.toggle("is-active", isCustomCashMode);
+      toggleCustomCashBtn.textContent = isCustomCashMode
+        ? "✓ Gem / skjul justering"
+        : "✏️ Justér kontant & rente";
     }
     if (thCashHeader) {
-      thCashHeader.textContent = isCustomCashMode
-        ? "Kontantreserve (Andel % & Rente %)"
-        : "Kontantreserve";
+      thCashHeader.textContent = "Kontantreserve";
     }
     const baseCalcForTable =
       mcTableScenario === "sensitivity" && baseTornadoInputs
@@ -5075,6 +5082,7 @@
     customCashResetBtn.addEventListener("click", () => {
       customAnnualCashShares = [];
       customAnnualCashRates = [];
+      isCustomCashMode = false;
       if (customCashResetBtn) {
         customCashResetBtn.hidden = true;
       }
