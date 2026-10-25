@@ -111,21 +111,22 @@
     return text;
   }
 
-  function buildFreeFundsReturnExample({ nominalReturn, inflRate, inventoryShare, start, contrib, afkast, annualTax }) {
-    const grossPrimo = Math.round(start * nominalReturn);
-    const midyearNominal = Math.sqrt(1 + nominalReturn) - 1;
+  function buildFreeFundsReturnExample({ nominalReturn, inflRate, inventoryShare, start, contrib, withdrawal, afkast, annualTax }) {
+    const netBase = Math.max(0, start - (withdrawal ?? 0));
+    const grossPrimo = Math.round(netBase * nominalReturn);
+    const midyearNominal = Math.sqrt(Math.max(0, 1 + nominalReturn)) - 1;
     const grossContrib = contrib > 0 ? Math.round(contrib * midyearNominal) : 0;
     const grossTotal = grossPrimo + grossContrib;
     const taxAmount = annualTax ?? 0;
-    const inflationAmount = Math.max(0, (grossTotal - taxAmount) - afkast);
     const grossRealRate = (1 + nominalReturn) / (1 + inflRate) - 1;
+    const inflationAmount = (grossTotal - taxAmount) - afkast;
 
     let text = `1. Nominelt bruttoafkast før skat (${percent.format(nominalReturn)}):\n`;
-    text += `   • Afkast af primosaldo (${currency.format(start)}): ${currency.format(grossPrimo)}\n`;
+    text += `   • Afkast af investeret primosaldo (${currency.format(netBase)}): ${grossPrimo >= 0 ? "+" : "−"} ${currency.format(Math.abs(grossPrimo))}\n`;
     if (contrib > 0) {
-      text += `   • Afkast af årets indbetaling (${currency.format(contrib)}): ${currency.format(grossContrib)}\n`;
+      text += `   • Afkast af årets indbetaling (${currency.format(contrib)}): ${grossContrib >= 0 ? "+" : "−"} ${currency.format(Math.abs(grossContrib))}\n`;
     }
-    text += `   = Samlet bruttoafkast: ${currency.format(grossTotal)}\n\n`;
+    text += `   = Samlet bruttoafkast: ${grossTotal >= 0 ? "+" : "−"} ${currency.format(Math.abs(grossTotal))}\n\n`;
 
     if (inventoryShare > 0) {
       text += `2. Lagerskat (${percent.format(inventoryShare)} lagerbeskattet):\n`;
@@ -137,11 +138,11 @@
     }
 
     text += `3. Inflationskorrektion (${percent.format(inflRate)} årlig inflation):\n`;
-    text += `   − ${currency.format(inflationAmount)} (købekraftstab af formue & afkast)\n`;
-    text += `   = Reelt købekraftsafkast (${percentPrecise.format(grossRealRate)}): ${currency.format(afkast)}\n\n`;
+    text += `   − ${currency.format(Math.abs(inflationAmount))} (købekraftstab af formue & afkast)\n`;
+    text += `   = Reelt købekraftsafkast (${percentPrecise.format(grossRealRate)}): ${afkast >= 0 ? "+" : "−"} ${currency.format(Math.abs(afkast))}\n\n`;
 
     text += `4. Nettoafkast tilskrevet frie midler i faste priser:\n`;
-    text += `   ${currency.format(grossTotal)} (brutto) ${taxAmount > 0 ? `− ${currency.format(taxAmount)} (skat) ` : ""}− ${currency.format(inflationAmount)} (inflation) = ${currency.format(afkast)}`;
+    text += `   ${grossTotal >= 0 ? "" : "− "}${currency.format(Math.abs(grossTotal))} (brutto) ${taxAmount > 0 ? `− ${currency.format(taxAmount)} (skat) ` : ""}− ${currency.format(Math.abs(inflationAmount))} (inflation) = ${afkast >= 0 ? "" : "− "}${currency.format(Math.abs(afkast))}`;
 
     return text;
   }
@@ -565,9 +566,9 @@
       }
 
       case "freeFunds": {
-        const end = row.freeFunds;
+        const stockVal = row.freeFunds;
         const cashBal = row.cash ?? 0;
-        const totalLiquid = end + cashBal;
+        const totalLiquid = stockVal + cashBal;
         const cashShare = row.cashShare ?? (totalLiquid > 0 ? cashBal / totalLiquid : 0);
         const cashSharePct = (cashShare * 100).toFixed(1).replace(/\.0$/, "");
         const stockSharePct = ((1 - cashShare) * 100).toFixed(1).replace(/\.0$/, "");
@@ -578,19 +579,19 @@
             return {
               title: `Frie midler (Aktiedepot) (${yearDate} · ${age} år)`,
               badge: "Investeret aktiedel",
-              quickMath: `Aktiedepot: ${currency.format(end)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)})`,
-              description: `Dine investerede frie midler på aktiedepotet ved planens start. Ud af dine samlede frie midler på ${currency.format(totalLiquid)} er ${stockSharePct} % (${currency.format(end)}) investeret i aktier for at opnå investeringsafkast, mens de resterende ${cashSharePct} % (${currency.format(cashBal)}) er allokeret til en sikker kontantreserve i banken (se kolonnen 'Kontantreserve'). Tilsammen giver de to beløb præcis dine indtastede frie midler på ${currency.format(totalLiquid)}.`,
-              formula: `Aktiedepot = Samlede frie midler − Kontantreserve i banken\n= ${currency.format(totalLiquid)} − ${currency.format(cashBal)} (${cashSharePct} %) = ${currency.format(end)} (${stockSharePct} %)`,
-              formulaDetails: `Dine indtastede frie midler (${currency.format(totalLiquid)}) opdeles automatisk i en investeret aktiedel (${currency.format(end)}) og en likvid kontantreserve i banken (${currency.format(cashBal)}).`,
+              quickMath: `Aktiedepot: ${currency.format(stockVal)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)})`,
+              description: `Dine investerede frie midler på aktiedepotet ved planens start. Ud af dine samlede frie midler på ${currency.format(totalLiquid)} er ${stockSharePct} % (${currency.format(stockVal)}) investeret i aktier for at opnå investeringsafkast, mens de resterende ${cashSharePct} % (${currency.format(cashBal)}) er allokeret til en sikker kontantreserve i banken (se kolonnen 'Kontantreserve'). Tilsammen giver de to beløb præcis dine indtastede frie midler på ${currency.format(totalLiquid)}.`,
+              formula: `Aktiedepot = Samlede frie midler − Kontantreserve i banken\n= ${currency.format(totalLiquid)} − ${currency.format(cashBal)} (${cashSharePct} %) = ${currency.format(stockVal)} (${stockSharePct} %)`,
+              formulaDetails: `Dine indtastede frie midler (${currency.format(totalLiquid)}) opdeles automatisk i en investeret aktiedel (${currency.format(stockVal)}) og en likvid kontantreserve i banken (${currency.format(cashBal)}).`,
               steps: [
                 { label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) },
                 { label: `Fratrukket kontantreserve i banken (${cashSharePct} %)`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Kontantreserve' som likviditetsbuffer" },
-                { label: `Investeret i aktiedepot (${stockSharePct} %)`, value: `= ${currency.format(end)}`, isResult: true }
+                { label: `Investeret i aktiedepot (${stockSharePct} %)`, value: `= ${currency.format(stockVal)}`, isResult: true }
               ],
               assumptions: [
                 { label: "Indtastede frie midler", value: currency.format(totalLiquid) },
                 { label: "Kontantreserve i banken (start)", value: `${currency.format(cashBal)} (${cashSharePct} %)` },
-                { label: "Investeret i aktier (start)", value: `${currency.format(end)} (${stockSharePct} %)` },
+                { label: "Investeret i aktier (start)", value: `${currency.format(stockVal)} (${stockSharePct} %)` },
                 { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
                 { label: "Aktieskattesatser", value: "27 % / 42 %" }
               ]
@@ -600,12 +601,12 @@
           return {
             title: `Frie midler (${yearDate} · ${age} år)`,
             badge: "Likvid formue",
-            quickMath: `Startsaldo: ${currency.format(end)} ved planens start (${age} år)`,
+            quickMath: `Startsaldo: ${currency.format(stockVal)} ved planens start (${age} år)`,
             description: "Din indtastede startopsparing i frie midler ved beregningens begyndelse.",
             formula: "Startsaldo (primo)",
             formulaDetails: "Likvide midler der kan investeres og hæves frit til FIRE-broen.",
             steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(end), isResult: true }
+              { label: "Startsaldo indtastet i beregneren", value: currency.format(stockVal), isResult: true }
             ],
             assumptions: [
               { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
@@ -613,30 +614,45 @@
             ]
           };
         }
-        const start = prevRow.freeFunds;
+        // For all subsequent projection years:
+        // row.freeFunds is the PRIMOSALDO (start of year yearDate, e.g. 1. jan 2027)
+        const start = row.freeFunds;
+        const rows = calculation?.planRows || calculation?.rows;
+        let nextRowToUse = null;
+        if (Array.isArray(rows)) {
+          const idx = rows.findIndex((r) => r.age === row.age && r.date?.getFullYear() === row.date?.getFullYear());
+          if (idx >= 0 && idx < rows.length - 1) {
+            nextRowToUse = rows[idx + 1];
+          }
+        }
+
         const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const rateContrib = isPensionActive ? ((calculation.annualDeductibleRatePensionContribution ?? 0) + (calculation.annualNonDeductibleRatePensionContribution ?? 0)) : 0;
         const lifeContrib = isPensionActive ? (calculation.annualLifeAnnuityContribution ?? inputs.annualLifeAnnuityContribution ?? 0) : 0;
         const ageContrib = isPensionActive ? (calculation.effectiveAnnualAgeSavingsContribution ?? inputs.annualAgeSavingsContribution ?? 0) : 0;
         const askCap = calculation.askDepositCap ?? 174200;
-        const askContrib = (row.phase === "Opsparing" && row.contribution > 0 && prevRow.ask < askCap) ? Math.min(inputs.annualAskContribution ?? 0, Math.max(0, askCap - prevRow.ask)) : 0;
+        const askContrib = (row.phase === "Opsparing" && row.contribution > 0 && row.ask < askCap) ? Math.min(inputs.annualAskContribution ?? 0, Math.max(0, askCap - row.ask)) : 0;
         const contrib = row.phase === "Opsparing" && row.contribution > 0 ? Math.max(0, row.contribution - (rateContrib + lifeContrib + ageContrib + askContrib)) : 0;
         const withdrawal = row.freeFundsWithdrawal ?? (row.phase !== "Opsparing" ? Math.max(0, row.withdrawal - ((row.taxableRatePensionWithdrawal ?? 0) + (row.taxFreeRatePensionWithdrawal ?? 0) + (row.lifeAnnuityWithdrawal ?? 0))) : 0);
-        const afkast = end - start - contrib + withdrawal;
+
         const freeNominal = row.freeFundsReturnRate ?? nominalReturn;
         const grossRealRate = (1 + freeNominal) / (1 + inflRate) - 1;
-        const midyearFactor = Math.sqrt(1 + grossRealRate) - 1;
-        const primoReturn = Math.round(start * grossRealRate);
+        const netBase = Math.max(0, start - withdrawal);
+        const primoReturn = Math.round(netBase * grossRealRate);
+        const midyearReal = Math.sqrt(Math.max(0, 1 + grossRealRate)) - 1;
+        const contribReturn = contrib > 0 ? Math.round(contrib * midyearReal) : 0;
+        const afkast = primoReturn + contribReturn;
         const annualTax = row.annualFreeFundsTax ?? 0;
-        const contribReturn = contrib > 0 ? (afkast + annualTax) - primoReturn : 0;
         const inventoryShare = inputs.freeFundsInventoryShare ?? 0;
 
-        const grossPrimo = Math.round(start * freeNominal);
-        const midyearNominal = Math.sqrt(1 + freeNominal) - 1;
+        const grossPrimo = Math.round(netBase * freeNominal);
+        const midyearNominal = Math.sqrt(Math.max(0, 1 + freeNominal)) - 1;
         const grossContrib = contrib > 0 ? Math.round(contrib * midyearNominal) : 0;
         const grossTotal = grossPrimo + grossContrib;
         const taxAmount = annualTax;
-        const inflationAmount = Math.max(0, (grossTotal - taxAmount) - afkast);
+        const inflationAmount = (grossTotal - taxAmount) - afkast;
+
+        const end = nextRowToUse ? nextRowToUse.freeFunds : Math.max(0, Math.round(netBase + contrib + afkast));
 
         const returnExample = buildFreeFundsReturnExample({
           nominalReturn: freeNominal,
@@ -644,48 +660,66 @@
           inventoryShare,
           start,
           contrib,
+          withdrawal,
           afkast,
           annualTax
         });
 
-        const quickMathParts = [`${currency.format(start)} (start)`];
-        if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indb.)`);
-        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(grossRealRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (negativt afkast)`);
+        const quickMathParts = [`${currency.format(start)} (primo)`];
         if (withdrawal > 0) quickMathParts.push(`− ${currency.format(withdrawal)} (hævning)`);
-        quickMathParts.push(`= ${currency.format(end)}`);
+        if (contrib > 0) quickMathParts.push(`+ ${currency.format(contrib)} (indb.)`);
+        quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(grossRealRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (${percent.format(grossRealRate)} realtab)`);
+        quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
         const steps = [
-          { label: "Startsaldo (primo)", value: currency.format(start) },
-          { label: "Nettobidrag til frie midler", value: contrib > 0 ? `+ ${currency.format(contrib)}` : "0 kr.", note: contrib > 0 ? "Inkl. evt. omdirigerede pensionsmidler" : "Ingen nye indbetalinger" },
-          { label: "Nettoafkast tilskrevet formuen", value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: "I faste købekraftspriser" },
-          { label: `Nominelt bruttoafkast af primosaldo (${percent.format(freeNominal)})`, value: `+ ${currency.format(grossPrimo)}`, isSub: true }
+          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start (før årets afkast og hævning)" }
         ];
+        if (withdrawal > 0) {
+          steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}`, note: "Hæves til årets forbrug" });
+        }
         if (contrib > 0) {
-          steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: `+ ${currency.format(grossContrib)}`, isSub: true });
+          steps.push({ label: "Nettobidrag til frie midler", value: `+ ${currency.format(contrib)}`, note: "Indbetaling i opsparingsfasen" });
+        }
+        steps.push({ label: `Nettoafkast i faste priser (${percent.format(grossRealRate)})`, value: afkast >= 0 ? `+ ${currency.format(afkast)}` : `− ${currency.format(Math.abs(afkast))}`, note: freeNominal < 0 ? "Både negativt kursafkast og inflation reducerer købekraften" : "I faste købekraftspriser" });
+        steps.push({ label: `Nominelt bruttoafkast (${percent.format(freeNominal)})`, value: grossPrimo >= 0 ? `+ ${currency.format(grossPrimo)}` : `− ${currency.format(Math.abs(grossPrimo))}`, isSub: true });
+        if (contrib > 0) {
+          steps.push({ label: "Nominelt bruttoafkast af indbetaling (midtårs)", value: grossContrib >= 0 ? `+ ${currency.format(grossContrib)}` : `− ${currency.format(Math.abs(grossContrib))}`, isSub: true });
         }
         if (taxAmount > 0) {
           steps.push({ label: `Heraf lagerskat (${percent.format(inventoryShare)} lagerbeskattet)`, value: `− ${currency.format(taxAmount)}`, isSub: true });
         } else if (inventoryShare === 0) {
           steps.push({ label: "Heraf skat (100 % realisationsbeskattet)", value: "0 kr.", note: "Udskydes til realisation", isSub: true });
         }
-        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(inflationAmount)}`, isSub: true });
-        if (withdrawal > 0) {
-          steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}` });
+        steps.push({ label: `Heraf inflationskorrektion (${percent.format(inflRate)} købekraftstab)`, value: `− ${currency.format(Math.abs(inflationAmount))}`, isSub: true });
+
+        const rebalance = nextRowToUse ? Math.round(end - (netBase + contrib + afkast)) : 0;
+        if (Math.abs(rebalance) > 50) {
+          steps.push({
+            label: rebalance > 0 ? "Tilført fra kontantreserve (rebalancering)" : "Overført til kontantreserve (rebalancering)",
+            value: rebalance > 0 ? `+ ${currency.format(rebalance)}` : `− ${currency.format(Math.abs(rebalance))}`,
+            note: "Justering mod målsat kontantandel ved årets afslutning"
+          });
         }
-        steps.push({ label: "Slutsaldo (ultimo)", value: `= ${currency.format(end)}`, isResult: true });
+
+        steps.push({
+          label: `Slutsaldo (ultimo 31. dec ${yearDate})`,
+          value: `= ${currency.format(end)}`,
+          isResult: true,
+          note: nextRowToUse ? `Overføres som primosaldo til ${yearDate + 1} (${age + 1} år)` : "Slutreserve ved planens afslutning"
+        });
 
         return {
           title: `Frie midler (${yearDate} · ${age} år)`,
-          badge: "Likvid formue",
+          badge: "Primosaldo (Startsaldo)",
           quickMath: quickMathParts.join(" "),
-          description: "Frie investeringsmidler er fuldt fleksible og tilgængelige før pensionsalderen. De danner grundlaget for broen fra FIRE-start frem til folkepensionen.",
-          formula: "Ultimo = Primo + Indbetaling + Nettoafkast (e. skat & inflation) − Hævning",
+          description: `Beløbet på ${currency.format(start)} er din primosaldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets forventede afkast (${percent.format(freeNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet af årets afkast og hævninger slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
+          formula: "Ultimo = Primo − Hævning + Indbetaling + Nettoafkast (e. skat & inflation) ± Rebalancering",
           formulaDetails: `Hvor brutto realafkast er (${percent.format(freeNominal)} korrigeret for 2,0 % inflation) = ${percentPrecise.format(grossRealRate)}.`,
           returnExample,
-          returnExampleNote: "Regneeksemplet viser forrentningen af startformue og indbetaling samt beskatningsprincippet.",
+          returnExampleNote: "Regneeksemplet viser forrentningen og inflationskorrektionen for dette specifikke år.",
           steps,
           assumptions: [
-            ...(row.cash > 0 ? [{ label: "Samlet fri formue (aktier + bank)", value: `${currency.format(end + row.cash)} (heraf ${currency.format(row.cash)} kontant)` }] : []),
+            ...(row.cash > 0 ? [{ label: "Samlet fri formue primo (aktier + bank)", value: `${currency.format(start + row.cash)} (heraf ${currency.format(row.cash)} kontant)` }] : []),
             { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
             { label: "Aktieskattesatser", value: "27 % / 42 %" },
             { label: "Status for par", value: inputs.isCouple ? "Gift/Samlevende (Dobbelt bundgrænse)" : "Enlig" }
