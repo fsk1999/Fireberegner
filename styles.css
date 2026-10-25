@@ -1951,12 +1951,260 @@ legend,
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* ==========================================================================
+   COCKPIT LIVE KPI STRIP & MODULAR MULTI-PANE CONTROLS (Etape 1)
+   ========================================================================== */
+
+.cockpit-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2) var(--space-3);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 10px 16px;
+  margin-bottom: var(--space-3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.cockpit-kpi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 8px;
+  border-right: 1px solid var(--line);
+}
+
+.cockpit-kpi-item:last-child {
+  border-right: none;
+}
+
+.cockpit-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: var(--weight-semibold);
+}
+
+.cockpit-kpi-val {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cockpit-kpi-phase .cockpit-kpi-val {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* Multi-Pane Toolbar */
+.cockpit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--space-4);
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.cockpit-pane-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-toolbar-label {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.cockpit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.cockpit-chip svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.cockpit-chip-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.4;
+  transition: all 180ms ease;
+}
+
+.cockpit-chip:hover {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--color-border-control);
+}
+
+.cockpit-chip.is-active {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.cockpit-chip.is-active .cockpit-chip-indicator {
+  background: #10b981;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.cockpit-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-action-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.cockpit-action-btn:hover {
+  background: var(--surface-soft);
+  border-style: solid;
+  color: var(--ink);
+}
+
+/* Individual Pane Header Actions & View Mode Controls */
+.pane-view-mode-selector {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.pane-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.pane-mode-btn:hover {
+  color: var(--ink);
+}
+
+.pane-mode-btn.is-active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.pane-close-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.pane-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Stacked Multi-Pane Separators */
 .chart-view-pane {
   display: block;
 }
 
 .chart-view-pane[hidden] {
   display: none !important;
+}
+
+.chart-view-pane + .chart-view-pane:not([hidden]) {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+
+/* Synchronized crosshair & target lines across charts */
+.chart-sync-crosshair {
+  stroke: var(--ink);
+  stroke-dasharray: 4 4;
+  stroke-width: 1.5;
+  stroke-opacity: 0.55;
+  pointer-events: none;
+}
+
+.chart-sync-dot {
+  stroke-width: 2;
+  stroke: #ffffff;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.chart-target-line {
+  stroke: #ef4444;
+  stroke-dasharray: 5 4;
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 .chart-view-header {
