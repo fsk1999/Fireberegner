@@ -296,24 +296,6 @@
 
       case "ratePension": {
         const start = row.ratePension;
-        if (!prevRow) {
-          return {
-            title: `Ratepension (${yearDate} · ${age} år)`,
-            badge: "Startopsparing",
-            quickMath: `Startsaldo: ${currency.format(start)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing på ratepension ved beregningens begyndelse.",
-            formula: "Startsaldo (primo)",
-            formulaDetails: "Danner udgangspunkt for videre opsparing, afkast og PAL-beskatning.",
-            steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(start), isResult: true }
-            ],
-            assumptions: [
-              { label: "PAL-skat", value: "15,3 %" },
-              { label: "Fradragsværdi", value: percent.format(inputs.ratePensionContributionTaxRelief ?? 0.528) }
-            ]
-          };
-        }
-
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
         if (Array.isArray(rows)) {
@@ -323,7 +305,7 @@
           }
         }
 
-        const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
+        const isPensionActive = row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const contrib = isPensionActive ? ((calculation.annualDeductibleRatePensionContribution ?? 0) + (calculation.annualNonDeductibleRatePensionContribution ?? 0)) : 0;
         const withdrawal = (row.taxableRatePensionWithdrawal ?? 0) + (row.taxFreeRatePensionWithdrawal ?? 0);
         const netBase = Math.max(0, start - withdrawal);
@@ -364,7 +346,13 @@
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
         const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start (før årets afkast og udbetaling)" }
+          {
+            label: `Startsaldo (primo 1. jan ${yearDate})`,
+            value: currency.format(start),
+            note: isFirstYear
+              ? "Indtastet startsaldo ved planens start (før årets afkast og indbetaling)"
+              : "Saldo ved årets start (før årets afkast og udbetaling)"
+          }
         ];
         if (withdrawal > 0) {
           steps.push({ label: "Årets ratepensionsudbetaling", value: `− ${currency.format(withdrawal)}`, note: "Udbetales over den valgte udbetalingsperiode" });
@@ -383,9 +371,11 @@
 
         return {
           title: `Ratepension (${yearDate} · ${age} år)`,
-          badge: "Primosaldo (Startsaldo)",
+          badge: isFirstYear ? "Startsaldo (1. år)" : "Primosaldo",
           quickMath: quickMathParts.join(" "),
-          description: `Beløbet på ${currency.format(start)} er din primosaldo på ratepension ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
+          description: isFirstYear
+            ? `Beløbet på ${currency.format(start)} er din indtastede startopsparing på ratepension ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(pensionNominal)}) efter PAL-skat og inflation, samt årets indbetalinger eller udbetalinger, udvikler saldoen frem til årets udgang (${currency.format(end)}), som videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`
+            : `Beløbet på ${currency.format(start)} er din primosaldo på ratepension ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: "Ultimo = Primo − Udbetaling + Indbetaling + Nettoafkast (e. PAL & inflation)",
           formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
@@ -402,23 +392,6 @@
       case "lifeAnnuityDepotValue": {
         const start = row.lifeAnnuityDepotValue;
         const income = row.lifeAnnuityWithdrawal ?? 0;
-        if (!prevRow) {
-          return {
-            title: `Livrentedepot (${yearDate} · ${age} år)`,
-            badge: "Livsvarig pension",
-            quickMath: `Startsaldo: ${currency.format(start)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing på livrente ved beregningens begyndelse.",
-            formula: "Startsaldo (primo)",
-            formulaDetails: "Giver livsvarige udbetalinger fra pensionsalderen.",
-            steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(start), isResult: true }
-            ],
-            assumptions: [
-              { label: "Pensionsalder", value: `${inputs.retirementAge} år` }
-            ]
-          };
-        }
-
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
         if (Array.isArray(rows)) {
@@ -428,7 +401,7 @@
           }
         }
 
-        const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
+        const isPensionActive = row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const contrib = isPensionActive ? (calculation.annualLifeAnnuityContribution ?? inputs.annualLifeAnnuityContribution ?? 0) : 0;
         const pensionNominal = row.pensionReturnRate ?? nominalReturn;
         const netNominalRate = pensionNominal * (1 - palTaxRate);
@@ -463,7 +436,11 @@
         }
 
         const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start" }
+          {
+            label: `Startsaldo (primo 1. jan ${yearDate})`,
+            value: currency.format(start),
+            note: isFirstYear ? "Indtastet startsaldo ved planens start" : "Saldo ved årets start"
+          }
         ];
         if (contrib > 0) {
           steps.push({ label: "Årets indbetaling", value: `+ ${currency.format(contrib)}`, note: "Indskud på livrente" });
@@ -484,9 +461,11 @@
 
         return {
           title: `Livrentedepot (${yearDate} · ${age} år)`,
-          badge: "Primosaldo (Startsaldo)",
+          badge: isFirstYear ? "Startsaldo (1. år)" : "Primosaldo",
           quickMath: income > 0 ? `Beregnet depotværdi: ${currency.format(start)} · Giver ${currency.format(income)}/år livsvarigt` : `${currency.format(start)} ${contrib > 0 ? `+ ${currency.format(contrib)} (indb.) ` : ""}${afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(b.realRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (${percent.format(b.realRate)} realtab)`} = ${currency.format(end)}`,
-          description: row.phase === "Pension" ? "Livrenten udbetales livsvarigt fra pensionsalderen uanset alder. Depotværdien viser den aktuarmæssige nutidsværdi af de resterende livsvarige udbetalinger." : `Beløbet på ${currency.format(start)} er din primosaldo på livrentedepotet ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og eventuelle indskud finder sted.`,
+          description: isFirstYear
+            ? `Beløbet på ${currency.format(start)} er din indtastede startopsparing på livrentedepotet ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(pensionNominal)}) efter PAL-skat og inflation, samt eventuelle indskud, udvikler depotet frem til årets udgang (${currency.format(end)}).`
+            : (row.phase === "Pension" ? "Livrenten udbetales livsvarigt fra pensionsalderen uanset alder. Depotværdien viser den aktuarmæssige nutidsværdi af de resterende livsvarige udbetalinger." : `Beløbet på ${currency.format(start)} er din primosaldo på livrentedepotet ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og eventuelle indskud finder sted.`),
           formula: row.phase === "Pension" ? "Nutidsværdi = Årlig udbetaling × Aktuarmæssig annuitetsfaktor for restlevetid" : "Ultimo = Primo + Indskud + Nettoafkast (e. PAL & inflation)",
           formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
@@ -523,24 +502,6 @@
 
       case "ageSavings": {
         const start = row.ageSavings;
-        if (!prevRow) {
-          return {
-            title: `Aldersopsparing (${yearDate} · ${age} år)`,
-            badge: "Startopsparing",
-            quickMath: `Startsaldo: ${currency.format(start)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing på aldersopsparing ved beregningens begyndelse.",
-            formula: "Startsaldo (primo)",
-            formulaDetails: "Opsparing med skattefri udbetaling og 15,3 % PAL-skat.",
-            steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(start), isResult: true }
-            ],
-            assumptions: [
-              { label: "PAL-skat", value: "15,3 %" },
-              { label: "Beskatning ved udbetaling", value: "0 kr. (100 % skattefri)" }
-            ]
-          };
-        }
-
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
         if (Array.isArray(rows)) {
@@ -550,7 +511,7 @@
           }
         }
 
-        const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
+        const isPensionActive = row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const contrib = isPensionActive ? (calculation.effectiveAnnualAgeSavingsContribution ?? inputs.annualAgeSavingsContribution ?? 0) : 0;
         const withdrawal = row.ageSavingsWithdrawal ?? ((row.phase === "Pension" && nextRowToUse && nextRowToUse.ageSavings < start) ? Math.max(0, start - nextRowToUse.ageSavings) : 0);
         const netBase = Math.max(0, start - withdrawal);
@@ -591,7 +552,13 @@
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
         const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start (før årets afkast og udbetaling)" }
+          {
+            label: `Startsaldo (primo 1. jan ${yearDate})`,
+            value: currency.format(start),
+            note: isFirstYear
+              ? "Indtastet startsaldo ved planens start (før årets afkast og indskud)"
+              : "Saldo ved årets start (før årets afkast og udbetaling)"
+          }
         ];
         if (withdrawal > 0) {
           steps.push({ label: "Årets aldersopsparingsudbetaling", value: `− ${currency.format(withdrawal)}`, note: "100 % skattefri udbetaling" });
@@ -610,9 +577,11 @@
 
         return {
           title: `Aldersopsparing (${yearDate} · ${age} år)`,
-          badge: "Primosaldo (Startsaldo)",
+          badge: isFirstYear ? "Startsaldo (1. år)" : "Primosaldo",
           quickMath: quickMathParts.join(" "),
-          description: `Beløbet på ${currency.format(start)} er din primosaldo på aldersopsparing ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og eventuelle udbetalinger finder sted. Resultatet slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
+          description: isFirstYear
+            ? `Beløbet på ${currency.format(start)} er din indtastede startopsparing på aldersopsparing ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(pensionNominal)}) efter PAL-skat og inflation samt indbetalinger/udbetalinger udvikler saldoen til årets udgang (${currency.format(end)}), som videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`
+            : `Beløbet på ${currency.format(start)} er din primosaldo på aldersopsparing ved årets start (1. januar ${yearDate}). Dette viser saldoen FØR årets forventede afkast (${percent.format(pensionNominal)}) og eventuelle udbetalinger finder sted. Resultatet slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: "Ultimo = Primo − Udbetaling + Indskud + Nettoafkast (e. PAL & inflation)",
           formulaDetails: `Hvor realafkastet er (${percent.format(pensionNominal)} × (1 − 15,3 %) efter PAL) korrigeret for 2,0 % inflation = ${percentPrecise.format(b.realRate)}.`,
           returnExample,
@@ -635,48 +604,6 @@
         const stockSharePct = ((1 - cashShare) * 100).toFixed(1).replace(/\.0$/, "");
         const hasCashAllocation = cashBal > 0 || cashShare > 0.0001;
 
-        if (!prevRow) {
-          if (hasCashAllocation) {
-            return {
-              title: `Frie midler (Aktiedepot) (${yearDate} · ${age} år)`,
-              badge: "Investeret aktiedel",
-              quickMath: `Aktiedepot: ${currency.format(stockVal)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)})`,
-              description: `Dine investerede frie midler på aktiedepotet ved planens start. Ud af dine samlede frie midler på ${currency.format(totalLiquid)} er ${stockSharePct} % (${currency.format(stockVal)}) investeret i aktier for at opnå investeringsafkast, mens de resterende ${cashSharePct} % (${currency.format(cashBal)}) er allokeret til en sikker kontantreserve i banken (se kolonnen 'Kontantreserve'). Tilsammen giver de to beløb præcis dine indtastede frie midler på ${currency.format(totalLiquid)}.`,
-              formula: `Aktiedepot = Samlede frie midler − Kontantreserve i banken\n= ${currency.format(totalLiquid)} − ${currency.format(cashBal)} (${cashSharePct} %) = ${currency.format(stockVal)} (${stockSharePct} %)`,
-              formulaDetails: `Dine indtastede frie midler (${currency.format(totalLiquid)}) opdeles automatisk i en investeret aktiedel (${currency.format(stockVal)}) og en likvid kontantreserve i banken (${currency.format(cashBal)}).`,
-              steps: [
-                { label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) },
-                { label: `Fratrukket kontantreserve i banken (${cashSharePct} %)`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Kontantreserve' som likviditetsbuffer" },
-                { label: `Investeret i aktiedepot (${stockSharePct} %)`, value: `= ${currency.format(stockVal)}`, isResult: true }
-              ],
-              assumptions: [
-                { label: "Indtastede frie midler", value: currency.format(totalLiquid) },
-                { label: "Kontantreserve i banken (start)", value: `${currency.format(cashBal)} (${cashSharePct} %)` },
-                { label: "Investeret i aktier (start)", value: `${currency.format(stockVal)} (${stockSharePct} %)` },
-                { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
-                { label: "Aktieskattesatser", value: "27 % / 42 %" }
-              ]
-            };
-          }
-
-          return {
-            title: `Frie midler (${yearDate} · ${age} år)`,
-            badge: "Likvid formue",
-            quickMath: `Startsaldo: ${currency.format(stockVal)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing i frie midler ved beregningens begyndelse.",
-            formula: "Startsaldo (primo)",
-            formulaDetails: "Likvide midler der kan investeres og hæves frit til FIRE-broen.",
-            steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(stockVal), isResult: true }
-            ],
-            assumptions: [
-              { label: "Beskatningsform", value: inputs.freeFundsInventoryShare > 0 ? `${percent.format(inputs.freeFundsInventoryShare)} lagerbeskattet` : "Realisationsbeskattet" },
-              { label: "Aktieskattesatser", value: "27 % / 42 %" }
-            ]
-          };
-        }
-        // For all subsequent projection years:
-        // row.freeFunds is the PRIMOSALDO (start of year yearDate, e.g. 1. jan 2027)
         const start = row.freeFunds;
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
@@ -687,13 +614,14 @@
           }
         }
 
-        const isPensionActive = row.phase === "Opsparing" && row.contribution > 0 && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
+        const isPensionActive = row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && (!calculation.pensionStopRow || row.age <= calculation.pensionStopRow.age);
         const rateContrib = isPensionActive ? ((calculation.annualDeductibleRatePensionContribution ?? 0) + (calculation.annualNonDeductibleRatePensionContribution ?? 0)) : 0;
         const lifeContrib = isPensionActive ? (calculation.annualLifeAnnuityContribution ?? inputs.annualLifeAnnuityContribution ?? 0) : 0;
         const ageContrib = isPensionActive ? (calculation.effectiveAnnualAgeSavingsContribution ?? inputs.annualAgeSavingsContribution ?? 0) : 0;
         const askCap = calculation.askDepositCap ?? 174200;
-        const askContrib = (row.phase === "Opsparing" && row.contribution > 0 && row.ask < askCap) ? Math.min(inputs.annualAskContribution ?? 0, Math.max(0, askCap - row.ask)) : 0;
-        const contrib = row.phase === "Opsparing" && row.contribution > 0 ? Math.max(0, row.contribution - (rateContrib + lifeContrib + ageContrib + askContrib)) : 0;
+        const askContrib = (row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && row.ask < askCap) ? Math.min(inputs.annualAskContribution ?? 0, Math.max(0, askCap - row.ask)) : 0;
+        const totalRowContrib = isFirstYear ? (nextRowToUse?.contribution ?? (inputs.annualSavings ?? inputs.annualFreeFundsContribution ?? 0)) : (row.contribution ?? 0);
+        const contrib = row.phase === "Opsparing" && totalRowContrib > 0 ? Math.max(0, totalRowContrib - (rateContrib + lifeContrib + ageContrib + askContrib)) : 0;
         const withdrawal = row.freeFundsWithdrawal ?? (row.phase !== "Opsparing" ? Math.max(0, row.withdrawal - ((row.taxableRatePensionWithdrawal ?? 0) + (row.taxFreeRatePensionWithdrawal ?? 0) + (row.lifeAnnuityWithdrawal ?? 0))) : 0);
 
         const freeNominal = row.freeFundsReturnRate ?? nominalReturn;
@@ -732,9 +660,22 @@
         quickMathParts.push(afkast >= 0 ? `+ ${currency.format(afkast)} (${percent.format(grossRealRate)} realafkast)` : `− ${currency.format(Math.abs(afkast))} (${percent.format(grossRealRate)} realtab)`);
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
-        const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start (før årets afkast og hævning)" }
-        ];
+        const quickMathStr = (isFirstYear && hasCashAllocation)
+          ? `Aktiedepot: ${currency.format(start)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)}) · ${quickMathParts.join(" ")}`
+          : quickMathParts.join(" ");
+
+        const steps = [];
+        if (isFirstYear && hasCashAllocation) {
+          steps.push({ label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) });
+          steps.push({ label: `Fratrukket kontantreserve i banken (${cashSharePct} %)`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Kontantreserve' som likviditetsbuffer" });
+          steps.push({ label: `Investeret aktiedepot (primo 1. jan ${yearDate})`, value: `= ${currency.format(start)}`, note: "Danner grundlag for årets aktieafkast og hævninger" });
+        } else {
+          steps.push({
+            label: `Startsaldo (primo 1. jan ${yearDate})`,
+            value: currency.format(start),
+            note: isFirstYear ? "Indtastet startsaldo ved planens start (før årets afkast og hævning)" : "Saldo ved årets start (før årets afkast og hævning)"
+          });
+        }
         if (withdrawal > 0) {
           steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}`, note: "Hæves til årets forbrug" });
         }
@@ -771,9 +712,13 @@
 
         return {
           title: `Frie midler (${yearDate} · ${age} år)`,
-          badge: "Primosaldo (Startsaldo)",
-          quickMath: quickMathParts.join(" "),
-          description: `Beløbet på ${currency.format(start)} er din primosaldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets forventede afkast (${percent.format(freeNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet af årets afkast og hævninger slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
+          badge: isFirstYear ? (hasCashAllocation ? "Investeret aktiedel (1. år)" : "Startsaldo (1. år)") : "Primosaldo",
+          quickMath: quickMathStr,
+          description: isFirstYear
+            ? (hasCashAllocation
+                ? `Beløbet på ${currency.format(start)} er din investerede aktiedel ved planens start (svarende til ${stockSharePct} % af dine samlede frie midler på ${currency.format(totalLiquid)}, mens de resterende ${cashSharePct} % eller ${currency.format(cashBal)} er placeret i banken som kontantreserve). Herunder ses hele årets udvikling frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
+                : `Beløbet på ${currency.format(start)} er din indtastede startopsparing i frie midler ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(freeNominal)}), skat og hævninger udvikler saldoen frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
+            : `Beløbet på ${currency.format(start)} er din primosaldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets forventede afkast (${percent.format(freeNominal)}) og årets udbetaling (${currency.format(withdrawal)}) finder sted. Resultatet af årets afkast og hævninger slår igennem ved årets slutning og videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: "Ultimo = Primo − Hævning + Indbetaling + Nettoafkast (e. skat & inflation) ± Rebalancering",
           formulaDetails: `Hvor brutto realafkast er (${percent.format(freeNominal)} korrigeret for 2,0 % inflation) = ${percentPrecise.format(grossRealRate)}.`,
           returnExample,
@@ -789,27 +734,6 @@
       }
 
       case "ask": {
-        if (!prevRow) {
-          const end = row.ask;
-          return {
-            title: `Aktiesparekonto (${yearDate} · ${age} år)`,
-            badge: "Lav skat (17 %)",
-            quickMath: `Startsaldo: ${currency.format(end)} ved planens start (${age} år)`,
-            description: "Din indtastede startopsparing på Aktiesparekontoen ved beregningens begyndelse.",
-            formula: "Startsaldo (primo)",
-            formulaDetails: "Beskattes med 17 % flad lagerskat.",
-            steps: [
-              { label: "Startsaldo indtastet i beregneren", value: currency.format(end), isResult: true }
-            ],
-            assumptions: [
-              { label: "Skattesats", value: "17,0 % (flad lagerskat)" },
-              { label: "Indskudsloft (2026)", value: inputs.isCouple ? "348.400 kr. (Par)" : "174.200 kr. (Enlig)" }
-            ]
-          };
-        }
-
-        // For all subsequent projection years:
-        // row.ask is the PRIMOSALDO (start of year yearDate, e.g. 1. jan 2027)
         const start = row.ask;
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
@@ -821,7 +745,7 @@
         }
 
         const askCap = calculation.askDepositCap ?? (inputs.isCouple ? 348400 : 174200);
-        const contrib = (row.phase === "Opsparing" && row.contribution > 0 && start < askCap)
+        const contrib = (row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear) && start < askCap)
           ? Math.min(inputs.annualAskContribution ?? 0, Math.max(0, askCap - start))
           : 0;
         const withdrawal = row.askWithdrawal ?? (row.phase !== "Opsparing" && nextRowToUse && nextRowToUse.ask < start ? Math.max(0, start - nextRowToUse.ask) : 0);
@@ -860,7 +784,13 @@
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
         const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: "Saldo ved årets start (før årets afkast og hævning)" }
+          {
+            label: `Startsaldo (primo 1. jan ${yearDate})`,
+            value: currency.format(start),
+            note: isFirstYear
+              ? "Indtastet startsaldo ved planens start (før årets afkast og indskud)"
+              : "Saldo ved årets start (før årets afkast og hævning)"
+          }
         ];
         if (withdrawal > 0) {
           steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}` });
@@ -885,9 +815,11 @@
 
         return {
           title: `Aktiesparekonto (${yearDate} · ${age} år)`,
-          badge: "Primosaldo (Startsaldo)",
+          badge: isFirstYear ? "Startsaldo (1. år)" : "Primosaldo",
           quickMath: quickMathParts.join(" "),
-          description: `Beløbet på ${currency.format(start)} er din saldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets afkast (${percent.format(freeNominal)}) og eventuelle hævninger finder sted. Resultatet efter 17 % flad lagerskat og inflation videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
+          description: isFirstYear
+            ? `Beløbet på ${currency.format(start)} er din indtastede startopsparing på Aktiesparekontoen ved planens begyndelse (1. januar ${yearDate}). Herunder ses hvordan årets forventede afkast (${percent.format(freeNominal)}) efter 17 % flad lagerskat og inflation samt eventuelle indskud udvikler saldoen til årets udgang (${currency.format(end)}), som videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`
+            : `Beløbet på ${currency.format(start)} er din saldo ved årets start (1. januar ${yearDate}). Dette viser formuen FØR årets afkast (${percent.format(freeNominal)}) og eventuelle hævninger finder sted. Resultatet efter 17 % flad lagerskat og inflation videreføres som primosaldo til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: "Ultimo = Primo − Hævning + Indskud + Nettoafkast (e. 17 % skat & inflation)",
           formulaDetails: `Hvor realafkastet er (${percent.format(freeNominal)} × (1 − 17,0 %) efter skat) korrigeret for 2,0 % inflation = ${percentPrecise.format(askRealRate)}.`,
           returnExample,
@@ -910,31 +842,7 @@
         const rowYear = Math.max(0, age - inputs.currentAge);
         const isCustomCash = (Array.isArray(inputs.annualCashShares) && Number.isFinite(inputs.annualCashShares[rowYear])) || (Array.isArray(inputs.annualCashInterestRates) && Number.isFinite(inputs.annualCashInterestRates[rowYear]));
 
-        if (!prevRow) {
-          return {
-            title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
-            badge: isCustomCash ? "Justeret i matrix" : "Sikker likviditet",
-            quickMath: `Startsaldo: ${currency.format(start)} (${cashSharePct} % af frie midler)`,
-            description: hasGlide
-              ? `Din kontantreserve udgør ${cashSharePct} % af dine samlede frie midler (${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart ?? cashSharePct} % og stige mod ${inputs.cashShareTarget ?? cashSharePct} % ved pension.`
-              : "Din indtastede startopsparing i kontantreserve/bankindestående. Forrentes med en fast bankrente og fungerer som sikker buffer.",
-            formula: hasGlide ? `Startsaldo = Frie midler × Kontantandel (${cashSharePct} %)` : "Startsaldo (primo)",
-            formulaDetails: `Forrentes med ${percent.format(cashRate)} før skat. Renteindtægter beskattes med ${percent.format(cashTax)} som kapitalindkomst.`,
-            steps: [
-              { label: "Samlede frie midler (aktier + bank)", value: currency.format(totalLiquidFree) },
-              ...(hasGlide ? [{ label: `Kontantandel ved start (${inputs.cashShareStart ?? cashSharePct} %)`, value: `${cashSharePct} %`, isSub: true }] : []),
-              { label: "Startsaldo i kontantreserve", value: currency.format(start), isResult: true }
-            ],
-            assumptions: [
-              { label: "Kontantandel ved start", value: `${inputs.cashShareStart ?? cashSharePct} %` },
-              { label: "Rente på kontantreserve", value: percent.format(cashRate) },
-              { label: "Beskatning (kapitalindkomst)", value: percent.format(cashTax) },
-              ...(isCustomCash ? [{ label: "Matrix-justering", value: "Brugerdefineret år-for-år overstyring" }] : [])
-            ]
-          };
-        }
-
-        // For subsequent projection years:
+        // Determine calculation rows and next row
         const rows = calculation?.planRows || calculation?.rows;
         let nextRowToUse = null;
         if (Array.isArray(rows)) {
@@ -944,7 +852,7 @@
           }
         }
 
-        const contrib = (row.phase === "Opsparing" && row.contribution > 0) ? (inputs.annualCashContribution ?? 0) : 0;
+        const contrib = (row.phase === "Opsparing" && (row.contribution > 0 || isFirstYear)) ? (inputs.annualCashContribution ?? 0) : 0;
         const withdrawal = row.cashWithdrawal ?? (row.phase !== "Opsparing" && nextRowToUse && nextRowToUse.cash < start ? Math.max(0, start - nextRowToUse.cash) : 0);
         const realCashRate = (1 + cashRate * (1 - cashTax)) / (1 + inflRate) - 1;
         const netBase = Math.max(0, start - withdrawal);
@@ -959,8 +867,14 @@
         if (rebalance !== 0) quickMathParts.push(rebalance > 0 ? `+ ${currency.format(rebalance)} (rebalancering)` : `− ${currency.format(Math.abs(rebalance))} (rebalancering)`);
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
+        const cashPrimoNote = isFirstYear
+          ? (hasGlide
+              ? `Startsaldo udgør ${cashSharePct} % af samlede frie midler (${currency.format(totalLiquidFree)})`
+              : "Indtastet startsaldo i kontantreserve ved planens start")
+          : `Udgør ${cashSharePct} % af samlede frie midler ved årets start`;
+
         const steps = [
-          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: `Udgør ${cashSharePct} % af samlede frie midler ved årets start` }
+          { label: `Startsaldo (primo 1. jan ${yearDate})`, value: currency.format(start), note: cashPrimoNote }
         ];
         if (withdrawal > 0) {
           steps.push({ label: "Hævet skattefrit til forbrug", value: `− ${currency.format(withdrawal)}` });
@@ -989,9 +903,13 @@
 
         return {
           title: `Kontantreserve / Bank (${yearDate} · ${age} år)`,
-          badge: isCustomCash ? "Justeret i matrix" : "Primosaldo (Startsaldo)",
+          badge: isFirstYear ? (isCustomCash ? "Justeret i matrix (1. år)" : "Startreserve (1. år)") : (isCustomCash ? "Justeret i matrix" : "Primosaldo"),
           quickMath: quickMathParts.join(" "),
-          description: `Beløbet på ${currency.format(start)} er din kontantreserve/bankkonto ved årets start (1. januar ${yearDate}). Dette viser reserven FØR årets rente og eventuelle hævninger finder sted. Resultatet videreføres til næste række (${yearDate + 1} · ${age + 1} år).`,
+          description: isFirstYear
+            ? (hasGlide
+                ? `Din start-kontantreserve udgør ${currency.format(start)} (${cashSharePct} % af dine samlede frie midler på ${currency.format(totalLiquidFree)}). Den er konfigureret til at starte på ${inputs.cashShareStart ?? cashSharePct} % og stige mod ${inputs.cashShareTarget ?? cashSharePct} % ved pension. Herunder ses årets rente og eventuelle rebalancering frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`
+                : `Din indtastede startopsparing i kontantreserve/bankindestående på ${currency.format(start)}. Herunder ses årets rente efter skat og inflation frem mod årets udgang (${currency.format(end)}), som videreføres til næste række (${yearDate + 1} · ${age + 1} år).`)
+            : `Beløbet på ${currency.format(start)} er din kontantreserve/bankkonto ved årets start (1. januar ${yearDate}). Dette viser reserven FØR årets rente og eventuelle hævninger finder sted. Resultatet videreføres til næste række (${yearDate + 1} · ${age + 1} år).`,
           formula: hasGlide
             ? `Kontantreserve = Frie midler (${currency.format(totalLiquidFree)}) × ${cashSharePct} %`
             : "Ultimo = Primo − Hævning + Indbetaling + Netto bankrente ± Rebalancering",
