@@ -102,6 +102,10 @@
   const autoCalculateToggle = document.querySelector("#auto-calculate-toggle");
   const manualRecalculateBtn = document.querySelector("#manual-recalculate-btn");
   const uncalculatedBadge = document.querySelector("#uncalculated-badge");
+  const bottomUncalculatedBadge = document.querySelector(
+    "#bottom-uncalculated-badge",
+  );
+  const calcModeStatus = document.querySelector("#calc-mode-status");
   const formRecalculateSubmitBtn = document.querySelector(
     "#form-recalculate-submit-btn",
   );
@@ -119,11 +123,30 @@
     if (autoCalculateToggle) {
       autoCalculateToggle.checked = autoCalculateEnabled;
     }
+    if (calcModeStatus) {
+      calcModeStatus.textContent = autoCalculateEnabled
+        ? "Aktiv (live)"
+        : "Manuel";
+      calcModeStatus.className = autoCalculateEnabled
+        ? "calc-mode-status is-active"
+        : "calc-mode-status is-paused";
+    }
     if (manualRecalculateBtn) {
       manualRecalculateBtn.hidden = autoCalculateEnabled;
     }
     if (uncalculatedBadge) {
       uncalculatedBadge.hidden = !hasUncalculatedChanges || autoCalculateEnabled;
+    }
+    if (bottomUncalculatedBadge) {
+      bottomUncalculatedBadge.hidden =
+        !hasUncalculatedChanges || autoCalculateEnabled;
+    }
+    if (formRecalculateSubmitBtn) {
+      if (hasUncalculatedChanges && !autoCalculateEnabled) {
+        formRecalculateSubmitBtn.classList.add("has-uncalculated");
+      } else {
+        formRecalculateSubmitBtn.classList.remove("has-uncalculated");
+      }
     }
   }
 
@@ -5759,7 +5782,6 @@
   const cashShareTargetRange = form.elements.cashShareTargetRange;
 
   const freeFundsBalanceInput = form.elements.freeFundsBalance;
-  const freeFundsCostBasisInput = form.elements.freeFundsCostBasis;
 
   const displayFreeStockVal = document.querySelector("#display-free-stock-val");
   const displayFreeStockPct = document.querySelector("#display-free-stock-pct");
@@ -5800,6 +5822,13 @@
     if (displayFreeCashPct) {
       const pctFormatted = cashSharePct.toFixed(cashSharePct % 1 === 0 ? 0 : 1);
       displayFreeCashPct.textContent = `${pctFormatted} % af frie midler`;
+    }
+
+    const badge = document.querySelector("#cash-glide-badge");
+    if (badge) {
+      const startShare = Math.max(0, Math.min(100, parseFloat(cashShareStartInput?.value) || 0));
+      const targetShare = Math.max(0, Math.min(100, parseFloat(cashShareTargetInput?.value) || 0));
+      badge.textContent = `${startShare} % → ${targetShare} %`;
     }
 
     if (costBasisSubtextHint && freeFundsCostBasisInput) {
@@ -5853,7 +5882,7 @@
       const share = (parseFloat(cashShareStartInput?.value) || 0) / 100;
       if (free >= 0 && share >= 0 && share <= 1 && cashBalanceInput) {
         const newCash = Math.round(free * share);
-        cashBalanceInput.value = currency.format(newCash).replace(/\s*kr\.$/, "");
+        cashBalanceInput.value = inputNumber.format(newCash);
         formatNumberInput(cashBalanceInput);
       }
       updateFreeFundsAllocationUi();
@@ -5878,18 +5907,44 @@
     cashShareStartRange.addEventListener("input", () => {
       cashShareStartInput.value = cashShareStartRange.value;
       syncCashBalanceFromShare();
+      if (autoCalculateEnabled) {
+        scheduleUpdate();
+      } else {
+        hasUncalculatedChanges = true;
+        updateCalcModeUi();
+      }
     });
     cashShareStartInput.addEventListener("input", () => {
       cashShareStartRange.value = cashShareStartInput.value;
       syncCashBalanceFromShare();
+      if (autoCalculateEnabled) {
+        scheduleUpdate();
+      } else {
+        hasUncalculatedChanges = true;
+        updateCalcModeUi();
+      }
     });
   }
   if (cashShareTargetInput && cashShareTargetRange) {
     cashShareTargetRange.addEventListener("input", () => {
       cashShareTargetInput.value = cashShareTargetRange.value;
+      updateFreeFundsAllocationUi();
+      if (autoCalculateEnabled) {
+        scheduleUpdate();
+      } else {
+        hasUncalculatedChanges = true;
+        updateCalcModeUi();
+      }
     });
     cashShareTargetInput.addEventListener("input", () => {
       cashShareTargetRange.value = cashShareTargetInput.value;
+      updateFreeFundsAllocationUi();
+      if (autoCalculateEnabled) {
+        scheduleUpdate();
+      } else {
+        hasUncalculatedChanges = true;
+        updateCalcModeUi();
+      }
     });
   }
 
@@ -7153,6 +7208,12 @@
   formattedNumberInputs.forEach((input) => {
     formatNumberInput(input);
     addNumberSteppers(input);
+    input.addEventListener("input", () => {
+      formatNumberInput(input, true);
+    });
+    input.addEventListener("blur", () => {
+      formatNumberInput(input, false);
+    });
   });
   nativeNumberInputs.forEach((input) => addNumberSteppers(input));
   renderInflationState();

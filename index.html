@@ -161,18 +161,23 @@
           <form id="fire-form">
             <div class="form-surface">
               <div class="calc-mode-toolbar">
-                <label class="calc-mode-label" title="Vælg om beregneren automatisk opdaterer ved indtastning, eller om du vil redigere flere felter og genberegne manuelt">
-                  <input type="checkbox" id="auto-calculate-toggle" checked />
-                  <span class="calc-mode-switch" aria-hidden="true"></span>
-                  <span>Auto-beregn</span>
-                </label>
-                <button type="button" id="manual-recalculate-btn" class="manual-recalculate-btn" hidden>
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M1 4v4h4M15 12v-4h-4M2.51 9a6 6 0 1 0 1.25-5.32L1 8" />
-                  </svg>
-                  <span>Genberegn plan</span>
-                  <span id="uncalculated-badge" class="uncalculated-badge" hidden>Uberegnede ændringer</span>
-                </button>
+                <div class="calc-mode-left">
+                  <label class="calc-mode-label" title="Vælg om beregneren automatisk opdaterer ved indtastning (live), eller om du vil redigere flere felter og genberegne manuelt">
+                    <input type="checkbox" id="auto-calculate-toggle" checked />
+                    <span class="calc-mode-switch" aria-hidden="true"></span>
+                    <span class="calc-mode-title">Auto-beregn</span>
+                    <span class="calc-mode-status is-active" id="calc-mode-status">Aktiv (live)</span>
+                  </label>
+                </div>
+                <div class="calc-mode-actions">
+                  <button type="button" id="manual-recalculate-btn" class="manual-recalculate-btn" hidden title="Opdater beregning og grafer nu">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 4v4h4M15 12v-4h-4M2.51 9a6 6 0 1 0 1.25-5.32L1 8" />
+                    </svg>
+                    <span>Genberegn plan</span>
+                    <span id="uncalculated-badge" class="uncalculated-badge" hidden>Uberegnede ændringer</span>
+                  </button>
+                </div>
               </div>
 
               <fieldset id="plan-section" data-step-section="plan-section">
@@ -1430,11 +1435,12 @@
                 </div>
               </details>
               <div class="form-actions-bottom">
-                <button type="submit" class="form-recalculate-submit-btn" id="form-recalculate-submit-btn">
+                <button type="submit" class="form-recalculate-submit-btn" id="form-recalculate-submit-btn" title="Beregn og opdater planen nu (eller tryk Enter i ethvert felt)">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;">
                     <path d="M1 4v4h4M15 12v-4h-4M2.51 9a6 6 0 1 0 1.25-5.32L1 8" />
                   </svg>
                   <span>Opdater / Genberegn plan (Enter)</span>
+                  <span id="bottom-uncalculated-badge" class="uncalculated-badge" hidden>Uberegnede ændringer</span>
                 </button>
               </div>
             </div>
