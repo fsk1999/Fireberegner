@@ -838,6 +838,9 @@
     if (typeof updateFreeFundsAllocationUi === "function") {
       updateFreeFundsAllocationUi();
     }
+    if (typeof updateAllExplainerCallouts === "function") {
+      updateAllExplainerCallouts();
+    }
     if (Array.isArray(inputs.annualCashShares)) {
       customAnnualCashShares = [...inputs.annualCashShares];
     } else {
@@ -5866,20 +5869,100 @@
     });
   }
 
+  const STRATEGY_EXPLAINERS = {
+    taxOptimal: {
+      title: "Skatteoptimeret (Anbefalet)",
+      text: "Udnytter automatisk 27 % progressionsgrænsen for aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) fuldt ud hvert år. Supplerer det resterende behov med skattefri likviditet (kontantreserve og Aktiesparekonto), så den høje 42 % aktieskat undgås eller minimeres mest muligt."
+    },
+    cashFirst: {
+      title: "Kontantreserve først",
+      text: "Hæver 100 % fra den likvide bankreserve først, så aktieformuen forbliver investeret i markedet længst muligt med maksimalt renters-rente afkast. Først når kontanter er opbrugt, sælges aktier."
+    },
+    stocksFirst: {
+      title: "Bevar kontantreserve",
+      text: "Sælger aktier og ASK først for at bevare kontantreserven intakt som en permanent krisebuffer og nødopsparing mod uventede kriser eller markedsfald."
+    },
+    proportional: {
+      title: "Forholdsmæssig",
+      text: "Hæver balanceret og proportionalt fra alle tilgængelige depoter (aktier, kontanter, pensioner) svarende til deres aktuelle saldo."
+    }
+  };
+
+  const CASH_STRATEGY_EXPLAINERS = {
+    glidePath: {
+      title: "Glidende optrapning mod folkepension (Lineær)",
+      text: "Kontantandelen stiger jævnt og lineært hvert år fra startprocenten og frem mod folkepensionsalderen, hvor målprocenten nås. Reducerer gradvist porteføljens samlede risiko frem mod tilbagetrækning."
+    },
+    glidePathFire: {
+      title: "Glidende optrapning mod FIRE-start",
+      text: "Kontantandelen optrappes lineært fra start frem mod tidspunktet for FIRE-start (tidlig pension). Sikrer en fuld kontantbuffer allerede på den dag, du stopper med at arbejde."
+    },
+    stepAtRetirement: {
+      title: "Trinvis stigning ved folkepension",
+      text: "Kontantandelen holdes fast på startprocenten i hele opsparingsperioden og springer i ét pludseligt ryk op til målprocenten det år, du når folkepensionsalderen."
+    },
+    stepAtFire: {
+      title: "Trinvis stigning ved FIRE-start",
+      text: "Kontantandelen holdes på startprocenten indtil det år, du går på tidlig pension (FIRE), hvor den i ét ryk stiger til målprocenten."
+    },
+    constant: {
+      title: "Fast kontantandel (Samme % alle år)",
+      text: "Kontantandelen holdes helt konstant på startprocenten i alle år – ingen optrapning finder sted."
+    }
+  };
+
+  function updateExplainerCallout(containerId, dict, key) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const item = dict[key] || dict.taxOptimal || dict.glidePath;
+    if (item) {
+      el.innerHTML = `<strong>${item.title}:</strong> ${item.text}`;
+    }
+  }
+
+  function updateAllExplainerCallouts() {
+    const stratVal = form.elements.withdrawalStrategy?.value || "taxOptimal";
+    updateExplainerCallout("withdrawal-strategy-explainer-text", STRATEGY_EXPLAINERS, stratVal);
+    updateExplainerCallout("withdrawal-strategy-opt-explainer-text", STRATEGY_EXPLAINERS, stratVal);
+    const cashStratVal = form.elements.cashShareStrategy?.value || "glidePath";
+    updateExplainerCallout("cash-share-strategy-explainer-text", CASH_STRATEGY_EXPLAINERS, cashStratVal);
+  }
+
+  function bindSelectExplainer(selectEl, explainerTextId, dict) {
+    if (!selectEl) return;
+    const refreshSelected = () => updateExplainerCallout(explainerTextId, dict, selectEl.value);
+    selectEl.addEventListener("change", refreshSelected);
+    selectEl.addEventListener("focus", refreshSelected);
+    selectEl.addEventListener("mouseover", (e) => {
+      if (e.target && e.target.tagName === "OPTION" && dict[e.target.value]) {
+        updateExplainerCallout(explainerTextId, dict, e.target.value);
+      }
+    });
+    selectEl.addEventListener("mouseleave", refreshSelected);
+    refreshSelected();
+  }
+
   const withdrawalStratInput = form.elements.withdrawalStrategy;
   const withdrawalStratOptInput = form.elements.withdrawalStrategyOpt;
   if (withdrawalStratInput && withdrawalStratOptInput) {
     withdrawalStratInput.addEventListener("change", () => {
       withdrawalStratOptInput.value = withdrawalStratInput.value;
+      updateAllExplainerCallouts();
     });
     withdrawalStratOptInput.addEventListener("change", () => {
       withdrawalStratInput.value = withdrawalStratOptInput.value;
+      updateAllExplainerCallouts();
       withdrawalStratInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }
 
+  bindSelectExplainer(withdrawalStratInput, "withdrawal-strategy-explainer-text", STRATEGY_EXPLAINERS);
+  bindSelectExplainer(withdrawalStratOptInput, "withdrawal-strategy-opt-explainer-text", STRATEGY_EXPLAINERS);
+  bindSelectExplainer(form.elements.cashShareStrategy, "cash-share-strategy-explainer-text", CASH_STRATEGY_EXPLAINERS);
+
   // Initialize display on startup
   updateFreeFundsAllocationUi();
+  updateAllExplainerCallouts();
 
   if (autoCalculateToggle) {
     autoCalculateToggle.addEventListener("change", () => {

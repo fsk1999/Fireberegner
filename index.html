@@ -279,12 +279,18 @@
                         >i</i
                       ></span
                     >
-                    <select name="withdrawalStrategy" id="withdrawal-strategy-select">
-                      <option value="taxOptimal" selected>Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
-                      <option value="cashFirst">Kontantreserve først (Brug kontanter før aktiesalg)</option>
-                      <option value="stocksFirst">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
-                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
+                    <select name="withdrawalStrategy" id="withdrawal-strategy-select" title="Vælg overordnet udbetalingsstrategi og hæverækkefølge">
+                      <option value="taxOptimal" selected title="Udnytter automatisk 27 % progressionsgrænsen for aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) fuldt ud hvert år. Supplerer det resterende behov med skattefri likviditet (kontantreserve og Aktiesparekonto), så den høje 42 % aktieskat undgås eller minimeres mest muligt.">Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
+                      <option value="cashFirst" title="Hæver 100 % fra den likvide bankreserve først, så aktieformuen forbliver investeret i markedet længst muligt med maksimalt renters-rente afkast. Først når kontanter er opbrugt, sælges aktier.">Kontantreserve først (Brug kontanter før aktiesalg)</option>
+                      <option value="stocksFirst" title="Sælger aktier og ASK først for at bevare kontantreserven intakt som en permanent krisebuffer og nødopsparing mod uventede kriser eller markedsfald.">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
+                      <option value="proportional" title="Hæver balanceret og proportionalt fra alle tilgængelige depoter (aktier, kontanter, pensioner) svarende til deres aktuelle saldo.">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
                     </select>
+                    <div class="field-explainer-callout" id="withdrawal-strategy-explainer" role="note">
+                      <span class="explainer-icon" aria-hidden="true">💡</span>
+                      <div class="explainer-content" id="withdrawal-strategy-explainer-text">
+                        <strong>Skatteoptimeret (Anbefalet):</strong> Udnytter automatisk 27 % progressionsgrænsen for aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) fuldt ud hvert år. Supplerer det resterende behov med skattefri likviditet (kontantreserve og Aktiesparekonto), så den høje 42 % aktieskat undgås eller minimeres mest muligt.
+                      </div>
+                    </div>
                   </label>
                 </div>
               </fieldset>
@@ -351,6 +357,7 @@
                       inputmode="numeric"
                       data-number-format="integer"
                       value="250.000"
+                      title="Indtast din samlede frie formue i dag (både frie aktier/fonde og kontanter i banken, ekskl. ASK). Fordelingen mellem aktier og kontanter allokeres med slideren herunder."
                       required
                   /></label>
                   <label id="free-funds-cost-basis-field" class="field"
@@ -367,6 +374,7 @@
                       inputmode="numeric"
                       data-number-format="integer"
                       value="237.500"
+                      title="Indtast din oprindelige købspris for de aktier, du ejer i frie midler. Bruges til at beregne den skattepligtige kursgevinst ved fremtidige salg efter realisationsprincippet."
                       required
                   />
                   <span class="cost-basis-subtext-hint" id="cost-basis-subtext-hint"></span>
@@ -384,6 +392,7 @@
                       inputmode="numeric"
                       data-number-format="integer"
                       value="150.000"
+                      title="Nuværende saldo på din Aktiesparekonto. Beskattes med 17 % lagerskat og udbetales 100 % skattefrit."
                       required
                   /></label>
                   <div class="cash-reserve-card-box cash-allocation-card-box">
@@ -397,18 +406,20 @@
 
                     <!-- De 2 levende visningsfelter som viser værdi af aktier og kontanter -->
                     <div class="free-funds-allocation-display">
-                      <div class="allocation-pill allocation-stocks">
+                      <div class="allocation-pill allocation-stocks explainable-val" tabindex="0" role="region" aria-label="Værdi af aktier i frie midler" title="Værdien af dine frie aktier og investeringsfonde i åbent depot (beregnet som Frie midler totalt minus kontantreserve). Det er denne del, der forrentes med dit valgte investeringsafkast og beskattes som aktieindkomst ved salg efter realisationsprincippet.">
                         <div class="allocation-pill-header">
                           <span class="allocation-pill-icon">📈</span>
                           <span class="allocation-pill-label">Værdi af aktier</span>
+                          <i class="field-info-icon" title="Værdien af dine frie aktier og investeringsfonde i åbent depot (beregnet som Frie midler totalt minus kontantreserve). Det er denne del, der forrentes med dit valgte investeringsafkast og beskattes som aktieindkomst ved salg efter realisationsprincippet.">i</i>
                         </div>
                         <div class="allocation-pill-val" id="display-free-stock-val">237.500 kr.</div>
                         <div class="allocation-pill-pct" id="display-free-stock-pct">95 % af frie midler</div>
                       </div>
-                      <div class="allocation-pill allocation-cash">
+                      <div class="allocation-pill allocation-cash explainable-val" tabindex="0" role="region" aria-label="Værdi af kontanter i frie midler" title="Værdien af din likvide kontantreserve i banken (beregnet ud fra din valgte kontantandel). Forrentes med din valgte bankrente og sikrer dig likviditet uden kursrisiko i krisetider.">
                         <div class="allocation-pill-header">
                           <span class="allocation-pill-icon">💵</span>
                           <span class="allocation-pill-label">Værdi af kontanter</span>
+                          <i class="field-info-icon" title="Værdien af din likvide kontantreserve i banken (beregnet ud fra din valgte kontantandel). Forrentes med din valgte bankrente og sikrer dig likviditet uden kursrisiko i krisetider.">i</i>
                         </div>
                         <div class="allocation-pill-val" id="display-free-cash-val">12.500 kr.</div>
                         <div class="allocation-pill-pct" id="display-free-cash-pct">5 % af frie midler</div>
@@ -426,6 +437,7 @@
                           inputmode="numeric"
                           data-number-format="integer"
                           value="12.500"
+                          title="Nuværende indestående på bankkonto eller kontantopsparing. Forrentes med særskilt bankrente og giver en sikker likviditetsbuffer uden kursudsving. Kan indtastes direkte i kroner eller justeres med procent-slideren."
                           required
                           class="explainable-val"
                           data-metric-key="cash-balance-today"
@@ -437,8 +449,8 @@
                           <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start. Synkroniseres automatisk med kronebeløbet og visningsfelterne ovenfor. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <div class="slider-input-inline">
-                          <input type="range" name="cashShareStartRange" min="0" max="100" step="1" value="5" class="cash-range-slider explainable-val" data-metric-key="cash-share-start" />
-                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" required class="explainable-val" data-metric-key="cash-share-start" /><b>%</b></span>
+                          <input type="range" name="cashShareStartRange" min="0" max="100" step="1" value="5" title="Træk for at justere kontantandelen af dine frie midler i dag (0 % til 100 %)" class="cash-range-slider explainable-val" data-metric-key="cash-share-start" />
+                          <span class="input-suffix"><input name="cashShareStart" type="number" min="0" max="100" step="0.5" value="5" title="Kontantandel i procent i dag ved beregningens start" required class="explainable-val" data-metric-key="cash-share-start" /><b>%</b></span>
                         </div>
                       </label>
 
@@ -447,8 +459,8 @@
                           <i title="Mål-procentdel i kontanter, når du når pension eller FIRE. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <div class="slider-input-inline">
-                          <input type="range" name="cashShareTargetRange" min="0" max="100" step="1" value="20" class="cash-range-slider explainable-val" data-metric-key="cash-share-target" />
-                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" required class="explainable-val" data-metric-key="cash-share-target" /><b>%</b></span>
+                          <input type="range" name="cashShareTargetRange" min="0" max="100" step="1" value="20" title="Træk for at justere mål-kontantandelen ved pension / FIRE (0 % til 100 %)" class="cash-range-slider explainable-val" data-metric-key="cash-share-target" />
+                          <span class="input-suffix"><input name="cashShareTarget" type="number" min="0" max="100" step="0.5" value="20" title="Mål-kontantandel i procent ved pension / FIRE" required class="explainable-val" data-metric-key="cash-share-target" /><b>%</b></span>
                         </div>
                       </label>
 
@@ -456,14 +468,21 @@
                         <span class="explainable-val" data-metric-key="cash-share-strategy" tabindex="0">Optrapningsprofil over årene
                           <i title="Vælg hvordan kontantandelen udvikler sig over tid: 'Glidende' stiger lineært år for år. 'Trinvis' skifter først på måldatoen. 'Fast' holder samme procent. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
-                        <select name="cashShareStrategy" class="explainable-val" data-metric-key="cash-share-strategy" required>
-                          <option value="glidePath">📈 Glidende optrapning mod folkepension (Lineær)</option>
-                          <option value="glidePathFire">🎯 Glidende optrapning mod FIRE-start</option>
-                          <option value="stepAtRetirement">⚡ Trinvis stigning ved folkepension</option>
-                          <option value="stepAtFire">⚡ Trinvis stigning ved FIRE-start</option>
-                          <option value="constant">🔒 Fast kontantandel (Samme % alle år)</option>
+                        <select name="cashShareStrategy" id="cash-share-strategy-select" class="explainable-val" data-metric-key="cash-share-strategy" title="Vælg hvordan kontantandelen udvikler sig over årene" required>
+                          <option value="glidePath" selected title="Kontantandelen stiger jævnt og lineært hvert år fra startprocenten og frem mod folkepensionsalderen, hvor målprocenten nås. Reducerer gradvist porteføljens samlede risiko frem mod tilbagetrækning.">📈 Glidende optrapning mod folkepension (Lineær)</option>
+                          <option value="glidePathFire" title="Kontantandelen optrappes lineært fra start frem mod tidspunktet for FIRE-start (tidlig pension). Sikrer en fuld kontantbuffer allerede på den dag, du stopper med at arbejde.">🎯 Glidende optrapning mod FIRE-start</option>
+                          <option value="stepAtRetirement" title="Kontantandelen holdes fast på startprocenten i hele opsparingsperioden og springer i ét pludseligt ryk op til målprocenten det år, du når folkepensionsalderen.">⚡ Trinvis stigning ved folkepension</option>
+                          <option value="stepAtFire" title="Kontantandelen holdes på startprocenten indtil det år, du går på tidlig pension (FIRE), hvor den i ét ryk stiger til målprocenten.">⚡ Trinvis stigning ved FIRE-start</option>
+                          <option value="constant" title="Kontantandelen holdes helt konstant på startprocenten i alle år – ingen optrapning finder sted.">🔒 Fast kontantandel (Samme % alle år)</option>
                         </select>
+                        <div class="field-explainer-callout" id="cash-share-strategy-explainer" role="note">
+                          <span class="explainer-icon" aria-hidden="true">💡</span>
+                          <div class="explainer-content" id="cash-share-strategy-explainer-text">
+                            <strong>Glidende optrapning mod folkepension (Lineær):</strong> Kontantandelen stiger jævnt og lineært hvert år fra startprocenten og frem mod folkepensionsalderen, hvor målprocenten nås. Reducerer gradvist porteføljens samlede risiko frem mod tilbagetrækning.
+                          </div>
+                        </div>
                       </label>
+                    </div>
                     </div>
 
                     <div class="cash-glide-visual-strip" id="cash-glide-visual-strip">
@@ -855,12 +874,18 @@
                   </header>
                   <label class="field">
                     <span>Valgt strategi for udbetaling og likviditet:</span>
-                    <select name="withdrawalStrategyOpt" data-sync-with="withdrawalStrategy">
-                      <option value="taxOptimal" selected>Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
-                      <option value="cashFirst">Kontantreserve først (Brug kontanter før aktiesalg)</option>
-                      <option value="stocksFirst">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
-                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
+                    <select name="withdrawalStrategyOpt" id="withdrawal-strategy-opt-select" data-sync-with="withdrawalStrategy" title="Vælg samlet strategi for udbetaling og hæverækkefølge i FIRE- og pensionsperioden">
+                      <option value="taxOptimal" selected title="Udnytter automatisk 27 % progressionsgrænsen for aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) fuldt ud hvert år. Supplerer det resterende behov med skattefri likviditet (kontantreserve og Aktiesparekonto), så den høje 42 % aktieskat undgås eller minimeres mest muligt.">Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
+                      <option value="cashFirst" title="Hæver 100 % fra den likvide bankreserve først, så aktieformuen forbliver investeret i markedet længst muligt med maksimalt renters-rente afkast. Først når kontanter er opbrugt, sælges aktier.">Kontantreserve først (Brug kontanter før aktiesalg)</option>
+                      <option value="stocksFirst" title="Sælger aktier og ASK først for at bevare kontantreserven intakt som en permanent krisebuffer og nødopsparing mod uventede kriser eller markedsfald.">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
+                      <option value="proportional" title="Hæver balanceret og proportionalt fra alle tilgængelige depoter (aktier, kontanter, pensioner) svarende til deres aktuelle saldo.">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
                     </select>
+                    <div class="field-explainer-callout" id="withdrawal-strategy-opt-explainer" role="note">
+                      <span class="explainer-icon" aria-hidden="true">💡</span>
+                      <div class="explainer-content" id="withdrawal-strategy-opt-explainer-text">
+                        <strong>Skatteoptimeret (Anbefalet):</strong> Udnytter automatisk 27 % progressionsgrænsen for aktieskat (79.400 kr. for enlige / 158.800 kr. for par i 2026) fuldt ud hvert år. Supplerer det resterende behov med skattefri likviditet (kontantreserve og Aktiesparekonto), så den høje 42 % aktieskat undgås eller minimeres mest muligt.
+                      </div>
+                    </div>
                   </label>
                 </div>
               </details>
@@ -907,12 +932,14 @@
                       ></span
                     ><select
                       name="returnStrategy"
+                      id="return-strategy-select"
                       aria-describedby="return-strategy-note"
+                      title="Vælg profil for forventet investeringsafkast over tid"
                       required
                     >
-                      <option value="none">Ingen (fast afkast)</option>
-                      <option value="declining">Nedtrapning</option>
-                      <option value="riskTent">Obligationstelt</option>
+                      <option value="none" title="Det forventede afkast holdes fuldstændig konstant i alle år frem til slutalderen uden reduktion.">Ingen (fast afkast)</option>
+                      <option value="declining" title="Afkastet trappes lineært ned frem mod første hævning (FIRE eller folkepension) og forbliver på det lavere defensive niveau resten af livet.">Nedtrapning</option>
+                      <option value="riskTent" title="Obligationstelt (Rising Equity Glidepath): Afkastet sænkes frem mod pensionstidspunktet for at minimere sekvensrisiko (Sequence of Returns Risk) og hæves derefter gradvist igen i pensionsårene.">Obligationstelt</option>
                     </select></label
                   >
                   <label class="field"

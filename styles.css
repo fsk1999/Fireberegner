@@ -5925,11 +5925,80 @@ th.housing-col {
   flex-direction: column;
   gap: 2px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: help;
 }
 
-.allocation-pill:hover {
-  border-color: var(--line-focus, #cbd5e1);
+.allocation-pill:hover,
+.allocation-pill:focus-visible {
+  border-color: var(--line-focus, #94a3b8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  outline: none;
+}
+
+.field-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  cursor: help;
+  transition: all 0.15s ease;
+}
+
+.allocation-stocks:hover .field-info-icon {
+  background: #059669;
+  color: #fff;
+}
+
+.allocation-cash:hover .field-info-icon {
+  background: #0284c7;
+  color: #fff;
+}
+
+.field-explainer-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(2, 132, 199, 0.06);
+  border: 1px solid rgba(2, 132, 199, 0.22);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary, #334155);
+  animation: fadeInCallout 0.2s ease-out;
+}
+
+@keyframes fadeInCallout {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.field-explainer-callout .explainer-icon {
+  font-size: 14px;
+  line-height: 1.2;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.field-explainer-callout .explainer-content {
+  flex: 1;
+}
+
+.field-explainer-callout .explainer-content strong {
+  color: var(--text-main, #0f172a);
+  font-weight: 600;
+  display: inline;
 }
 
 .allocation-stocks {
@@ -6011,6 +6080,18 @@ th.housing-col {
 :root[data-theme="dark"] .allocation-cash .allocation-pill-val,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .allocation-cash .allocation-pill-val {
   color: #38bdf8;
+}
+
+:root[data-theme="dark"] .field-explainer-callout,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .field-explainer-callout {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(56, 189, 248, 0.25);
+  color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .field-explainer-callout .explainer-content strong,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .field-explainer-callout .explainer-content strong {
+  color: #f8fafc;
 }
 
 .cash-subgrid {

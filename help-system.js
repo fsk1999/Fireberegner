@@ -217,9 +217,25 @@
         title: "Samlet købspris for aktier",
         desc: "Din oprindelige anskaffelsessum for de aktier, du ejer i frie midler (dvs. den investerede aktieværdi). Bruges til at beregne den skattepligtige kursgevinst ved fremtidige salg efter realisationsprincippet."
       },
+      "display-free-stock-val": {
+        title: "Værdi af aktier (frie midler)",
+        desc: "Værdien af dine frie aktier og fonde (Frie midler totalt minus kontantreserve). Forrentes med dit valgte investeringsafkast og beskattes som aktieindkomst ved salg efter realisationsprincippet."
+      },
+      "display-free-cash-val": {
+        title: "Værdi af kontanter (frie midler)",
+        desc: "Værdien af din likvide kontantreserve i banken (beregnet ud fra din valgte kontantandel). Forrentes med din valgte bankrente og sikrer dig likviditet uden kursrisiko i krisetider."
+      },
       "withdrawal-strategy-select": {
         title: "Udbetalingsstrategi & Hæverækkefølge",
         desc: "Vælg om udbetalinger skal være Skatteoptimeret (27 % først, derefter kontant & ASK), Kontantreserve først (brug kontanter før aktiesalg), Bevar kontantreserve (sælg aktier før kontantreserve) eller Forholdsmæssig."
+      },
+      "withdrawal-strategy-opt-select": {
+        title: "Udbetalingsstrategi & Hæverækkefølge (Optimering)",
+        desc: "Synkroniseret med udbetalingsstrategien i grundindstillingerne. Vælger hvordan frie midler, ASK og pensioner prioriteres under FIRE- og pensionsudbetalingen."
+      },
+      "cash-share-strategy-select": {
+        title: "Optrapningsprofil for kontantreserve (Glide Path)",
+        desc: "Vælg hvordan kontantandelen udvikler sig over årene: Glidende optrapning mod folkepension (lineær), Glidende optrapning mod FIRE-start, Trinvis stigning ved folkepension, Trinvis stigning ved FIRE-start, eller Fast kontantandel alle år."
       },
       "free-savings": {
         title: "Frie Midler (Startsaldo)",
