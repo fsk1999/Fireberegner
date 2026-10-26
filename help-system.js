@@ -110,6 +110,84 @@
             content: "Test om din opsparing overlever historiens 4 største børskrak på din første dag som pensionist. Hvis din plan overlever 1929 (-80 % fald) eller 1973 (stagflation), er den usædvanlig robust."
           }
         ]
+      },
+      {
+        id: "cash",
+        title: "💰 Kontantreserve, Rente & Glide Path",
+        items: [
+          {
+            id: "cash-reserve-why",
+            title: "Hvorfor opbygge en kontantreserve?",
+            tags: ["kontant", "strategi", "risiko"],
+            content: "En likvid kontantreserve i banken (eller på højrentekonto) beskytter mod <em>Sequence-of-Returns Risk</em> (sekvensrisiko). Hvis aktiemarkedet styrtdykker i dine første pensionsår, lever du af kontanterne og undgår tvangssalg af aktier i bunden."
+          },
+          {
+            id: "cash-glide-path",
+            title: "Hvad er den lineære Glide Path for kontanter?",
+            tags: ["kontant", "strategi"],
+            content: "En Glide Path øger gradvist kontantandelen af dine frie midler (fx fra 5 % som 50-årig til 20-30 % ved FIRE-alderen). Derved gearer du automatisk risikoen ned i årene op til arbejdsophør."
+          },
+          {
+            id: "cash-taxation",
+            title: "Hvordan beskattes bankrenter på kontanter?",
+            tags: ["kontant", "skat"],
+            content: "Renter af kontante bankindeståender beskattes som <strong>kapitalindkomst</strong> (typisk 25–42 % afhængig af bopælskommune og øvrig kapitalindkomst) og holdes adskilt fra aktieindkomstbeskatningen."
+          }
+        ]
+      },
+      {
+        id: "cockpit",
+        title: "🎛️ Cockpit & Multi-Layer Grafer",
+        items: [
+          {
+            id: "cockpit-dashboard",
+            title: "Hvad viser Cockpit Dashboardet?",
+            tags: ["dashboard", "grafer"],
+            content: "Cockpittet samler dine vigtigste nøgletal i et kompakt overblik: opnået FIRE-alder, overlevelsesrate (solvens), slutreserve ved 90 år, samlet levetidsskat og det månedlige rådighedsbeløb."
+          },
+          {
+            id: "multi-layer-flow",
+            title: "Multi-Layer Area Flow Streamgraphs",
+            tags: ["grafer"],
+            content: "Den lagdelte arealgraf viser præcis fordelingen af din samlede formue over tid: Pensioner (lilla), Frie aktier (grøn), Frie kontanter (blå) og Boligfriværdi (orange) med synkroniseret hover-koordinator."
+          }
+        ]
+      },
+      {
+        id: "optimization",
+        title: "🎯 Modregnings-Assistent: De 3 Strategier",
+        items: [
+          {
+            id: "modregning-opt-3",
+            title: "De 3 gyldne regler mod modregning i pensionstillæg",
+            tags: ["pension", "strategi", "skat"],
+            content: "<ol style='padding-left:18px; margin:0;'><li><strong>Hæv ASK og aldersopsparing først:</strong> Udbetales 100 % skattefrit og modregnes 0 kr. i folkepension.</li><li><strong>Stræk ratepension over 15–20 år:</strong> Hold den årlige udbetaling under 98.800 kr. bundfradraget (197.900 kr. for par).</li><li><strong>Udnyt 27 % aktieskattegrænsen:</strong> Realiser aktiegevinster op til 79.400 kr. (158.800 kr. for par) – aktieindkomst modregnes ikke i pensionstillægget!</li></ol>"
+          }
+        ]
+      },
+      {
+        id: "inspection",
+        title: "🔍 Matematisk Inspektør & Regnskabstabel",
+        items: [
+          {
+            id: "math-accounting",
+            title: "Sådan læses regnskabstabellen i højrekliksmodalen",
+            tags: ["matematik", "inspektion"],
+            content: "Hovedposterne summerer direkte: <code>Startsaldo + Indbetaling + Nettoafkast − Udbetaling = Slutsaldo</code>.<br><br>Underposter med <code>↳</code> viser:<br>• Bruttoafkast af primosaldo og indbetaling<br>• Heraf skat (PAL 15,3 %, ASK 17 % eller lagerskat) med minus<br>• Heraf inflationskorrektion (købekraftstab) med minus<br>Hvor bruttoafkast minus skat minus inflation summerer nøjagtigt til nettoafkastet."
+          }
+        ]
+      },
+      {
+        id: "tornado",
+        title: "🌪️ Følsomhedsanalyse (Tornado-diagram)",
+        items: [
+          {
+            id: "tornado-factors",
+            title: "Hvilke faktorer flytter din FIRE-alder mest?",
+            tags: ["risiko", "analyse"],
+            content: "Tornado-analysen tester 4 nøgleparametre og rangerer dem efter effekt på FIRE-alderen:<br>1. <strong>Forbrugsbehov (±20 %):</strong> Typisk den største enkeltfaktor (4–7 års sving).<br>2. <strong>Investeringsafkast (±1 %-point):</strong> Har enorm renters-rente effekt.<br>3. <strong>Inflation (±1 %-point):</strong> Eder købekraften over 30–40 år.<br>4. <strong>Månedlig opsparing (±20 %):</strong> Accelererer opsparingsfasen."
+          }
+        ]
       }
     ],
 
@@ -681,5 +759,13 @@
   // Auto-initialiser hvis scriptet inkluderes direkte i browseren
   if (typeof window !== "undefined") {
     FireHelp.init();
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("openHelp") === "1" || urlParams.get("help") === "1") {
+        setTimeout(() => FireHelp.openDrawer(), 350);
+      } else if (urlParams.get("tour") === "1") {
+        setTimeout(() => FireHelp.startTour(), 350);
+      }
+    } catch (e) {}
   }
 })(typeof window !== "undefined" ? window : globalThis);
