@@ -505,8 +505,114 @@ console.assert(expInitialFreeFunds.steps.some((s) => s.label.includes("Fratrukke
 console.assert(expInitialFreeFunds.steps.some((s) => s.label.includes("Indtastede samlede frie midler") && s.value.includes("250.000")), "Steps must show 250.000 kr. total free funds");
 console.log("✓ Cash reserve explanations and exact sync calculations verified.");
 
+console.log("\n=== 19. Free Funds Withdrawal Strategies (cashFirst, taxOptimal, stocksFirst) & Effective Tax Breakdown ===");
+const strategyInputs = {
+  ...baseInputs,
+  currentAge: 54,
+  retirementAge: 69,
+  payoutYears: 30,
+  desiredAnnualWithdrawal: 420000,
+  withdrawalAfterTax: true,
+  cashBalance: 6500000,
+  freeFundsBalance: 3500000,
+  freeFundsCostBasis: 2000000,
+  freeFundsWithdrawalStrategy: "cashFirst",
+  ratePensionBalance: 0,
+  ageSavingsBalance: 0,
+  lifeAnnuityBalance: 0,
+  askBalance: 150000,
+  annualCashContribution: 0,
+  annualFreeFundsContribution: 0,
+  annualRatePensionContribution: 0,
+  annualAgeSavingsContribution: 0,
+  annualLifeAnnuityContribution: 0,
+  annualAskContribution: 0,
+};
+
+const calcCashFirst = FireCalculations.calculateFire(strategyInputs);
+const fireRowCashFirst = calcCashFirst.planRows.find((r) => r.phase === "FIRE");
+console.assert(fireRowCashFirst.cashWithdrawal === 420000, `cashFirst: cashWithdrawal should be 420000, got ${fireRowCashFirst.cashWithdrawal}`);
+console.assert(fireRowCashFirst.freeFundsWithdrawal === 0, `cashFirst: freeFundsWithdrawal should be 0, got ${fireRowCashFirst.freeFundsWithdrawal}`);
+console.assert(fireRowCashFirst.withdrawalTax === 0, `cashFirst: withdrawalTax should be 0, got ${fireRowCashFirst.withdrawalTax}`);
+console.assert(fireRowCashFirst.effectiveWithdrawalTaxRate === 0, `cashFirst: effectiveWithdrawalTaxRate should be 0, got ${fireRowCashFirst.effectiveWithdrawalTaxRate}`);
+console.assert(fireRowCashFirst.withdrawalSource === "Frie Midler (kontant)", `cashFirst: withdrawalSource should be 'Frie Midler (kontant)', got ${fireRowCashFirst.withdrawalSource}`);
+
+const calcTaxOpt = FireCalculations.calculateFire({
+  ...strategyInputs,
+  freeFundsWithdrawalStrategy: "taxOptimal",
+});
+const fireRowTaxOpt = calcTaxOpt.planRows.find((r) => r.phase === "FIRE");
+console.assert(fireRowTaxOpt.cashWithdrawal > 0, "taxOptimal should draw some from cash");
+console.assert(fireRowTaxOpt.freeFundsWithdrawal > 0, "taxOptimal should draw some from stock realization");
+console.assert(fireRowTaxOpt.withdrawalTax > 0, "taxOptimal should have positive tax from stock gains");
+console.assert(fireRowTaxOpt.withdrawalSource === "Frie Midler (aktier & kontant)", `taxOptimal: withdrawalSource should be 'Frie Midler (aktier & kontant)', got ${fireRowTaxOpt.withdrawalSource}`);
+
+// Test Math Explainer for Effective Tax
+const explTax = FireMathExplainer.explainTableCell({
+  colKey: "effectiveWithdrawalTaxRate",
+  row: fireRowTaxOpt,
+  prevRow: null,
+  calculation: calcTaxOpt,
+  inputs: { ...strategyInputs, freeFundsWithdrawalStrategy: "taxOptimal" },
+});
+console.assert(explTax !== null, "Math explainer must explain effectiveWithdrawalTaxRate");
+console.assert(explTax.title.includes("Effektiv skat på udbetaling"), "Explainer title must mention Effektiv skat");
+console.assert(explTax.steps.some((s) => s.label.includes("Samlet udbetalingsskat i alt")), "Steps must include total tax");
+console.assert(explTax.steps.some((s) => s.label.includes("Aktieindkomstskat af Frie Midler")), "Steps must include share tax breakdown");
+console.assert(explTax.steps.some((s) => s.label.includes("Skat på Frie Midler (kontant)")), "Steps must include cash reserve tax breakdown");
+console.assert(explTax.steps.some((s) => s.label.includes("Samlet brutto-hævning fra depoter")), "Steps must include gross withdrawal");
+console.assert(explTax.steps.some((s) => s.isResult && s.label.includes("Effektiv gennemsnitlig skatteprocent")), "Steps must include formula result");
+console.log("✓ Free funds withdrawal strategies and comprehensive effective tax explanations verified.");
+
+console.log("\n=== 20. Unified Withdrawal Strategy & Total Free Funds Allocation ===");
+// Test 20.1: Unified withdrawalStrategy with 'cashFirst' directly
+const unifiedCashFirstCalc = FireCalculations.calculateFire({
+  ...strategyInputs,
+  withdrawalStrategy: "cashFirst",
+});
+const unifiedFireRow = unifiedCashFirstCalc.planRows.find((r) => r.phase === "FIRE");
+console.assert(unifiedFireRow.cashWithdrawal === 420000, `Unified cashFirst should draw 420000 from cash, got ${unifiedFireRow.cashWithdrawal}`);
+console.assert(unifiedFireRow.freeFundsWithdrawal === 0, `Unified cashFirst should draw 0 from stocks, got ${unifiedFireRow.freeFundsWithdrawal}`);
+
+// Test 20.2: Unified withdrawalStrategy with 'stocksFirst' directly
+const stocksInputs = {
+  ...strategyInputs,
+  withdrawalStrategy: "stocksFirst",
+};
+delete stocksInputs.freeFundsWithdrawalStrategy;
+const unifiedStocksFirstCalc = FireCalculations.calculateFire(stocksInputs);
+const unifiedStocksRow = unifiedStocksFirstCalc.planRows.find((r) => r.withdrawal > 0);
+console.assert(unifiedStocksRow && unifiedStocksRow.freeFundsWithdrawal > 0, "Unified stocksFirst should draw from stocks first");
+console.assert(unifiedStocksRow.cashWithdrawal === 0, "Unified stocksFirst should leave cash untouched initially");
+
+// Test 20.3: Frie Midler (totalt) allocation & Direct Stock Cost Basis preservation
+const totalFreeInputs = {
+  ...baseInputs,
+  freeFundsBalance: 1000000, // Frie midler (totalt)
+  cashShareStart: 20,         // 20% Kontantreserve
+  cashShareTarget: 20,
+  freeFundsCostBasis: 600000, // Samlet købspris for aktier (investeret 800.000, købspris 600.000)
+};
+const totalFreeCalc = FireCalculations.calculateFire(totalFreeInputs);
+const row0Total = totalFreeCalc.planRows[0];
+console.assert(Math.abs(row0Total.cash - 200000) < 1, `20% cash of 1M should be 200.000 kr, got ${row0Total.cash}`);
+console.assert(Math.abs(row0Total.freeFunds - 800000) < 1, `80% stock of 1M should be 800.000 kr, got ${row0Total.freeFunds}`);
+console.assert(Math.abs((row0Total.cash + row0Total.freeFunds) - 1000000) < 1, "Total liquid sum must equal 1.000.000 kr.");
+
+// Test 20.4: Plan code encoding/decoding of unified withdrawal strategy
+const encodedUnified = FirePlanCode.encodePlan({
+  ...totalFreeInputs,
+  withdrawalStrategy: "cashFirst",
+});
+const decodedUnified = FirePlanCode.decodePlan(encodedUnified);
+console.assert(decodedUnified.withdrawalStrategy === "cashFirst", `Decoded withdrawalStrategy should be cashFirst, got ${decodedUnified.withdrawalStrategy}`);
+console.assert(decodedUnified.freeFundsBalance === 1000000, `Decoded freeFundsBalance should be 1000000, got ${decodedUnified.freeFundsBalance}`);
+console.assert(decodedUnified.freeFundsCostBasis === 600000, `Decoded freeFundsCostBasis should be 600000, got ${decodedUnified.freeFundsCostBasis}`);
+
+console.log("✓ Unified withdrawal strategy and total free funds allocation verified.");
+
 console.log("\n==================================");
-console.log("ALL 18 VERIFICATION SUITES PASSED!");
+console.log("ALL 20 VERIFICATION SUITES PASSED!");
 console.log("==================================");
 
 

@@ -38,7 +38,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./help-system.css" />
   </head>
   <body>
     <main class="page-shell">
@@ -150,33 +149,6 @@
                 </svg>
                 PDF / Udskriv
               </button>
-              <button
-                id="header-help-trigger"
-                class="plan-code-trigger"
-                type="button"
-                aria-haspopup="dialog"
-                title="Åbn hjælpecenter og guidet rundvisning"
-              >
-                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="9" cy="9" r="7" />
-                  <path d="M7 7a2 2 0 0 1 3.5 1.4c0 1.2-1.5 1.6-1.5 2.6" />
-                  <circle cx="9" cy="13.5" r="0.5" fill="currentColor" />
-                </svg>
-                Hjælp & Guide
-              </button>
-              <a
-                href="./docs.html"
-                class="plan-code-trigger"
-                target="_blank"
-                title="Åbn komplet interaktiv dokumentation, matematik og arkitektur"
-                style="text-decoration:none;"
-              >
-                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 2.5h8.5a2 2 0 0 1 2 2v10a1.5 1.5 0 0 0-1.5-1.5H3z" />
-                  <path d="M3 2.5v12a1.5 1.5 0 0 1 1.5-1.5h9" />
-                </svg>
-                Dokumentation
-              </a>
             </div>
           </div>
         </div>
@@ -301,15 +273,17 @@
                   </label>
                   <label class="field">
                     <span
-                      >Udbetalingsstrategi
+                      >Udbetalingsstrategi &amp; Hæverækkefølge
                       <i
-                        title="Vælg strategi for udbetaling i FIRE-perioden: 'Forholdsmæssig' hæver jævnt fra alle depoter. 'Skatteoptimeret' udnytter bundgrænsen for 27 % aktieskat først og supplerer med skattefrie udbetalinger (ASK og aldersopsparing), så 42 % aktieskat minimeres."
+                        title="Vælg samlet strategi for udbetaling og hæverækkefølge i FIRE- og pensionsperioden:&#10;• Skatteoptimeret (Anbefalet): Udnytter bundgrænsen for 27 % aktieskat først (79.400 kr. for enlige / 158.800 kr. for par i 2026) og supplerer med skattefri likviditet (kontantreserve og ASK), så 42 % aktieskat undgås eller minimeres.&#10;• Kontantreserve først: Hæver 100 % fra den likvide kontantreserve før der sælges aktier, så aktierne forbliver investeret i markedet længst muligt.&#10;• Bevar kontantreserve: Sælger aktier og ASK først for at bevare kontantreserven intakt som permanent sikkerhedsbuffet.&#10;• Forholdsmæssig: Hæver balanceret og jævnt fra alle depoter svarende til deres aktuelle saldo."
                         >i</i
                       ></span
                     >
-                    <select name="withdrawalStrategy">
-                      <option value="proportional">Forholdsmæssig</option>
-                      <option value="taxOptimal">Skatteoptimeret (27 % først)</option>
+                    <select name="withdrawalStrategy" id="withdrawal-strategy-select">
+                      <option value="taxOptimal" selected>Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
+                      <option value="cashFirst">Kontantreserve først (Brug kontanter før aktiesalg)</option>
+                      <option value="stocksFirst">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
+                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
                     </select>
                   </label>
                 </div>
@@ -365,13 +339,14 @@
                   /></label>
                   <label class="field"
                     ><span
-                      >Frie midler
+                      >Frie midler (totalt)
                       <i
-                        title="Nuværende værdi af dine almindelige investeringer for frie midler (aktier, obligationer, ETF'er og investeringsforeninger i åbent depot). Dette er din vigtigste likvide buffer til at finansiere FIRE-perioden, før pensionsordningerne må åbnes."
+                        title="Din samlede frie formue i dag (både frie aktier/fonde og kontantreserve i banken, ekskl. ASK). Fordelingen mellem aktier og kontanter allokeres med slideren herunder."
                         >i</i
                       ></span
                     ><input
                       name="freeFundsBalance"
+                      id="free-funds-balance"
                       type="text"
                       inputmode="numeric"
                       data-number-format="integer"
@@ -380,19 +355,22 @@
                   /></label>
                   <label id="free-funds-cost-basis-field" class="field"
                     ><span
-                      >Samlet købspris
+                      >Samlet købspris for aktier
                       <i
-                        title="Din oprindelige anskaffelsessum for de aktier og fonde, du ejer i frie midler. Bruges til præcist at beregne den skattepligtige gevinst (aktieavance) ved fremtidige salg efter realisationsprincippet."
+                        title="Din oprindelige anskaffelsessum for de aktier og fonde, du ejer i frie midler (dvs. den investerede aktieværdi). Bruges til præcist at beregne den skattepligtige gevinst ved fremtidige salg efter realisationsprincippet. Har du ingen urealiserede gevinster, sættes den lig med værdien af dine aktier."
                         >i</i
                       ></span
                     ><input
                       name="freeFundsCostBasis"
+                      id="free-funds-cost-basis"
                       type="text"
                       inputmode="numeric"
                       data-number-format="integer"
-                      value="250.000"
+                      value="237.500"
                       required
-                  /></label>
+                  />
+                  <span class="cost-basis-subtext-hint" id="cost-basis-subtext-hint"></span>
+                  </label>
                   <label class="field"
                     ><span
                       >Aktiesparekonto
@@ -414,12 +392,33 @@
                       <span class="cash-card-badge explainable-val" id="cash-glide-badge" data-metric-key="cash-glide-range" tabindex="0" title="Højreklik for beregningsforklaring af optrapningsstien">5 % → 20 %</span>
                     </div>
                     <p class="cash-card-hint">
-                      Placér en del af dine frie midler som kontantreserve i banken som sikkerhed mod kursudsving. Du kan angive det som kronebeløb eller procentdel – de to felter synkroniseres automatisk. Vælg også mål for kontantandel ved pension/FIRE og optrapningsprofil over tid. Højreklik på et vilkårligt tal for at se det præcise regnestykke.
+                      Allokér dine frie midler mellem investerede aktier og en likvid kontantreserve i banken. Træk i slideren for at ændre fordelingen – de to visningsfelter herunder opdateres automatisk i realtid.
                     </p>
+
+                    <!-- De 2 levende visningsfelter som viser værdi af aktier og kontanter -->
+                    <div class="free-funds-allocation-display">
+                      <div class="allocation-pill allocation-stocks">
+                        <div class="allocation-pill-header">
+                          <span class="allocation-pill-icon">📈</span>
+                          <span class="allocation-pill-label">Værdi af aktier</span>
+                        </div>
+                        <div class="allocation-pill-val" id="display-free-stock-val">237.500 kr.</div>
+                        <div class="allocation-pill-pct" id="display-free-stock-pct">95 % af frie midler</div>
+                      </div>
+                      <div class="allocation-pill allocation-cash">
+                        <div class="allocation-pill-header">
+                          <span class="allocation-pill-icon">💵</span>
+                          <span class="allocation-pill-label">Værdi af kontanter</span>
+                        </div>
+                        <div class="allocation-pill-val" id="display-free-cash-val">12.500 kr.</div>
+                        <div class="allocation-pill-pct" id="display-free-cash-pct">5 % af frie midler</div>
+                      </div>
+                    </div>
+
                     <div class="form-grid cash-subgrid">
                       <label class="field">
                         <span class="explainable-val" data-metric-key="cash-balance-today" tabindex="0">Kontantreserve i dag (kr.)
-                          <i title="Nuværende indestående på bankkonto eller kontantopsparing. Forrentes med særskilt bankrente og giver en sikker likviditetsbuffer uden kursudsving. Højreklik for at se det konkrete regnestykke.">i</i>
+                          <i title="Nuværende indestående på bankkonto eller kontantopsparing. Forrentes med særskilt bankrente og giver en sikker likviditetsbuffer uden kursudsving. Kan også indtastes direkte i kroner, hvorefter procentdelen og visningsfelterne ovenfor opdateres automatisk. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <input
                           name="cashBalance"
@@ -434,8 +433,8 @@
                       </label>
 
                       <label class="field">
-                        <span class="explainable-val" data-metric-key="cash-share-start" tabindex="0">Kontantandel ved start (%)
-                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start. Synkroniseres automatisk med kronebeløbet. Højreklik for at se det konkrete regnestykke.">i</i>
+                        <span class="explainable-val" data-metric-key="cash-share-start" tabindex="0">Kontantandel i dag (%)
+                          <i title="Hvor stor en procentdel af dine frie midler, der placeres i kontanter i dag ved beregningens start. Synkroniseres automatisk med kronebeløbet og visningsfelterne ovenfor. Højreklik for at se det konkrete regnestykke.">i</i>
                         </span>
                         <div class="slider-input-inline">
                           <input type="range" name="cashShareStartRange" min="0" max="100" step="1" value="5" class="cash-range-slider explainable-val" data-metric-key="cash-share-start" />
@@ -528,9 +527,9 @@
                   /></label>
                   <label class="field"
                     ><span
-                      >Frie midler
+                      >Frie Midler (aktier)
                       <i
-                        title="Det beløb du sparer op i frie midler hvert år (efter skat). Denne opsparing er fundamentet for at kunne stoppe tidligt med at arbejde (FIRE), da pengene kan hæves frit uden aldersbegrænsninger eller strafafgifter."
+                        title="Det beløb du sparer op i Frie Midler (aktier) hvert år (efter skat). Denne opsparing er fundamentet for at kunne stoppe tidligt med at arbejde (FIRE), da pengene kan hæves frit uden aldersbegrænsninger eller strafafgifter."
                         >i</i
                       ></span
                     ><input
@@ -545,7 +544,7 @@
                     ><span
                       >Aktiesparekonto
                       <i
-                        title="Årlig indbetaling til Aktiesparekonto op til det samlede indskudsloft (174.200 kr. for enlige / 348.400 kr. for par i 2026). Hvis saldoen rammer loftet, ledes overskydende opsparing automatisk over i frie midler."
+                        title="Årlig indbetaling til Aktiesparekonto op til det samlede indskudsloft (174.200 kr. for enlige / 348.400 kr. for par i 2026). Hvis saldoen rammer loftet, ledes overskydende opsparing automatisk over i Frie Midler (aktier)."
                         >i</i
                       ></span
                     ><input
@@ -558,9 +557,9 @@
                   /></label>
                   <label class="field"
                     ><span
-                      >Kontantreserve
+                      >Frie Midler (kontant)
                       <i
-                        title="Det beløb du årligt placerer på bankkonto / kontantreserve i stedet for at investere det i værdipapirer."
+                        title="Det beløb du årligt placerer på bankkonto / Frie Midler (kontant) i stedet for at investere det i værdipapirer."
                         >i</i
                       ></span
                     ><input
@@ -780,17 +779,17 @@
                         <dd id="optimization-recommended-life-annuity" data-optimization-result-only hidden></dd>
                       </div>
                       <div class="optimization-row optimization-row-free">
-                        <dt><i aria-hidden="true"></i>Frie midler</dt>
+                        <dt><i aria-hidden="true"></i>Frie Midler (aktier)</dt>
                         <dd class="optimization-current-value">
                           <span id="optimization-current-free"></span>
                           <button
                             class="contribution-lock"
                             type="button"
                             data-lock-contribution="annualFreeFundsContribution"
-                            data-lock-label="frie midler"
+                            data-lock-label="Frie Midler (aktier)"
                             aria-pressed="false"
-                            aria-label="Lås frie midler i optimeringen"
-                            title="Lås frie midler i optimeringen"
+                            aria-label="Lås Frie Midler (aktier) i optimeringen"
+                            title="Lås Frie Midler (aktier) i optimeringen"
                           >
                             <svg class="lock-icon-open" viewBox="0 0 18 18" aria-hidden="true">
                               <path d="M11.5 7V5.5a3 3 0 0 0-5.7-1.3" />
@@ -847,6 +846,23 @@
                     <p id="optimization-note"></p>
                   </footer>
                 </section>
+                <div class="optimization-strategy-subcard" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+                  <header class="optimization-header" style="margin-bottom: 0.75rem;">
+                    <div>
+                      <p>Udbetalingsoptimering i FIRE</p>
+                      <h4 style="margin: 0; font-size: 1rem; color: var(--text-main);">Udbetalingsstrategi &amp; Hæverækkefølge</h4>
+                    </div>
+                  </header>
+                  <label class="field">
+                    <span>Valgt strategi for udbetaling og likviditet:</span>
+                    <select name="withdrawalStrategyOpt" data-sync-with="withdrawalStrategy">
+                      <option value="taxOptimal" selected>Skatteoptimeret (27 % først, derefter kontant &amp; ASK)</option>
+                      <option value="cashFirst">Kontantreserve først (Brug kontanter før aktiesalg)</option>
+                      <option value="stocksFirst">Bevar kontantreserve (Sælg aktier før kontantreserve)</option>
+                      <option value="proportional">Forholdsmæssig (Hæv jævnt fra alle depoter)</option>
+                    </select>
+                  </label>
+                </div>
               </details>
 
               <details
@@ -988,21 +1004,21 @@
                   >
                   <div class="cash-reserve-card-box cash-returns-card-box">
                     <div class="cash-card-title-row">
-                      <span class="cash-card-title">💵 Forrentning &amp; Beskatning af kontantreserve</span>
+                      <span class="cash-card-title">💵 Forrentning &amp; Beskatning af Frie Midler (kontant)</span>
                     </div>
                     <p class="cash-card-hint">
                       Forrentning af dit bankindestående samt beskatning af renterne som kapitalindkomst. (Du kan også overstyre rente og andel år-for-år direkte i matricen).
                     </p>
                     <div class="form-grid cash-subgrid">
                       <label class="field">
-                        <span>Rente på kontantreserve (bank/kontant)
+                        <span>Rente på Frie Midler (kontant) (bank)
                           <i title="Den forventede årlige nominelle rente på dit bankindestående/kontantreserve før skat og inflation (f.eks. 1,5 % eller 2,0 %)."
                           >i</i></span>
                         <span class="input-suffix"><input name="cashInterestRate" type="number" min="-10" step="0.1" value="1.5" required /><b>%</b></span>
                       </label>
 
                       <label class="field">
-                        <span>Skat på kontantrente (Kapitalindkomst)
+                        <span>Skat på rente af Frie Midler (kontant)
                           <i title="Den forventede skatteprocent på dine renteindtægter fra banken (kapitalindkomstskat, typisk ca. 37 % op til progressionsgrænsen for positiv nettokapitalindkomst)."
                           >i</i></span>
                         <span class="input-suffix"><input name="cashInterestTax" type="number" min="0" max="100" step="0.1" value="37" required /><b>%</b></span>
@@ -1581,7 +1597,33 @@
                 >
                   Åbn alle 4
                 </button>
+                <button
+                  type="button"
+                  id="cockpit-insights-toggle-btn"
+                  class="cockpit-insights-toggle-btn is-active"
+                  aria-pressed="true"
+                  title="Slå økonomiske insights og handlingsforslag til eller fra"
+                >
+                  <span class="insights-sparkle-icon" aria-hidden="true">💡</span>
+                  <span>Økonomiske Insights</span>
+                  <span id="cockpit-insights-badge" class="cockpit-insights-count-badge">0</span>
+                </button>
               </div>
+            </div>
+            <div id="cockpit-insights-drawer" class="cockpit-insights-drawer">
+              <div class="insights-drawer-header" id="insights-drawer-header">
+                <div class="insights-drawer-title">
+                  <span class="insights-drawer-icon" aria-hidden="true">💡</span>
+                  <strong>Økonomiske Insights &amp; Handlingsforslag</strong>
+                  <span id="insights-summary-pill" class="insights-summary-pill">Beregner...</span>
+                </div>
+                <div class="insights-drawer-actions">
+                  <button type="button" id="insights-drawer-collapse-btn" class="insights-collapse-btn" title="Minimér eller fold insights ud">
+                    <span id="insights-collapse-label">Skjul detaljer</span> <span class="insights-chevron">▴</span>
+                  </button>
+                </div>
+              </div>
+              <div id="insights-cards-grid" class="insights-cards-grid"></div>
             </div>
             <div class="timeline-viewport">
               <div class="timeline-plot">
@@ -1805,7 +1847,7 @@
                           d="M4.5 21h10l-1.4 7H5.9l-1.4-7ZM17.5 21h10l-1.4 7h-7.2l-1.4-7Z"
                         />
                       </svg>
-                      <b>Pension + frie midler</b
+                      <b>Pension + Frie Midler (aktier)</b
                       ><small id="phase-saving-pension-ages"></small>
                       <span class="phase-connector" aria-hidden="true"></span>
                     </div>
@@ -1824,7 +1866,7 @@
                         />
                         <path d="M9.5 22h13L21 28H11l-1.5-6Z" />
                       </svg>
-                      <b>Frie midler</b
+                      <b>Frie Midler (aktier)</b
                       ><small id="phase-saving-free-ages"></small>
                       <span class="phase-connector" aria-hidden="true"></span>
                     </div>
@@ -1870,8 +1912,12 @@
                         >Pension</span
                       >
                       <span
-                        ><i class="legend-free-funds" aria-hidden="true"></i>Frie
-                        midler</span
+                        ><i class="legend-free-funds" aria-hidden="true"></i
+                        >Frie Midler (aktier)</span
+                      >
+                      <span
+                        ><i class="legend-cash" aria-hidden="true"></i
+                        >Frie Midler (kontant)</span
                       >
                       <span id="legend-housing" hidden
                         ><i class="legend-housing" aria-hidden="true"></i>Friværdi</span
@@ -1921,7 +1967,8 @@
                       <div class="chart-legend-group">
                         <b class="legend-group-badge legend-group-badge-without">Kilder:</b>
                         <span><i class="legend-cf-savings" aria-hidden="true"></i>Årlig opsparing</span>
-                        <span><i class="legend-cf-free" aria-hidden="true"></i>Frie midler (netto)</span>
+                        <span><i class="legend-cf-free" aria-hidden="true"></i>Frie Midler (aktier) (netto)</span>
+                        <span><i class="legend-cf-cash" aria-hidden="true"></i>Frie Midler (kontant)</span>
                         <span><i class="legend-cf-ask" aria-hidden="true"></i>Aktiesparekonto</span>
                         <span><i class="legend-cf-age" aria-hidden="true"></i>Aldersopsparing</span>
                         <span><i class="legend-cf-rate" aria-hidden="true"></i>Ratepension (netto)</span>
@@ -1929,6 +1976,7 @@
                         <span><i class="legend-cf-pub" aria-hidden="true"></i>Folkepension (netto)</span>
                         <span><i class="legend-cf-atp" aria-hidden="true"></i>ATP &amp; Efterløn (netto)</span>
                         <span><i class="legend-cf-housing" aria-hidden="true"></i>Frigjort friværdi</span>
+                        <span><i class="legend-cf-total" aria-hidden="true"></i>Samlet udbetaling (netto)</span>
                         <span><i class="legend-cf-target" aria-hidden="true"></i>Ønsket forbrug (mål)</span>
                       </div>
                     </div>
@@ -2082,18 +2130,18 @@
                       id="toggle-custom-cash-btn"
                       class="table-cash-toggle-btn"
                       aria-pressed="false"
-                      title="Slå til for at justere kontantreserve andel (%) og bankrente (% p.a.) år for år direkte i matricen"
+                      title="Slå til for at justere Frie Midler (kontant) andel (%) og bankrente (% p.a.) år for år direkte i matricen"
                     >
-                      ✏️ Justér kontant &amp; rente
+                      ✏️ Justér Frie Midler (kontant) &amp; rente
                     </button>
                     <button
                       type="button"
                       id="custom-cash-reset-btn"
                       class="custom-crisis-reset-btn custom-cash-reset-btn"
-                      title="Nulstil alle år-for-år kontantreserve og rente ændringer direkte i matricen tilbage til de overordnede indstillinger under afkast"
+                      title="Nulstil alle år-for-år Frie Midler (kontant) og rente ændringer direkte i matricen tilbage til de overordnede indstillinger under afkast"
                       hidden
                     >
-                      🔄 Nulstil kontant &amp; rente
+                      🔄 Nulstil Frie Midler (kontant) &amp; rente
                     </button>
                   </div>
                   <label class="mc-table-compare-toggle">
@@ -2115,7 +2163,7 @@
                     </button>
                     <button type="button" class="col-group-pill is-expanded" data-toggle-col-group="free" aria-expanded="true">
                       <span class="col-group-chevron">▾</span>
-                      <span>💼 Frie midler &amp; Kontant (3)</span>
+                      <span>💼 Frie Midler (aktier &amp; kontant) (3)</span>
                     </button>
                     <button type="button" class="col-group-pill is-expanded housing-col-pill" data-toggle-col-group="housing" aria-expanded="true" hidden>
                       <span class="col-group-chevron">▾</span>
@@ -2148,12 +2196,12 @@
                 <table>
                   <thead>
                     <tr class="col-group-superheader">
-                      <th colspan="4" class="super-th super-th-static">Basisinfo</th>
+                      <th colspan="5" class="super-th super-th-static" id="super-th-basisinfo">Basisinfo</th>
                       <th colspan="4" class="super-th super-th-interactive super-th-pension" data-col-group="pension" data-super-toggle="pension" title="Klik for at folde Pension sammen">
                         <span>🏛️ Pension</span> <span class="super-th-chevron">▾</span>
                       </th>
-                      <th colspan="3" class="super-th super-th-interactive super-th-free" data-col-group="free" data-super-toggle="free" title="Klik for at folde Frie midler &amp; Kontant sammen">
-                        <span>💼 Frie midler &amp; Kontant</span> <span class="super-th-chevron">▾</span>
+                      <th colspan="3" class="super-th super-th-interactive super-th-free" data-col-group="free" data-super-toggle="free" title="Klik for at folde Frie Midler (aktier &amp; kontant) sammen">
+                        <span>💼 Frie Midler (aktier &amp; kontant)</span> <span class="super-th-chevron">▾</span>
                       </th>
                       <th colspan="1" class="super-th super-th-static">Total</th>
                       <th colspan="2" class="super-th super-th-interactive super-th-housing housing-col" data-col-group="housing" data-super-toggle="housing" title="Klik for at folde Bolig sammen" hidden>
@@ -2172,6 +2220,7 @@
                     </tr>
                     <tr>
                       <th>Dato</th>
+                      <th class="th-insights-col" id="th-insights-col">Insights</th>
                       <th>Alder</th>
                       <th>Fase</th>
                       <th>Afkast</th>
@@ -2179,9 +2228,9 @@
                       <th data-col-group="pension">Livrentedepot</th>
                       <th data-col-group="pension">Livrenteudb.</th>
                       <th data-col-group="pension">Aldersopsparing</th>
-                      <th data-col-group="free">Frie midler</th>
+                      <th data-col-group="free">Frie Midler (aktier)</th>
                       <th data-col-group="free">Aktiesparekonto</th>
-                      <th data-col-group="free" id="th-cash-header">Kontantreserve</th>
+                      <th data-col-group="free" id="th-cash-header">Frie Midler (kontant)</th>
                       <th>Samlet depotværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Friværdi</th>
                       <th class="housing-col" data-col-group="housing" hidden>Samlet formue (inkl. bolig)</th>
@@ -2351,12 +2400,12 @@
                 <dd id="real-ask-return"></dd>
               </div>
               <div>
-                <dt>Reelt afkast på frie midler</dt>
+                <dt>Reelt afkast på Frie Midler (aktier)</dt>
                 <dd id="real-free-return"></dd>
               </div>
               <div>
                 <dt id="total-free-funds-tax-label">
-                  Samlet skat på hævninger fra frie midler
+                  Samlet skat på hævninger fra Frie Midler (aktier)
                 </dt>
                 <dd id="total-free-funds-tax"></dd>
               </div>
@@ -2366,7 +2415,7 @@
               </div>
               <div>
                 <dt id="effective-free-funds-tax-label">
-                  Effektiv skat på hævninger fra frie midler
+                  Effektiv skat på hævninger fra Frie Midler (aktier)
                 </dt>
                 <dd id="effective-free-funds-tax-rate"></dd>
               </div>
@@ -2431,7 +2480,7 @@
                 <dd id="bridge-years"></dd>
               </div>
               <div>
-                <dt>Frie midler ved FIRE</dt>
+                <dt>Frie Midler (aktier) ved FIRE</dt>
                 <dd id="free-at-fire"></dd>
               </div>
               <div>
@@ -2455,7 +2504,7 @@
                 <dd id="final-pension"></dd>
               </div>
               <div>
-                <dt>Resterende frie midler og ASK</dt>
+                <dt>Resterende Frie Midler (aktier) og ASK</dt>
                 <dd id="final-free-funds"></dd>
               </div>
               <div class="housing-key-figure" hidden>
@@ -2521,12 +2570,12 @@
               </section>
 
               <section class="note-card">
-                <h4>Frie midler & Aktiesparekonto</h4>
+                <h4>Frie Midler (aktier) &amp; Aktiesparekonto</h4>
                 <p>
                   <strong>Aktiesparekonto (ASK):</strong> Beskattes årligt med kun 17 % i lagerskat (op til 174.200 kr. for enlige / 348.400 kr. for par i 2026). Udbetalinger er helt skattefrie og yderst fleksible i FIRE-fasen.
                 </p>
                 <p>
-                  <strong>Frie midler:</strong> Realisationsbeskattes som aktieindkomst (27 % / 42 %) baseret på din gennemsnitlige købspris, eller lagerbeskattes for den valgte andel.
+                  <strong>Frie Midler (aktier):</strong> Realisationsbeskattes som aktieindkomst (27 % / 42 %) baseret på din gennemsnitlige købspris, eller lagerbeskattes for den valgte andel.
                 </p>
               </section>
 
@@ -2791,7 +2840,7 @@
             </button>
             <button type="button" class="col-group-pill is-expanded" data-modal-col-group="free" aria-expanded="true">
               <span class="col-group-chevron">▾</span>
-              <span>💼 Frie midler &amp; Kontant (3)</span>
+              <span>💼 Frie Midler (aktier &amp; kontant) (3)</span>
             </button>
             <button type="button" class="col-group-pill is-expanded" data-modal-col-group="cashflow" aria-expanded="true">
               <span class="col-group-chevron">▾</span>
@@ -2812,8 +2861,8 @@
                 <th colspan="4" class="super-th super-th-interactive super-th-pension" data-col-group="pension" data-modal-super-toggle="pension" title="Klik for at folde Pension sammen">
                   <span>🏛️ Pension</span> <span class="super-th-chevron">▾</span>
                 </th>
-                <th colspan="3" class="super-th super-th-interactive super-th-free" data-col-group="free" data-modal-super-toggle="free" title="Klik for at folde Frie midler &amp; Kontant sammen">
-                  <span>💼 Frie midler &amp; Kontant</span> <span class="super-th-chevron">▾</span>
+                <th colspan="3" class="super-th super-th-interactive super-th-free" data-col-group="free" data-modal-super-toggle="free" title="Klik for at folde Frie Midler (aktier &amp; kontant) sammen">
+                  <span>💼 Frie Midler (aktier &amp; kontant)</span> <span class="super-th-chevron">▾</span>
                 </th>
                 <th colspan="1" class="super-th super-th-static">Total</th>
                 <th colspan="1" class="super-th super-th-static">Forbrug</th>
@@ -2832,9 +2881,9 @@
                 <th data-col-group="pension">Livrentedepot</th>
                 <th data-col-group="pension">Livrenteudb.</th>
                 <th data-col-group="pension">Aldersopsparing</th>
-                <th data-col-group="free">Frie midler</th>
+                <th data-col-group="free">Frie Midler (aktier)</th>
                 <th data-col-group="free">Aktiesparekonto</th>
-                <th data-col-group="free">Kontantreserve</th>
+                <th data-col-group="free">Frie Midler (kontant)</th>
                 <th>Samlet depotværdi</th>
                 <th>Netto-udb.</th>
                 <th data-col-group="cashflow">Indbetaling</th>
@@ -2877,6 +2926,5 @@
     <script src="./math-explainer.js?v=20261024-4"></script>
     <script src="./plan-code.js?v=20261024-4"></script>
     <script src="./app.js?v=20261024-4"></script>
-    <script src="./help-system.js"></script>
   </body>
 </html>

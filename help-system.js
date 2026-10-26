@@ -209,12 +209,24 @@
         title: "Månedlig Opsparing",
         desc: "Hvor meget du lægger til side hver måned af din løn frem til FIRE-alderen. Beløbet investeres løbende."
       },
+      "free-funds-balance": {
+        title: "Frie midler (totalt)",
+        desc: "Din samlede frie formue i dag (både frie aktier og kontanter i banken, ekskl. ASK). Fordelingen mellem aktier og kontanter allokeres med slideren under kontantreserve."
+      },
+      "free-funds-cost-basis": {
+        title: "Samlet købspris for aktier",
+        desc: "Din oprindelige anskaffelsessum for de aktier, du ejer i frie midler (dvs. den investerede aktieværdi). Bruges til at beregne den skattepligtige kursgevinst ved fremtidige salg efter realisationsprincippet."
+      },
+      "withdrawal-strategy-select": {
+        title: "Udbetalingsstrategi & Hæverækkefølge",
+        desc: "Vælg om udbetalinger skal være Skatteoptimeret (27 % først, derefter kontant & ASK), Kontantreserve først (brug kontanter før aktiesalg), Bevar kontantreserve (sælg aktier før kontantreserve) eller Forholdsmæssig."
+      },
       "free-savings": {
         title: "Frie Midler (Startsaldo)",
         desc: "Værdien af din eksisterende aktie- eller investeringsopsparing uden for pensionsordninger."
       },
       "tax-optimal-withdrawal": {
-        title: "Skatteoptimal Udbetaling",
+        title: "Skatteoptimal Udbetaling & Hæverækkefølge",
         desc: "Når dette er slået til, udnytter beregneren systematisk det lave 27 % aktieskatteknæk og tømmer skattefrie konti først for at minimere din samlede skattebetaling."
       },
       "is-couple": {

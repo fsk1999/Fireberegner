@@ -1711,6 +1711,7 @@ legend,
 
 .chart-line-pension,
 .chart-line-free-funds,
+.chart-line-cash,
 .chart-line-housing {
   fill: none;
   stroke-linecap: round;
@@ -1726,6 +1727,10 @@ legend,
   fill: url(#gradient-free-funds);
 }
 
+.chart-area-cash {
+  fill: url(#gradient-cash);
+}
+
 .chart-area-housing {
   fill: url(#gradient-housing);
 }
@@ -1736,6 +1741,10 @@ legend,
 
 .chart-line-free-funds {
   stroke: #10b981;
+}
+
+.chart-line-cash {
+  stroke: #0ea5e9;
 }
 
 .chart-line-housing {
@@ -1860,6 +1869,10 @@ legend,
 
 .legend-free-funds {
   background: #10b981;
+}
+
+.legend-cash {
+  background: #0ea5e9;
 }
 
 .legend-housing {
@@ -2207,6 +2220,426 @@ legend,
   pointer-events: none;
 }
 
+/* ==========================================================================
+   ØKONOMISKE INSIGHTS & HANDLINGSFORSLAG (Etape 2)
+   ========================================================================== */
+
+.cockpit-insights-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.cockpit-insights-toggle-btn:hover {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: #f59e0b;
+}
+
+.cockpit-insights-toggle-btn.is-active {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: #f59e0b;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .cockpit-insights-toggle-btn.is-active {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.insights-sparkle-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.cockpit-insights-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Insights Drawer */
+.cockpit-insights-drawer {
+  background: var(--surface);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  margin-bottom: var(--space-4);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.08);
+  transition: all 220ms ease;
+}
+
+.cockpit-insights-drawer[hidden] {
+  display: none !important;
+}
+
+.cockpit-insights-drawer.is-collapsed .insights-cards-grid {
+  display: none;
+}
+
+.insights-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.insights-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.insights-drawer-title strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.insights-summary-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+[data-theme="dark"] .insights-summary-pill {
+  color: #fbbf24;
+}
+
+.insights-collapse-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.insights-collapse-btn:hover {
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+
+/* Insights Cards Grid */
+.insights-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px 14px;
+  gap: 10px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.insight-card.is-highlighted {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+}
+
+.insight-card-type-tax {
+  border-left-color: #f59e0b;
+}
+
+.insight-card-type-clawback {
+  border-left-color: #ec4899;
+}
+
+.insight-card-type-sequence {
+  border-left-color: #ef4444;
+}
+
+.insight-card-type-optimization {
+  border-left-color: #10b981;
+}
+
+.insight-card-type-cashdrag {
+  border-left-color: #06b6d4;
+}
+
+.insight-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.insight-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+[data-theme="dark"] .insight-badge {
+  color: #fbbf24;
+}
+
+.insight-period-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.insight-card-body h5 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: var(--ink);
+}
+
+.insight-card-body p {
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1.45;
+  margin: 0;
+  opacity: 0.88;
+}
+
+.insight-consequence {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .insight-consequence {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.insight-consequence.is-positive {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+[data-theme="dark"] .insight-consequence.is-positive {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.insight-proposal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.insight-proposal strong {
+  color: #10b981;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .insight-proposal strong {
+  color: #34d399;
+}
+
+.insight-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.insight-focus-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.insight-focus-btn:hover {
+  background: var(--surface-soft);
+  border-color: var(--ink);
+}
+
+/* Chart Insight Pins */
+.chart-insight-pin {
+  cursor: pointer;
+}
+
+.chart-insight-pin-hitarea {
+  cursor: pointer;
+}
+
+.chart-insight-pin-circle {
+  fill: #f59e0b;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+  transition: r 160ms ease, stroke-width 160ms ease, filter 160ms ease, fill 160ms ease;
+}
+
+.chart-insight-pin:hover .chart-insight-pin-circle {
+  r: 13.5;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75));
+}
+
+.chart-insight-pin.is-focused .chart-insight-pin-circle {
+  fill: #ef4444;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.75));
+}
+
+.chart-insight-pin-text {
+  font-size: 9px;
+  font-weight: 800;
+  fill: #ffffff;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* Op- og nedsparingsmatrice Insight Column & Badges */
+.th-insights-col {
+  text-align: left;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.td-insights-cell {
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 4px 6px;
+}
+
+.td-insights-cell .matrix-insight-pill {
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+.td-age-cell {
+  text-align: right;
+  min-width: 52px;
+  white-space: nowrap;
+}
+
+.th-insights-col[hidden],
+.td-insights-cell[hidden] {
+  display: none !important;
+}
+
+.matrix-insight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  margin-left: 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.matrix-insight-pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.matrix-insight-clawback {
+  background: rgba(236, 72, 153, 0.15);
+  color: #db2777;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+}
+
+.matrix-insight-tax {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.matrix-insight-sequence {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.matrix-insight-optimization {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.matrix-insight-cashdrag {
+  background: rgba(6, 182, 212, 0.15);
+  color: #0891b2;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+tr.has-insight-active {
+  background: rgba(245, 158, 11, 0.08) !important;
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
 .chart-view-header {
   display: flex;
   flex-wrap: wrap;
@@ -2239,6 +2672,7 @@ legend,
 /* Cashflow Legend */
 .legend-cf-savings { background: #2563eb; }
 .legend-cf-free { background: #10b981; }
+.legend-cf-cash { background: #0ea5e9; }
 .legend-cf-ask { background: #06b6d4; }
 .legend-cf-age { background: #8b5cf6; }
 .legend-cf-rate { background: #f59e0b; }
@@ -2246,6 +2680,11 @@ legend,
 .legend-cf-pub { background: #6366f1; }
 .legend-cf-atp { background: #14b8a6; }
 .legend-cf-housing { background: #84cc16; }
+.legend-cf-total {
+  background: #38bdf8;
+  height: 3px !important;
+  border-radius: 2px;
+}
 .legend-cf-target {
   background: #ef4444;
   border-top: 2px dashed #ef4444;
@@ -2303,6 +2742,7 @@ legend,
 
 .chart-hover-point-pension,
 .chart-hover-point-free-funds,
+.chart-hover-point-cash,
 .chart-hover-point-housing,
 .chart-hover-point-mc-p50,
 .chart-hover-point-crisis {
@@ -2316,6 +2756,10 @@ legend,
 
 .chart-hover-point-free-funds {
   stroke: #10b981;
+}
+
+.chart-hover-point-cash {
+  stroke: #0ea5e9;
 }
 
 .chart-hover-point-housing {
@@ -3496,21 +3940,19 @@ th.housing-col {
    ========================================================================== */
 
 .math-inline-explainer-row {
-  animation: inlineExplainerSlideDown 180ms ease-out;
+  animation: inlineExplainerFadeIn 160ms ease-out;
   background: var(--surface-soft, #f4f8f6) !important;
   border-top: 2px solid var(--green-primary, #164b39) !important;
   border-bottom: 2px solid var(--green-primary, #164b39) !important;
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.05), inset 0 -3px 8px rgba(0, 0, 0, 0.05);
 }
 
-@keyframes inlineExplainerSlideDown {
+@keyframes inlineExplainerFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -3518,17 +3960,29 @@ th.housing-col {
   padding: 0 !important;
   text-align: left !important;
   white-space: normal !important;
+  position: relative;
+  overflow: visible;
 }
 
 .math-inline-shell {
+  position: sticky;
+  left: 0;
+  width: var(--table-visible-width, 100%);
+  max-width: var(--table-visible-width, 100%);
+  box-sizing: border-box;
   container-type: inline-size;
   container-name: mathshell;
   background: linear-gradient(180deg, rgba(247, 250, 248, 0.98) 0%, rgba(238, 246, 242, 0.98) 100%);
   border-radius: 4px;
-  box-sizing: border-box;
   color: var(--ink, #142321);
   font-family: var(--sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   padding: 16px 20px 20px;
+  margin: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .math-inline-shell {
+  background: #142320;
 }
 
 .is-explaining-row {
@@ -5452,6 +5906,111 @@ th.housing-col {
   line-height: 1.45;
   color: var(--muted, #64748b);
   margin: 0 0 12px 0;
+}
+
+/* Live Free Funds Allocation Display */
+.free-funds-allocation-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 12px 0 14px 0;
+}
+
+.allocation-pill {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.allocation-pill:hover {
+  border-color: var(--line-focus, #cbd5e1);
+}
+
+.allocation-stocks {
+  border-left: 4px solid #10b981;
+}
+
+.allocation-cash {
+  border-left: 4px solid #0ea5e9;
+}
+
+.allocation-pill-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.allocation-pill-icon {
+  font-size: 13px;
+}
+
+.allocation-pill-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.allocation-pill-val {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.allocation-stocks .allocation-pill-val {
+  color: #059669;
+}
+
+.allocation-cash .allocation-pill-val {
+  color: #0284c7;
+}
+
+.allocation-pill-pct {
+  font-size: 11.5px;
+  color: var(--muted, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-basis-subtext-hint {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted, #64748b);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-basis-subtext-hint.has-gain {
+  color: #059669;
+}
+
+.cost-basis-subtext-hint.has-loss {
+  color: #dc2626;
+}
+
+/* Dark mode adjustments for allocation pills */
+:root[data-theme="dark"] .allocation-pill,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .allocation-pill {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .allocation-stocks .allocation-pill-val,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .allocation-stocks .allocation-pill-val {
+  color: #34d399;
+}
+
+:root[data-theme="dark"] .allocation-cash .allocation-pill-val,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .allocation-cash .allocation-pill-val {
+  color: #38bdf8;
 }
 
 .cash-subgrid {
