@@ -5964,43 +5964,6 @@ th.housing-col {
   color: #fff;
 }
 
-.field-explainer-callout {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 6px;
-  padding: 8px 12px;
-  background: rgba(2, 132, 199, 0.06);
-  border: 1px solid rgba(2, 132, 199, 0.22);
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-secondary, #334155);
-  animation: fadeInCallout 0.2s ease-out;
-}
-
-@keyframes fadeInCallout {
-  from { opacity: 0; transform: translateY(-2px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.field-explainer-callout .explainer-icon {
-  font-size: 14px;
-  line-height: 1.2;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.field-explainer-callout .explainer-content {
-  flex: 1;
-}
-
-.field-explainer-callout .explainer-content strong {
-  color: var(--text-main, #0f172a);
-  font-weight: 600;
-  display: inline;
-}
-
 .allocation-stocks {
   border-left: 4px solid #10b981;
 }
@@ -6080,18 +6043,6 @@ th.housing-col {
 :root[data-theme="dark"] .allocation-cash .allocation-pill-val,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .allocation-cash .allocation-pill-val {
   color: #38bdf8;
-}
-
-:root[data-theme="dark"] .field-explainer-callout,
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .field-explainer-callout {
-  background: rgba(14, 165, 233, 0.08);
-  border-color: rgba(56, 189, 248, 0.25);
-  color: #cbd5e1;
-}
-
-:root[data-theme="dark"] .field-explainer-callout .explainer-content strong,
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .field-explainer-callout .explainer-content strong {
-  color: #f8fafc;
 }
 
 .cash-subgrid {
