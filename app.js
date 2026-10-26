@@ -358,16 +358,13 @@
   let mcTableScenario = "baseline";
   let chartScaleMode = "linear";
   let mcSeedCounter = 20260419;
-  const inputLocale =
-    document.documentElement.lang || navigator.language || "da-DK";
+  const inputLocale = "da-DK";
   const inputNumber = new Intl.NumberFormat(inputLocale, {
+    useGrouping: true,
     maximumFractionDigits: 0,
   });
-  const inputNumberParts = inputNumber.formatToParts(12345.6);
-  const inputGroupSeparator =
-    inputNumberParts.find((part) => part.type === "group")?.value || ".";
-  const inputDecimalSeparator =
-    inputNumberParts.find((part) => part.type === "decimal")?.value || ",";
+  const inputGroupSeparator = ".";
+  const inputDecimalSeparator = ",";
   const formattedNumberInputs = [
     ...form.querySelectorAll("[data-number-format='integer']"),
   ];
@@ -400,12 +397,16 @@
   });
 
   function parseLocalizedNumber(value) {
-    let normalized = String(value).trim();
-    normalized = normalized.split(inputGroupSeparator).join("");
-    normalized = normalized.replace(/\s/g, "");
-    normalized = normalized.split(inputDecimalSeparator).join(".");
-    normalized = normalized.replace(/[^0-9.-]/g, "");
-    return normalized ? Number(normalized) : Number.NaN;
+    if (value === null || value === undefined) return Number.NaN;
+    let str = String(value).trim();
+    if (!str) return Number.NaN;
+    if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+      str = str.replace(/,/g, "");
+    }
+    str = str.replace(/[\.\s\u00a0\u202f]/g, "");
+    str = str.replace(/,/g, ".");
+    str = str.replace(/[^0-9.-]/g, "");
+    return str ? Number(str) : Number.NaN;
   }
 
   function readNumber(name, divisor = 1) {
@@ -5735,6 +5736,22 @@
     }
   });
 
+  form.addEventListener(
+    "blur",
+    (event) => {
+      if (event.target && event.target.matches && event.target.matches("[data-number-format='integer']")) {
+        formatNumberInput(event.target, false);
+      }
+    },
+    true,
+  );
+
+  form.addEventListener("change", (event) => {
+    if (event.target && event.target.matches && event.target.matches("[data-number-format='integer']")) {
+      formatNumberInput(event.target, false);
+    }
+  });
+
   const cashBalanceInput = form.elements.cashBalance;
   const cashShareStartInput = form.elements.cashShareStart;
   const cashShareStartRange = form.elements.cashShareStartRange;
@@ -5765,7 +5782,17 @@
     }
     if (displayFreeStockPct) {
       const pctFormatted = (stockShare * 100).toFixed((stockShare * 100) % 1 === 0 ? 0 : 1);
-      displayFreeStockPct.textContent = `${pctFormatted} % af frie midler`;
+      const costBasis = readNumber("freeFundsCostBasis") || 0;
+      const gain = stockAmount - costBasis;
+      let gainNote = "";
+      if (stockAmount > 0 && costBasis > 0) {
+        if (gain > 0) {
+          gainNote = ` • Gevinst: +${currency.format(gain)}`;
+        } else if (gain < 0) {
+          gainNote = ` • Tab: -${currency.format(Math.abs(gain))}`;
+        }
+      }
+      displayFreeStockPct.textContent = `${pctFormatted} % af frie midler${gainNote}`;
     }
     if (displayFreeCashVal) {
       displayFreeCashVal.textContent = currency.format(cashAmount);

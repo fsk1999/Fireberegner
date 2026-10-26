@@ -605,6 +605,28 @@ legend,
   --field-columns: 6;
 }
 
+.wealth-grid .field,
+.savings-grid .field {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.wealth-grid .field > span:first-child,
+.savings-grid .field > span:first-child {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 2.2em;
+  line-height: 1.25;
+}
+
+.wealth-grid .field .stepper-input,
+.savings-grid .field .stepper-input {
+  margin-top: auto;
+  width: 100%;
+}
+
 .assumptions-grid {
   --field-columns: 3;
 }

@@ -214,7 +214,7 @@
         desc: "Din samlede frie formue i dag (både frie aktier og kontanter i banken, ekskl. ASK). Fordelingen mellem aktier og kontanter allokeres med slideren under kontantreserve."
       },
       "free-funds-cost-basis": {
-        title: "Samlet købspris for aktier",
+        title: "Samlet købspris (aktier)",
         desc: "Din oprindelige anskaffelsessum for de aktier, du ejer i frie midler (dvs. den investerede aktieværdi). Bruges til at beregne den skattepligtige kursgevinst ved fremtidige salg efter realisationsprincippet."
       },
       "display-free-stock-val": {
