@@ -2527,7 +2527,7 @@
       : fireAge;
     const pensionValue = (row) =>
       row.ratePension + row.lifeAnnuity + row.ageSavings;
-    const freeFundsValue = (row) => row.freeFunds + row.ask;
+    const freeFundsValue = (row) => row.freeFunds;
     const cashValue = (row) => row.cash ?? 0;
     const housingValue = (row) =>
       calculation.includeHousing ? (row.housingEquity ?? 0) : 0;
@@ -2956,6 +2956,13 @@
           value: freeFundsValue(row),
           color: "#34d399",
         });
+        if ((row.ask ?? 0) > 0) {
+          items.push({
+            label: "Aktiesparekonto",
+            value: row.ask,
+            color: "#06b6d4",
+          });
+        }
         items.push({
           label: "Frie Midler (kontant)",
           value: cashValue(row),

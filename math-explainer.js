@@ -603,6 +603,11 @@
         const stockVal = row.freeFunds;
         const cashBal = row.cash ?? 0;
         const totalLiquid = stockVal + cashBal;
+        const housingUnlockedVal = row.housingUnlocked ?? 0;
+        const inputTotalFree = isFirstYear ? (inputs.freeFundsBalance ?? (totalLiquid - housingUnlockedVal)) : totalLiquid;
+        const initialCash = isFirstYear ? (inputs.cashBalance ?? Math.round(inputTotalFree * (inputs.cashShareStart ? inputs.cashShareStart / 100 : 0))) : cashBal;
+        const initialStock = Math.max(0, inputTotalFree - initialCash);
+        const inputCashPct = inputTotalFree > 0 ? ((initialCash / inputTotalFree) * 100).toFixed(1).replace(/\.0$/, "") : "0";
         const cashShare = row.cashShare ?? (totalLiquid > 0 ? cashBal / totalLiquid : 0);
         const cashSharePct = (cashShare * 100).toFixed(1).replace(/\.0$/, "");
         const stockSharePct = ((1 - cashShare) * 100).toFixed(1).replace(/\.0$/, "");
@@ -665,20 +670,53 @@
         quickMathParts.push(`= ${currency.format(end)} (ultimo)`);
 
         const quickMathStr = (isFirstYear && hasCashAllocation)
-          ? `Aktiedepot: ${currency.format(start)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)}) · ${quickMathParts.join(" ")}`
+          ? (housingUnlockedVal > 0
+              ? `Aktiedepot: ${currency.format(start)} (${currency.format(initialStock)} indtastet aktieandel + ${currency.format(housingUnlockedVal)} frigjort boligfriværdi) · ${quickMathParts.join(" ")}`
+              : `Aktiedepot: ${currency.format(start)} (${stockSharePct} % af samlede frie midler ${currency.format(totalLiquid)}) · ${quickMathParts.join(" ")}`)
           : quickMathParts.join(" ");
 
         const steps = [];
         if (isFirstYear && hasCashAllocation) {
-          steps.push({ label: "Indtastede samlede frie midler", value: currency.format(totalLiquid) });
-          steps.push({ label: `Fratrukket kontantreserve i banken (${cashSharePct} %) (Frie Midler (kontant))`, value: `− ${currency.format(cashBal)}`, note: "Placeret i kolonnen 'Frie Midler (kontant)' som likviditetsbuffer" });
-          steps.push({ label: `Investeret aktiedepot (primo 1. jan ${yearDate})`, value: `= ${currency.format(start)}`, note: "Danner grundlag for årets aktieafkast og hævninger" });
+          steps.push({
+            label: "Indtastede samlede frie midler",
+            value: currency.format(inputTotalFree),
+            note: "Det samlede beløb i frie midler du har indtastet under 'Nuværende formue'"
+          });
+          steps.push({
+            label: `Fratrukket kontantreserve i banken (${inputCashPct} %) (Frie Midler (kontant))`,
+            value: `− ${currency.format(initialCash)}`,
+            note: "Placeret i kolonnen 'Frie Midler (kontant)' som likviditetsbuffer i henhold til din valgte kontantandel"
+          });
+          steps.push({
+            label: "Frie Midler (aktier) fra start",
+            value: `= ${currency.format(initialStock)}`,
+            note: "Din oprindelige investerede aktiebeholdning i frie midler"
+          });
+          if (housingUnlockedVal > 0) {
+            steps.push({
+              label: "Frigjort boligfriværdi ved FIRE",
+              value: `+ ${currency.format(housingUnlockedVal)}`,
+              note: "Overført fra boligens friværdi til det frie aktiedepot i henhold til dine indstillinger under Bolig & Friværdi"
+            });
+            steps.push({
+              label: `Samlet investeret aktiedepot (primo 1. jan ${yearDate})`,
+              value: `= ${currency.format(start)}`,
+              note: "Danner grundlag for årets aktieafkast og hævninger"
+            });
+          }
         } else {
           steps.push({
             label: `Startsaldo (primo 1. jan ${yearDate})`,
             value: currency.format(start),
             note: isFirstYear ? "Indtastet startsaldo ved planens start (før årets afkast og hævning)" : "Saldo ved årets start (før årets afkast og hævning)"
           });
+          if (housingUnlockedVal > 0) {
+            steps.push({
+              label: "Frigjort boligfriværdi ved pension/FIRE",
+              value: `+ ${currency.format(housingUnlockedVal)}`,
+              note: "Overført fra boligens friværdi til det frie aktiedepot i dette år"
+            });
+          }
         }
         if (withdrawal > 0) {
           steps.push({ label: "Hævet til forbrug (FIRE-bro)", value: `− ${currency.format(withdrawal)}`, note: "Hæves til årets forbrug" });
